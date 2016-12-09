@@ -178,41 +178,52 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 		seg.setOptimizeCoefficients(true);
 		seg.setModelType(pcl::SACMODEL_LINE);
 		seg.setMethodType(pcl::SAC_RANSAC);
-		seg.setDistanceThreshold(1);
+		seg.setDistanceThreshold(0.1);
 
 		seg.setInputCloud(cloud.makeShared());
 		seg.segment(inliers, coefficients);
 
 		if(inliers.indices.size() == 0)
 		{
-			PCL_ERROR("Could not estimate a planar model for the given dataset.");
+			PCL_ERROR("No inliers.");
 			break;
 		}
 
-//		if(inliers.indices.size() > 10)
-//		{
+		if(inliers.indices.size() > 50)
+		{
 			geometry_msgs::Point p;
 			geometry_msgs::Point q;
-			p.x = coefficients.values[2];
-			p.y = - coefficients.values[0];
-			p.z = coefficients.values[1];
-			q.x = p.x + coefficients.values[5]*t;
-			q.y = p.y - coefficients.values[3]*t;
-			q.z = p.z + coefficients.values[4]*t;
+//			p.x = coefficients.values[2];
+//			p.y = - coefficients.values[0];
+//			p.z = coefficients.values[1];
+//			q.x = p.x + coefficients.values[5]*t;
+//			q.y = p.y - coefficients.values[3]*t;
+//			q.z = p.z + coefficients.values[4]*t;
+
+			int last = inliers.indices.size() - 1;
+
+			p.x = cloud.points[inliers.indices[0]].z;
+			p.y = - cloud.points[inliers.indices[0]].x;
+			p.z = cloud.points[inliers.indices[0]].y;
+			q.x = cloud.points[inliers.indices[last]].z;
+			q.y = - cloud.points[inliers.indices[last]].x;
+			q.z = cloud.points[inliers.indices[last]].y;
 
 			marker.points.push_back(p);
 			marker.points.push_back(q);
 					
-			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud.begin();
-				
-			for(size_t i = 0; i < inliers.indices.size(); ++i)
-			{
-			   cloud.erase(cloud_iter + inliers.indices[i]);
-			} 
+		}
 
-			marker.lifetime = ros::Duration();
-			pub_marker.publish(marker);
-//		}
+		pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud.begin();
+			
+		for(size_t i = 0; i < inliers.indices.size(); ++i)
+		{
+		   cloud.erase(cloud_iter + inliers.indices[i]);
+		} 
+
+		marker.lifetime = ros::Duration();
+		pub_marker.publish(marker);
+
 	}
 
 }
