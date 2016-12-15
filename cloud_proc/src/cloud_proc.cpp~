@@ -206,7 +206,7 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 		in.clear();
 	}
 
-	// Concat clusters with separation below threshold
+	// Concat clusters 
 	if(!cluster_indices.empty())
 	{
 		for(size_t i = 0; i < cluster_indices.size()-1 ; ++i)
@@ -246,8 +246,9 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 		cloud_cluster->height = 1;
 		cloud_cluster->is_dense = true;
 
-//		while(true)
-//		{
+		// Do sequential multi RANSAC
+		while(true)
+		{
 
 			pcl::ModelCoefficients coefficients;
 			pcl::PointIndices inliers;
@@ -261,42 +262,41 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 			seg.setInputCloud(cloud_cluster);
 			seg.segment(inliers, coefficients);
 
-/*			if(inliers.indices.size() == 0)
+			if(inliers.indices.size() == 0)
 			{
 				PCL_ERROR("No inliers.");
 				break;
 			}
-*/
-//			if(inliers.indices.size() > 30)
-//			{
+
+			if(inliers.indices.size() > 30)
+			{
 				geometry_msgs::Point p;
 				geometry_msgs::Point q;
 
-				int last = inliers.indices.size() - 1;
-
-				p.x = cloud_cluster->points[inliers.indices[0]].z;
-				p.y = - cloud_cluster->points[inliers.indices[0]].x;
+				p.x = cloud_cluster->points[inliers.indices.front()].z;
+				p.y = - cloud_cluster->points[inliers.indices.front()].x;
 				p.z = 0;
-				q.x = cloud_cluster->points[inliers.indices[last]].z;
-				q.y = - cloud_cluster->points[inliers.indices[last]].x;
+				q.x = cloud_cluster->points[inliers.indices.back()].z;
+				q.y = - cloud_cluster->points[inliers.indices.back()].x;
 				q.z = 0;
 
 				marker.points.push_back(p);
 				marker.points.push_back(q);
-//			}
+			}
 
-/*			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
-				
-			for(size_t i = 0; i < inliers.indices.size(); ++i)
-			{
-			   cloud_cluster->erase(cloud_iter + inliers.indices[i]);
-			} 
+			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
+			cloud_cluster->erase(cloud_iter,cloud_iter + inliers.indices.back());
 
-*/			marker.lifetime = ros::Duration();
+//			for(size_t i = 0; i < inliers.indices.size(); ++i)
+//			{
+//			   cloud_cluster->erase(cloud_cluster.begin() + inliers.indices[i]);
+//			} 
+
+			marker.lifetime = ros::Duration();
 			pub_marker.publish(marker);
 
 
-//		}
+		}
 
 		j++;
 	}
