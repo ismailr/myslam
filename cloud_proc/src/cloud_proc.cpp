@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <iostream>
+#include <math.h>
 
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/LaserScan.h>
@@ -12,6 +13,7 @@
 #include <pcl/ModelCoefficients.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/distances.h>
 
 #include <pcl/features/normal_3d.h>
 #include <pcl/kdtree/kdtree.h>
@@ -145,7 +147,6 @@ pcl::PointCloud<pcl::PointXYZ> filter_cloud(pcl::PointCloud<pcl::PointXYZ> cloud
 //		filtered_cloud.push_back(cloud(i,height/2));
 		filtered_cloud.push_back(cloud(i,height));
 //		filtered_cloud.push_back(cloud(i,(3 * height)/2));
-//		std::cout << cloud(i,height).x << "," << cloud(i,height).y << "," << cloud(i,height).z << " | ";		
 	}
 
 	filtered_cloud.header.frame_id = cloud.header.frame_id;
@@ -183,6 +184,7 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 //	ec.extract(cluster_indices);
 
 
+	// NaN-based clustering
 	std::vector<int> in;
 	for(size_t i = 0; i < cloud.width; ++i)
 	{
@@ -203,7 +205,32 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 
 		in.clear();
 	}
-	
+
+	// Concat clusters with separation below threshold
+	if(!cluster_indices.empty())
+	{
+		for(size_t i = 0; i < cluster_indices.size()-1 ; ++i)
+		{
+			// calculate distance between consecutive clusters
+			if(!cluster_indices[i].indices.empty())
+			{
+				float dist = pcl::euclideanDistance(
+						cloud.points[cluster_indices[i].indices.back()],
+						cloud.points[cluster_indices[i+1].indices[0]]);
+				if(dist < 0.5)
+				{
+					cluster_indices[i].indices.reserve(
+							cluster_indices[i].indices.size() +
+							cluster_indices[i+1].indices.size()); 
+					cluster_indices[i].indices.insert(
+							cluster_indices[i].indices.end(),
+							cluster_indices[i+1].indices.begin(), 
+							cluster_indices[i+1].indices.end());
+					cluster_indices.erase(cluster_indices.begin() + i);
+				}
+			}
+		}
+	}
 
 	int j = 0;
 	for(std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin();
@@ -219,96 +246,58 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 		cloud_cluster->height = 1;
 		cloud_cluster->is_dense = true;
 
-		pcl::ModelCoefficients coefficients;
-		pcl::PointIndices inliers;
+//		while(true)
+//		{
 
-		pcl::SACSegmentation<pcl::PointXYZ> seg;
-		seg.setOptimizeCoefficients(true);
-		seg.setModelType(pcl::SACMODEL_LINE);
-		seg.setMethodType(pcl::SAC_RANSAC);
-		seg.setDistanceThreshold(0.01);
+			pcl::ModelCoefficients coefficients;
+			pcl::PointIndices inliers;
 
-		seg.setInputCloud(cloud_cluster);
-		seg.segment(inliers, coefficients);
+			pcl::SACSegmentation<pcl::PointXYZ> seg;
+			seg.setOptimizeCoefficients(true);
+			seg.setModelType(pcl::SACMODEL_LINE);
+			seg.setMethodType(pcl::SAC_RANSAC);
+			seg.setDistanceThreshold(0.01);
 
-		geometry_msgs::Point p;
-		geometry_msgs::Point q;
+			seg.setInputCloud(cloud_cluster);
+			seg.segment(inliers, coefficients);
 
-		int last = inliers.indices.size() - 1;
+/*			if(inliers.indices.size() == 0)
+			{
+				PCL_ERROR("No inliers.");
+				break;
+			}
+*/
+//			if(inliers.indices.size() > 30)
+//			{
+				geometry_msgs::Point p;
+				geometry_msgs::Point q;
 
-		p.x = cloud_cluster->points[inliers.indices[0]].z;
-		p.y = - cloud_cluster->points[inliers.indices[0]].x;
-		p.z = 0;
-		q.x = cloud_cluster->points[inliers.indices[last]].z;
-		q.y = - cloud_cluster->points[inliers.indices[last]].x;
-		q.z = 0;
+				int last = inliers.indices.size() - 1;
 
-		marker.points.push_back(p);
-		marker.points.push_back(q);
+				p.x = cloud_cluster->points[inliers.indices[0]].z;
+				p.y = - cloud_cluster->points[inliers.indices[0]].x;
+				p.z = 0;
+				q.x = cloud_cluster->points[inliers.indices[last]].z;
+				q.y = - cloud_cluster->points[inliers.indices[last]].x;
+				q.z = 0;
 
-		marker.lifetime = ros::Duration();
-		pub_marker.publish(marker);
+				marker.points.push_back(p);
+				marker.points.push_back(q);
+//			}
+
+/*			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
+				
+			for(size_t i = 0; i < inliers.indices.size(); ++i)
+			{
+			   cloud_cluster->erase(cloud_iter + inliers.indices[i]);
+			} 
+
+*/			marker.lifetime = ros::Duration();
+			pub_marker.publish(marker);
+
+
+//		}
+
 		j++;
-
 	}
-
-//	while(true)
-//	{
-//		pcl::ModelCoefficients coefficients;
-//		pcl::PointIndices inliers;
-//
-//		pcl::SACSegmentation<pcl::PointXYZ> seg;
-//		seg.setOptimizeCoefficients(true);
-//		seg.setModelType(pcl::SACMODEL_LINE);
-//		seg.setMethodType(pcl::SAC_RANSAC);
-//		seg.setDistanceThreshold(0.1);
-//
-//		seg.setInputCloud(cloud.makeShared());
-//		seg.segment(inliers, coefficients);
-//
-//		if(inliers.indices.size() == 0)
-//		{
-//			PCL_ERROR("No inliers.");
-//			break;
-//		}
-//
-//		if(inliers.indices.size() > 20)
-//		{
-//			geometry_msgs::Point p;
-//			geometry_msgs::Point q;
-////			p.x = coefficients.values[2];
-////			p.y = - coefficients.values[0];
-////			p.z = coefficients.values[1];
-////			q.x = p.x + coefficients.values[5]*t;
-////			q.y = p.y - coefficients.values[3]*t;
-////			q.z = p.z + coefficients.values[4]*t;
-//
-//			int last = inliers.indices.size() - 1;
-//
-//			p.x = cloud.points[inliers.indices[0]].z;
-//			p.y = - cloud.points[inliers.indices[0]].x;
-////			p.z = - cloud.points[inliers.indices[0]].y;
-//			p.z = 0;
-//			q.x = cloud.points[inliers.indices[last]].z;
-//			q.y = - cloud.points[inliers.indices[last]].x;
-////			q.z = - cloud.points[inliers.indices[last]].y;
-//			q.z = 0;
-//
-//			marker.points.push_back(p);
-//			marker.points.push_back(q);
-//					
-//		}
-//
-//		pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud.begin();
-//			
-//		for(size_t i = 0; i < inliers.indices.size(); ++i)
-//		{
-//		   cloud.erase(cloud_iter + inliers.indices[i]);
-//		} 
-//
-//		marker.lifetime = ros::Duration();
-//		pub_marker.publish(marker);
-
-//	}
-
 }
