@@ -17,6 +17,7 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+
 ros::Publisher pub_filtered_cloud;
 ros::Publisher pub_marker;
 ros::Publisher pub_line_segment;
@@ -49,7 +50,7 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 	marker.color.a = 1.0;
 	marker.color.r = 0.0;
 	marker.color.g = 1.0;
-	marker.color.b = 1.0;
+	marker.color.b = 1.0; 
 
 	std::vector<pcl::PointIndices> cluster_indices;
 
@@ -191,6 +192,8 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input_point)
 int
 main (int argc, char** argv)
 {
+	pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+
 	ros::init(argc,argv,"cloud_proc");
 	ros::NodeHandle nh;
 

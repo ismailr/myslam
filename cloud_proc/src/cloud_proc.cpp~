@@ -17,8 +17,9 @@
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
 
+
 ros::Publisher pub_filtered_cloud;
-ros::Publisher pub_marker;
+//ros::Publisher pub_marker;
 ros::Publisher pub_line_segment;
 
 pcl::PointCloud<pcl::PointXYZ> 
@@ -37,7 +38,7 @@ filter_cloud(pcl::PointCloud<pcl::PointXYZ> cloud)
 
 void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 {
-	visualization_msgs::Marker marker;
+/*	visualization_msgs::Marker marker;
 	marker.header.frame_id = "base_link";
 	marker.header.stamp = ros::Time::now();
 
@@ -49,7 +50,8 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 	marker.color.a = 1.0;
 	marker.color.r = 0.0;
 	marker.color.g = 1.0;
-	marker.color.b = 1.0;
+	marker.color.b = 1.0; 
+	*/
 
 	std::vector<pcl::PointIndices> cluster_indices;
 
@@ -158,15 +160,15 @@ void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 				line_segment.data.push_back(q.y);
 //				line_segment.data.push_back(q.z);
 
-				marker.points.push_back(p);
-				marker.points.push_back(q);
+//				marker.points.push_back(p);
+//				marker.points.push_back(q);
 			}
 
 			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
 			cloud_cluster->erase(cloud_iter,cloud_iter + inliers.indices.back());
 
-			marker.lifetime = ros::Duration();
-			pub_marker.publish(marker);
+//			marker.lifetime = ros::Duration();
+//			pub_marker.publish(marker);
 			pub_line_segment.publish(line_segment);
 		}
 
@@ -191,13 +193,15 @@ cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input_point)
 int
 main (int argc, char** argv)
 {
+	pcl::console::setVerbosityLevel(pcl::console::L_ALWAYS);
+
 	ros::init(argc,argv,"cloud_proc");
 	ros::NodeHandle nh;
 
 	ros::Subscriber sub_point = nh.subscribe ("pointcloud", 1, cloud_cb);
 
 	pub_filtered_cloud = nh.advertise<sensor_msgs::PointCloud2> ("filtered_pointcloud",1);
-	pub_marker = nh.advertise<visualization_msgs::Marker> ("line_strip",1);
+//	pub_marker = nh.advertise<visualization_msgs::Marker> ("line_strip",1);
 	pub_line_segment = nh.advertise<std_msgs::Float64MultiArray> ("line_segment",1);
 
 	ros::spin();
