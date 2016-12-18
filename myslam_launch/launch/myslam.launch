@@ -1,0 +1,15 @@
+<launch>
+	<arg name="dataset" default="true" />
+
+	<include file="$(find freenect_launch)/launch/freenect.launch" />
+
+	<node pkg="rviz" type="rviz" name="rviz"/>
+	<node pkg="cloud_proc" type="cloud_proc" name="cloud_proc" args="pointcloud:=/camera/depth/points" />
+
+	<group if="$(arg dataset)">
+		<arg name="file" default="/home/ism/data/dataset/cv/mitset/2012-04-06-11-15-29.bag" />
+		<param name="use_sim_time" value="true" />
+		<node pkg="rosbag" type="play" name="player" args="--clock --l $(arg file)" />
+	</group>
+</launch>
+
