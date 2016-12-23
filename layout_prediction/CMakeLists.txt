@@ -117,7 +117,8 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS}
+	include
+	${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -131,7 +132,10 @@ include_directories(
 # add_dependencies(layout_prediction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(layout_prediction src/layout_prediction.cpp)
+add_executable(layout_prediction 
+	src/layout_prediction.cpp
+	src/helpers.cpp
+)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -139,7 +143,7 @@ add_executable(layout_prediction src/layout_prediction.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(layout_prediction
-  ${catkin_LIBRARIES}
+	${catkin_LIBRARIES}
 )
 
 #############
