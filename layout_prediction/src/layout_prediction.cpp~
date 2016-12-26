@@ -24,13 +24,13 @@ ros::Publisher pub_filtered_cloud;
 
 void cloud_cb (const sensor_msgs::PointCloud2::ConstPtr&);
 void odometry_cb (const nav_msgs::Odometry::ConstPtr&);
-std::vector<geometry_msgs::PointStamped> generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ>);
+void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ>&, std::vector<geometry_msgs::PointStamped>&);
+geometry_msgs::PointStamped transformPoint (const tf::TransformListener&, geometry_msgs::PointStamped);
 
 void visualize_walls (std::vector<geometry_msgs::PointStamped>);
 
 // This is container for line_segments representing walls
 std::vector<wall> walls;
-
 
 int
 main (int argc, char** argv)
@@ -40,6 +40,8 @@ main (int argc, char** argv)
 	ros::init(argc,argv,"layout_prediction");
 	ros::NodeHandle nh;
 
+//	tf::TransformListener listener (ros::Duration(10));
+//	ros::Timer timer = nh.createTimer (ros::Duration (1.0), boost::bind (&transformPoint, boost::ref (listener)));
 
 	ros::Subscriber sub_cloud = nh.subscribe ("cloud", 1, cloud_cb);
 	ros::Subscriber sub_odometry = nh.subscribe ("odometry", 1, odometry_cb);
@@ -52,11 +54,11 @@ main (int argc, char** argv)
 	return 0;
 }
 
+int frame = 0;
+
 void
 cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 {
-	tf::TransformListener listener (ros::Duration(10));
-
 	pcl::PointCloud<pcl::PointXYZ> cloud;
 	pcl::fromROSMsg(*input_cloud,cloud);
 
@@ -69,54 +71,29 @@ cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 	filtered_cloud.header.frame_id = cloud.header.frame_id;
 	filtered_cloud.header.seq = cloud.header.seq;
 	filtered_cloud.header.stamp = cloud.header.stamp;
-	
+
 	std::vector<geometry_msgs::PointStamped> lines;
-	lines = generate_lines_ransac (filtered_cloud);
+//	lines = generate_lines_ransac (filtered_cloud);
+	generate_lines_ransac (filtered_cloud,lines);
+	visualize_walls(lines);
 
-	for (size_t i = 0; i < lines.size(); ++i)
-	{
-		geometry_msgs::PointStamped r;
-		listener.transformPoint ("odom", lines[i], r);
-	}
+	ROS_INFO ("Frame no. %i", frame++);
 
-/*	for(size_t i = 0; i < lines.size(); i = i + 2)
+	int garis_ke = 1;
+	for (size_t i = 0; i < lines.size(); i = i + 2)
 	{
 		line_segment ls;
-		ls.p = lines[i].point.p;
-		ls.q = lines[i].point.q;
+		ls.p = lines[i].point;
+		ls.q = lines[i+1].point;
 
-		line l = points_to_line_eq (ls); 
+		line l;
+		l = points_to_line_eq (ls);
 
-		wall w;
-		w.boundaries = ls;
-		w.line_equation = l;
-
-		if(walls.empty())
-			walls.push_back (w);
-		else
-		{
-			for (size_t j = 0; j < walls.size(); ++j)
-			{
-				if (w.line_equation.slope - walls[i].line_equation.slope < 0.5 &&
-				    w.line_equation.intercept - walls[i].line_equation.intercept < 0.5)
-				{
-
-
-				}
-
-
-			}
-
-		}
-
+		ROS_INFO ("Garis ke %i, \t grad=%.2f: \t intercept= %.2f", garis_ke++, 
+				l.slope,
+				l.intercept);
 	}
-*/	
-	// push_back line to walls
-	// check for data association
-	// input walls to visualize_walls
 
-	visualize_walls(lines);
-	
 	pub_filtered_cloud.publish(filtered_cloud);
 }
 
@@ -124,7 +101,6 @@ void
 odometry_cb (const nav_msgs::Odometry::ConstPtr& odometry)
 {
 }
-
 
 void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
 {
@@ -161,12 +137,31 @@ void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
 	}
 }
 
-std::vector<geometry_msgs::PointStamped>
-generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
+geometry_msgs::PointStamped
+transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p)
+{
+	geometry_msgs::PointStamped q;
+
+	try{
+		listener.waitForTransform ("/openni_rgb_optical_frame","/base_link",p.header.stamp,ros::Duration(3.0));
+		listener.transformPoint ("/base_link", p, q);
+//			ROS_INFO ("p: (%.2f,%.2f,%.2f) -----> q: (%.2f,%.2f,%.2f) at time %.2f",
+//					lines[i].point.x,lines[i].point.y,lines[i].point.z,
+//					q.point.x,q.point.y,q.point.z,
+//					q.header.stamp.toSec());
+	} catch (tf::TransformException ex) {
+		ROS_ERROR ("%s",ex.what());
+	}
+
+	return q;
+}
+
+void
+generate_lines_ransac (pcl::PointCloud<pcl::PointXYZ>& cloud, std::vector<geometry_msgs::PointStamped>& lines)
 {
 
-	std::vector<geometry_msgs::PointStamped> lines;
 	std::vector<pcl::PointIndices> cluster_indices;
+	tf::TransformListener listener;
 
 	// NaN-based clustering
 	std::vector<int> in;
@@ -261,18 +256,30 @@ generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 
 				p.header.frame_id = cloud.header.frame_id;
 				p.header.seq = cloud.header.seq;
+//				p.header.stamp = (ros::Time) cloud.header.stamp;
 				q.header.frame_id = cloud.header.frame_id;
 				q.header.seq = cloud.header.seq;
+//				q.header.stamp = (ros::Time) cloud.header.stamp;
 
-				p.point.x = cloud_cluster->points[inliers.indices.front()].z;
+/*				p.point.x = cloud_cluster->points[inliers.indices.front()].z;
 				p.point.y = - cloud_cluster->points[inliers.indices.front()].x;
 				p.point.z = 0;
 				q.point.x = cloud_cluster->points[inliers.indices.back()].z;
 				q.point.y = - cloud_cluster->points[inliers.indices.back()].x;
 				q.point.z = 0;
+*/				
+				p.point.x = cloud_cluster->points[inliers.indices.front()].x;
+				p.point.y = cloud_cluster->points[inliers.indices.front()].y;
+				p.point.z = cloud_cluster->points[inliers.indices.front()].z;
+				q.point.x = cloud_cluster->points[inliers.indices.back()].x;
+				q.point.y = cloud_cluster->points[inliers.indices.back()].y;
+				q.point.z = cloud_cluster->points[inliers.indices.back()].z;
 
-				lines.push_back(p);
-				lines.push_back(q);
+				lines.push_back(transformPoint (boost::ref (listener), p));
+				lines.push_back(transformPoint (boost::ref (listener), q));
+
+//				lines.push_back(p);
+//				lines.push_back(q);
 			}
 
 			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
@@ -281,6 +288,4 @@ generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ> cloud)
 
 		j++;
 	}
-
-	return lines;
 }
