@@ -4,7 +4,6 @@
 	<include file="$(find freenect_launch)/launch/freenect.launch" />
 
 	<node pkg="rviz" type="rviz" name="rviz"/>
-<!--	<node pkg="cloud_proc" type="cloud_proc" name="cloud_proc" args="cloud:=/camera/depth/points" output="screen" /> -->
 	<node pkg="layout_prediction" type="layout_prediction" name="layout_prediction" args="cloud:=/camera/depth/points odometry:=/base_odometry/odom" output="screen" />
 
 	<group if="$(arg dataset)">

@@ -2,12 +2,12 @@
 
 float calculate_slope (line_segment ls)
 {
-	if(ls.p.point.x == ls.q.point.x)
+	if(ls.p.x == ls.q.x)
 		return 0.0;
 
 	// slope = (y2 - y1)/(x2 - x1)
-	float dividend = (ls.q.point.y - ls.p.point.y);
-	float divisor = (ls.q.point.x - ls.p.point.x);
+	float dividend = (ls.q.y - ls.p.y);
+	float divisor = (ls.q.x - ls.p.x);
 
 	return dividend/divisor;
 }
@@ -23,7 +23,7 @@ line points_to_line_eq (line_segment ls)
 	// y2 = m.x2 + c
 	// with c = m.x1 + y1
 	
-	float intercept = slope * ls.p.point.x + ls.p.point.y;
+	float intercept = slope * ls.p.x + ls.p.y;
 
 	line calculated_line;
         calculated_line.slope = slope;

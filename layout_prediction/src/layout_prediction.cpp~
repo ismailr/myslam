@@ -54,8 +54,6 @@ main (int argc, char** argv)
 	return 0;
 }
 
-int frame = 0;
-
 void
 cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 {
@@ -70,14 +68,13 @@ cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 
 	filtered_cloud.header.frame_id = cloud.header.frame_id;
 	filtered_cloud.header.seq = cloud.header.seq;
-	filtered_cloud.header.stamp = cloud.header.stamp;
+//	filtered_cloud.header.stamp = cloud.header.stamp;
 
 	std::vector<geometry_msgs::PointStamped> lines;
-//	lines = generate_lines_ransac (filtered_cloud);
 	generate_lines_ransac (filtered_cloud,lines);
 	visualize_walls(lines);
 
-	ROS_INFO ("Frame no. %i", frame++);
+//	std::cout << std::endl << "Sekuens no. " << cloud.header.seq << std::endl;
 
 	int garis_ke = 1;
 	for (size_t i = 0; i < lines.size(); i = i + 2)
@@ -89,10 +86,12 @@ cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 		line l;
 		l = points_to_line_eq (ls);
 
-		ROS_INFO ("Garis ke %i, \t grad=%.2f: \t intercept= %.2f", garis_ke++, 
-				l.slope,
-				l.intercept);
+//		ROS_INFO ("Garis ke %i, \t grad=%.2f: \t intercept= %.2f", garis_ke++, 
+//				l.slope,
+//				l.intercept);
+		std::cout << l.slope << "\t" << l.intercept << std::endl;
 	}
+	std::cout << std::endl;
 
 	pub_filtered_cloud.publish(filtered_cloud);
 }
@@ -102,21 +101,19 @@ odometry_cb (const nav_msgs::Odometry::ConstPtr& odometry)
 {
 }
 
+int marker_id = 0;
 void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
 {
 	visualization_msgs::Marker marker;
-	marker.header.frame_id = "base_link";
-	marker.header.stamp = ros::Time::now();
+	marker.header.frame_id = "odom_combined";
+//	marker.header.stamp = ros::Time::now();
 
-	marker.id = 0;
+	marker.id = marker_id++;
 	marker.type = visualization_msgs::Marker::LINE_LIST;
 
 	marker.action = visualization_msgs::Marker::ADD;
 	marker.scale.x = 0.1;
 	marker.color.a = 1.0;
-	marker.color.r = 0.0;
-	marker.color.g = 1.0;
-	marker.color.b = 1.0;
 
 	if(lines.size() != 0)
 	{
@@ -125,8 +122,12 @@ void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
 			geometry_msgs::Point p;
 			geometry_msgs::Point q;
 			
-			p = lines[i].point;
-			q = lines[i+1].point;
+			p = lines[i].point; p.z = 0;
+			q = lines[i+1].point; q.z = 0;
+
+			marker.color.r = p.x;
+			marker.color.g = p.y;
+			marker.color.b = 1.0;
 
 			marker.points.push_back(p);
 			marker.points.push_back(q);
@@ -143,8 +144,8 @@ transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStampe
 	geometry_msgs::PointStamped q;
 
 	try{
-		listener.waitForTransform ("/openni_rgb_optical_frame","/base_link",p.header.stamp,ros::Duration(3.0));
-		listener.transformPoint ("/base_link", p, q);
+		listener.waitForTransform ("/openni_rgb_optical_frame","/odom_combined",p.header.stamp,ros::Duration(3.0));
+		listener.transformPoint ("/odom_combined", p, q);
 //			ROS_INFO ("p: (%.2f,%.2f,%.2f) -----> q: (%.2f,%.2f,%.2f) at time %.2f",
 //					lines[i].point.x,lines[i].point.y,lines[i].point.z,
 //					q.point.x,q.point.y,q.point.z,
@@ -261,13 +262,6 @@ generate_lines_ransac (pcl::PointCloud<pcl::PointXYZ>& cloud, std::vector<geomet
 				q.header.seq = cloud.header.seq;
 //				q.header.stamp = (ros::Time) cloud.header.stamp;
 
-/*				p.point.x = cloud_cluster->points[inliers.indices.front()].z;
-				p.point.y = - cloud_cluster->points[inliers.indices.front()].x;
-				p.point.z = 0;
-				q.point.x = cloud_cluster->points[inliers.indices.back()].z;
-				q.point.y = - cloud_cluster->points[inliers.indices.back()].x;
-				q.point.z = 0;
-*/				
 				p.point.x = cloud_cluster->points[inliers.indices.front()].x;
 				p.point.y = cloud_cluster->points[inliers.indices.front()].y;
 				p.point.z = cloud_cluster->points[inliers.indices.front()].z;
@@ -278,8 +272,16 @@ generate_lines_ransac (pcl::PointCloud<pcl::PointXYZ>& cloud, std::vector<geomet
 				lines.push_back(transformPoint (boost::ref (listener), p));
 				lines.push_back(transformPoint (boost::ref (listener), q));
 
-//				lines.push_back(p);
-//				lines.push_back(q);
+/*				p.point.x = cloud_cluster->points[inliers.indices.front()].z;
+				p.point.y = - cloud_cluster->points[inliers.indices.front()].x;
+				p.point.z = 0;
+				q.point.x = cloud_cluster->points[inliers.indices.back()].z;
+				q.point.y = - cloud_cluster->points[inliers.indices.back()].x;
+				q.point.z = 0;
+				
+				lines.push_back(p);
+				lines.push_back(q);
+*/
 			}
 
 			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
