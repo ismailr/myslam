@@ -9,7 +9,9 @@
 	<group if="$(arg dataset)">
 		<arg name="file" default="/home/ism/data/dataset/cv/mitset/2012-04-06-11-15-29.bag" />
 		<param name="use_sim_time" value="true" />
-		<node pkg="rosbag" type="play" name="player" args="--clock --l $(arg file)" />
+		<node pkg="rosbag" type="play" name="player" args="--clock $(arg file)" />
 	</group>
+	<node pkg="gmapping" type="slam_gmapping" name="gmapping" args="scan:=base_scan _odom_frame:=odom_combined" />
+
 </launch>
 

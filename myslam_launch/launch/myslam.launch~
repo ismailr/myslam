@@ -11,5 +11,7 @@
 		<param name="use_sim_time" value="true" />
 		<node pkg="rosbag" type="play" name="player" args="--clock --l $(arg file)" />
 	</group>
+	<node pkg="gmapping" type="slam_gmapping" name="gmapping" args="scan:=base_scan _odom_frame:=odom_combined" />
+
 </launch>
 

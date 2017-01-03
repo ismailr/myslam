@@ -89,9 +89,9 @@ cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 //		ROS_INFO ("Garis ke %i, \t grad=%.2f: \t intercept= %.2f", garis_ke++, 
 //				l.slope,
 //				l.intercept);
-		std::cout << l.slope << "\t" << l.intercept << std::endl;
+//		std::cout << l.slope << "\t" << l.intercept << std::endl;
 	}
-	std::cout << std::endl;
+//	std::cout << std::endl;
 
 	pub_filtered_cloud.publish(filtered_cloud);
 }
