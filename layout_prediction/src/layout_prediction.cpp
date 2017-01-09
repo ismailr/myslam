@@ -16,14 +16,15 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/filters/statistical_outlier_removal.h>
 
 #include <layout_prediction/helpers.h>
 
 ros::Publisher pub_marker;
 ros::Publisher pub_filtered_cloud;
 
-void cloud_cb (const sensor_msgs::PointCloud2::ConstPtr&);
-void odometry_cb (const nav_msgs::Odometry::ConstPtr&);
+void cloud_cb (const sensor_msgs::PointCloud2::Ptr&);
+void odometry_cb (const nav_msgs::Odometry::Ptr&);
 void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ>&, std::vector<geometry_msgs::PointStamped>&);
 geometry_msgs::PointStamped transformPoint (const tf::TransformListener&, geometry_msgs::PointStamped);
 
@@ -55,7 +56,7 @@ main (int argc, char** argv)
 }
 
 void
-cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
+cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 {
 	pcl::PointCloud<pcl::PointXYZ> cloud;
 	pcl::fromROSMsg(*input_cloud,cloud);
@@ -68,15 +69,20 @@ cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 
 	filtered_cloud.header.frame_id = cloud.header.frame_id;
 	filtered_cloud.header.seq = cloud.header.seq;
-//	filtered_cloud.header.stamp = cloud.header.stamp;
+
+	pcl::PointCloud<pcl::PointXYZ> f;
+
+	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+	sor.setInputCloud(filtered_cloud.makeShared());
+	sor.setMeanK(50);
+	sor.setStddevMulThresh(1.0);
+	sor.filter(f);
 
 	std::vector<geometry_msgs::PointStamped> lines;
-	generate_lines_ransac (filtered_cloud,lines);
+//	generate_lines_ransac (filtered_cloud,lines);
+	generate_lines_ransac (f,lines);
 	visualize_walls(lines);
 
-//	std::cout << std::endl << "Sekuens no. " << cloud.header.seq << std::endl;
-
-	int garis_ke = 1;
 	for (size_t i = 0; i < lines.size(); i = i + 2)
 	{
 		line_segment ls;
@@ -85,19 +91,13 @@ cloud_cb (const sensor_msgs::PointCloud2::ConstPtr& input_cloud)
 
 		line l;
 		l = points_to_line_eq (ls);
-
-//		ROS_INFO ("Garis ke %i, \t grad=%.2f: \t intercept= %.2f", garis_ke++, 
-//				l.slope,
-//				l.intercept);
-//		std::cout << l.slope << "\t" << l.intercept << std::endl;
 	}
-//	std::cout << std::endl;
 
 	pub_filtered_cloud.publish(filtered_cloud);
 }
 
 void
-odometry_cb (const nav_msgs::Odometry::ConstPtr& odometry)
+odometry_cb (const nav_msgs::Odometry::Ptr& odometry)
 {
 }
 
