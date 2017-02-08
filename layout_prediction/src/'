@@ -83,7 +83,7 @@ cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 	std::vector<geometry_msgs::PointStamped> lines;
 //	generate_lines_ransac (filtered_cloud,lines);
 	generate_lines_ransac (f,lines);
-//	visualize_walls(lines);
+	visualize_walls(lines);
 
 	for (size_t i = 0; i < lines.size(); i = i + 2)
 	{
@@ -107,24 +107,6 @@ cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 
 	}
 
-	std::vector<geometry_msgs::PointStamped> lines2;
-
-	if(walls.size() != 0)
-	{
-		for(int i = 0; i < walls.size(); i++)
-		{
-			geometry_msgs::PointStamped _p; 
-			_p.point = walls[i].boundaries.p;
-			lines2.push_back(_p);
-
-			geometry_msgs::PointStamped _q; 
-			_q.point = walls[i].boundaries.q;
-			lines2.push_back(_q);
-		}
-	}
-
-	visualize_walls(lines2);
-
 	pub_filtered_cloud.publish(filtered_cloud);
 }
 
@@ -140,8 +122,7 @@ void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
 	marker.header.frame_id = "odom_combined";
 //	marker.header.stamp = ros::Time::now();
 
-//	marker.id = marker_id++;
-	marker.id = 0;
+	marker.id = marker_id++;
 	marker.type = visualization_msgs::Marker::LINE_LIST;
 
 	marker.action = visualization_msgs::Marker::ADD;
@@ -337,30 +318,15 @@ generate_lines_ransac (pcl::PointCloud<pcl::PointXYZ>& cloud, std::vector<geomet
 	}
 }
 
-bool data_associate(std::vector<wall> w,line l,int& index)
+bool data_associate(std::vector<wall> w,line l,int& i)
 {
-	int threshold = 10;
-
 	std::vector<int> distances;
 	for(int i = 0; i < w.size(); i++)
 	{
-		float slope_d = w[i].line_equation.slope - l.slope;
-		float intercept_d = w[i].line_equation.intercept - l.intercept;
-		float d = sqrt(pow(slope_d,2) + pow(intercept_d,2));
+		float slope_d = w[i].line_equation.slope - l.line_equation.slope;
+		float intercept_d = w[i].line_equation.intercept - l.line_equation.intercept;
+		d = sqrt(pow(slope_d,2) + pow(intercept_d,2));
 
-		distances.push_back(d);
-	}
-
-
-	if(distances.size() != 0)
-	{
-		std::vector<int>::iterator in = std::min_element(distances.begin(),distances.end());
-
-		if (*in < threshold)
-		{
-			index = in - distances.begin();
-			return true;
-		}
 	}
 
 	return false;

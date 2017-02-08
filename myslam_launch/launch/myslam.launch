@@ -1,7 +1,7 @@
 <launch>
 	<arg name="dataset" default="true" />
 
-	<include file="$(find freenect_launch)/launch/freenect.launch" />
+	<include file="$(find freenect_launch)/launch/freenect.launch" output="log" />
 
 	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find myslam_launch)myslam.rviz" />
 	<node pkg="layout_prediction" type="layout_prediction" name="layout_prediction" args="cloud:=/camera/depth/points odometry:=/base_odometry/odom" output="screen"  />
