@@ -13,7 +13,6 @@ Panels:
         - /Axes1
         - /Marker1
         - /Map1
-        - /Map1/Status1
         - /Map1/Position1
         - /Map1/Orientation1
       Splitter Ratio: 0.5
@@ -62,8 +61,8 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.29348302
-        Min Value: 2.30230188
+        Max Value: 2.621696
+        Min Value: 2.09784055
         Value: true
       Axis: Z
       Channel Name: intensity
@@ -83,7 +82,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.00999999978
-      Style: Flat Squares
+      Style: Points
       Topic: /filtered_cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -119,7 +118,7 @@ Visualization Manager:
       Marker Topic: /line_strip
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.300000012

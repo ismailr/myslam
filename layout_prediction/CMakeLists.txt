@@ -11,11 +11,14 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   pcl_conversions
   pcl_ros
+  cmake_modules
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(G2O REQUIRED)
+find_package(CSparse REQUIRED)
+find_package(Eigen REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -119,6 +122,8 @@ catkin_package(
 include_directories(
 	include
 	${catkin_INCLUDE_DIRS}
+	${CSPARSE_INCLUDE_DIR}
+    ${EIGEN_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -135,6 +140,8 @@ include_directories(
 add_executable(layout_prediction 
 	src/layout_prediction.cpp
 	src/helpers.cpp
+#	src/vertex_se2.cpp
+#	src/edge_se2.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -144,7 +151,14 @@ add_executable(layout_prediction
 ## Specify libraries to link a library or executable target against
 target_link_libraries(layout_prediction
 	${catkin_LIBRARIES}
+	${G2O_CORE_LIBRARY}
+	${G2O_STUFF_LIBRARY}
+	${G2O_SOLVER_CSPARSE}
+	${G2O_SOLVER_CSPARSE_EXTENSION}
+    ${G2O_TYPES_SLAM3D}
 )
+
+add_definitions(-std=c++11)
 
 #############
 ## Install ##
