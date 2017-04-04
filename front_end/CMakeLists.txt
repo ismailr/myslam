@@ -1,25 +1,24 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(layout_prediction)
+project(front_end)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  std_msgs
-  tf
-  geometry_msgs
-  pcl_conversions
-  pcl_ros
   cmake_modules
   cv_bridge
+  roscpp
+  rospy
+  sensor_msgs
+  std_msgs
+  tf
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(G2O REQUIRED)
-find_package(CSparse REQUIRED)
 find_package(Eigen REQUIRED)
+find_package(OpenCV REQUIRED)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -74,7 +73,7 @@ find_package(Eigen REQUIRED)
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
-#   std_msgs
+#   sensor_msgs#   std_msgs
 # )
 
 ################################################
@@ -108,9 +107,9 @@ find_package(Eigen REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros
-#  DEPENDS system_lib
+#  LIBRARIES front_end
+#  CATKIN_DEPENDS cmake_modules cv_bridge roscpp rospy sensor_msgs std_msgs tf
+#  DEPENDS Eigen OpenCV
 )
 
 ###########
@@ -120,46 +119,36 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+# TODO: Check names of system library include directories (Eigen, OpenCV)
 include_directories(
-	include
-	${catkin_INCLUDE_DIRS}
-	${CSPARSE_INCLUDE_DIR}
-    ${EIGEN_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(layout_prediction
-#   src/${PROJECT_NAME}/layout_prediction.cpp
+# add_library(front_end
+#   src/${PROJECT_NAME}/front_end.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(layout_prediction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(front_end ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(layout_prediction 
-	src/layout_prediction.cpp
-	src/helpers.cpp
-#	src/vertex_se2.cpp
-#	src/edge_se2.cpp
-)
+add_executable(front_end src/front_end.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(layout_prediction_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(front_end_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(layout_prediction
-	${catkin_LIBRARIES}
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_SLAM3D}
+ target_link_libraries(front_end
+   ${catkin_LIBRARIES}
+   ${Eigen_LIBRARIES}
+   ${OpenCV_LIBRARIES}
 )
-
-add_definitions(-std=c++11)
 
 #############
 ## Install ##
@@ -176,7 +165,7 @@ add_definitions(-std=c++11)
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS layout_prediction layout_prediction_node
+# install(TARGETS front_end front_end_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -201,7 +190,7 @@ add_definitions(-std=c++11)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_layout_prediction.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_front_end.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -3,8 +3,11 @@
 
 	<include file="$(find freenect_launch)/launch/freenect.launch" output="log" />
 
-	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find myslam_launch)myslam.rviz" />
-	<node pkg="layout_prediction" type="layout_prediction" name="layout_prediction" args="cloud:=/camera/depth/points odometry:=/base_odometry/odom" output="screen"  />
+<!--	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find myslam_launch)myslam_depth.rviz" /> -->
+<!--	<node pkg="layout_prediction" type="layout_prediction" name="layout_prediction" args="cloud:=/camera/depth/points odometry:=/base_odometry/odom" output="screen"  /> -->
+	<node pkg="front_end" type="front_end" name="front_end" args="depth:=/camera/depth/image_raw image:=/camera/rgb/image_raw" output="screen"  />
+	<node pkg="image_view" type="image_view" name="depth_view" args="image:=/depth_out" output="screen"  />
+	<node pkg="image_view" type="image_view" name="image_view" args="image:=/rgb_out" output="screen"  />
 	<group if="$(arg dataset)">
 		<arg name="file" default="/home/ism/data/dataset/cv/mitset/2012-04-06-11-15-29.bag" />
 		<param name="use_sim_time" value="true" />

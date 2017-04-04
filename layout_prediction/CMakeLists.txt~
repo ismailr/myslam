@@ -155,7 +155,6 @@ target_link_libraries(layout_prediction
 	${G2O_STUFF_LIBRARY}
 	${G2O_SOLVER_CSPARSE}
 	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_DATA}
     ${G2O_TYPES_SLAM3D}
 )
 

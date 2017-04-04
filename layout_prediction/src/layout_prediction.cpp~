@@ -2,6 +2,7 @@
 #include <iostream>
 #include <math.h>
 #include <algorithm>
+#include <fstream>
 #include <stdlib.h>
 
 #include <geometry_msgs/Point.h>
@@ -37,20 +38,24 @@
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/types/slam3d/vertex_se3.h>
+#include <Eigen/Core>
 
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/layout_prediction.h"
 
 ros::Publisher pub_marker;
 ros::Publisher pub_filtered_cloud;
+ros::Publisher pub_image_depth;
 
 void cloud_cb (const sensor_msgs::PointCloud2::Ptr&);
+void depth_cb (const sensor_msgs::Image::Ptr&);
 void odometry_cb (const nav_msgs::Odometry::Ptr&);
 void generate_lines_ransac(pcl::PointCloud<pcl::PointXYZ>&, std::vector<geometry_msgs::PointStamped>&);
 geometry_msgs::PointStamped transformPoint (const tf::TransformListener&, geometry_msgs::PointStamped);
 int data_associate(std::vector<wall>,line);
-void visualize_walls (std::vector<geometry_msgs::PointStamped>);
+void visualize_walls (line_segment_stamped);
 void optimalisasi_graf();
+
 
 // This is container for line_segments representing walls
 std::vector<wall> walls;
@@ -65,9 +70,11 @@ main (int argc, char** argv)
 
 	ros::Subscriber sub_cloud = nh.subscribe ("cloud", 1, cloud_cb2);
 	ros::Subscriber sub_odometry = nh.subscribe ("odometry", 1, odometry_cb);
+	ros::Subscriber sub_depth = nh.subscribe ("depth", 1, depth_cb);
 
 	pub_marker = nh.advertise<visualization_msgs::Marker> ("line_strip",1);
 	pub_filtered_cloud = nh.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
+	pub_image_depth = nh.advertise<sensor_msgs::Image> ("image_depth",1);
 
 	ros::spin();
 
@@ -77,6 +84,14 @@ main (int argc, char** argv)
 static pcloud::Ptr _cloud; // previous frame
 static pcloud::Ptr _cloud_; // current frame
 static bool init = true;
+
+struct _w {
+    std::vector<line_segment_stamped> _line;
+    float slope_average;
+    float intercept_average;
+};
+
+std::vector<_w> wall_collection;
 
 void cloud_cb2 (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 {
@@ -92,47 +107,55 @@ void cloud_cb2 (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 	filtered_current_pcl->header.seq = current_pcl->header.seq;
 
     reduce_pcl(current_pcl, reduced_current_pcl);
-    filter_pcl(reduced_current_pcl,filtered_current_pcl);
+//    filter_pcl(reduced_current_pcl,filtered_current_pcl);
+    *filtered_current_pcl = *reduced_current_pcl;
 
-    _cloud_ = filtered_current_pcl;
-
-    pcloud::Ptr corrected_pcl (new pcloud);
-
-    if (!init)
-    {
-        correct_pcl(_cloud_, _cloud, corrected_pcl);
-    }
-
-    _cloud = _cloud_;
-
-    init = false;
-
-//    std::vector<geometry_msgs::PointStamped> lines;
-//    line_fitting(filtered_current_pcl,lines);
+//    _cloud_ = filtered_current_pcl;
 //
-//	visualize_walls(lines);
+//    pcloud::Ptr corrected_pcl (new pcloud);
+//
+//    if (!init)
+//    {
+//        correct_pcl(_cloud_, _cloud, corrected_pcl);
+//    }
+//
+//    _cloud = _cloud_;
+//
+//    init = false;
 
-	pub_filtered_cloud.publish(corrected_pcl);
+    line_segment_stamped _line;
+    line_fitting(filtered_current_pcl,_line);
+    line l;
+    l = points_to_line_eq (_line);
+
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/lines.txt", std::ios::out | std::ios::app);
+//    myfile << l.slope << "\t" << l.intercept << std::endl;
+//    myfile.close();
+
+    visualize_walls(_line);
+
+	pub_filtered_cloud.publish(filtered_current_pcl);
 }
 
-void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
-{
-
-	pcl::PointCloud<pcl::PointXYZ> cloud;
-	pcl::fromROSMsg(*input_cloud,cloud);
-
-	pcl::PointCloud<pcl::PointXYZ> filtered_cloud;
-
-	int height = (int) cloud.height/4;
-	for(int i = 0; i < cloud.width; i++)
-		filtered_cloud.push_back(cloud(i,height));
-
-	filtered_cloud.header.frame_id = cloud.header.frame_id;
-	filtered_cloud.header.seq = cloud.header.seq;
-
-	pcl::PointCloud<pcl::PointXYZ> f;
-
-	/* ****  Filter cloud using statistical outlier removal ****/ 
+//void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
+//{
+//
+//	pcl::PointCloud<pcl::PointXYZ> cloud;
+//	pcl::fromROSMsg(*input_cloud,cloud);
+//
+//	pcl::PointCloud<pcl::PointXYZ> filtered_cloud;
+//
+//	int height = (int) cloud.height/4;
+//	for(int i = 0; i < cloud.width; i++)
+//		filtered_cloud.push_back(cloud(i,height));
+//
+//	filtered_cloud.header.frame_id = cloud.header.frame_id;
+//	filtered_cloud.header.seq = cloud.header.seq;
+//
+//	pcl::PointCloud<pcl::PointXYZ> f;
+//
+//	/* ****  Filter cloud using statistical outlier removal ****/ 
 //	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
 //	sor.setInputCloud(filtered_cloud.makeShared());
 //	sor.setMeanK(50);
@@ -141,98 +164,98 @@ void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 	/* ************************ */
 
 	/* **** Voxelized ***** */
-	pcl::ApproximateVoxelGrid<pcl::PointXYZ> approx_grid;
-	approx_grid.setLeafSize(0.1,0.1,0.1);
-	approx_grid.setInputCloud(filtered_cloud.makeShared());
-	approx_grid.filter(f);
-
-	_cloud_ = filtered_cloud.makeShared();
-	pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-
-	if (!init) 
-	{
-		pcl::NormalDistributionsTransform2D<pcl::PointXYZ,pcl::PointXYZ> ndt;
-		ndt.setTransformationEpsilon(0.01);
-	//	ndt.setStepSize(0.1);
-	//	ndt.setResolution(1.0);
-		ndt.setMaximumIterations(35);
-		ndt.setInputSource(_cloud_);
-		ndt.setInputTarget(_cloud);
-
-		Eigen::AngleAxisf init_rotation (0.6931, Eigen::Vector3f::UnitZ());
-		Eigen::Translation3f init_translation (1.79387, 0.720047, 0);
-		Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix();
-
-		// ndt.align(*output_cloud,init_guess);
-		ndt.align(*output_cloud);
-
-		Eigen::Matrix4f T = ndt.getFinalTransformation();
-//		std::cout << "|" << T(0,0) << "|" << T(0,1) << "|" << T(0,2) << "|" << T(0,3) << std::endl;
-//		std::cout << "|" << T(1,0) << "|" << T(1,1) << "|" << T(1,2) << "|" << T(1,3) << std::endl;
-//		std::cout << "|" << T(2,0) << "|" << T(2,1) << "|" << T(2,2) << "|" << T(2,3) << std::endl;
-//		std::cout << "|" << T(3,0) << "|" << T(3,1) << "|" << T(3,2) << "|" << T(3,3) << std::endl;
-//		std::cout << std::endl;
+//	pcl::ApproximateVoxelGrid<pcl::PointXYZ> approx_grid;
+//	approx_grid.setLeafSize(0.1,0.1,0.1);
+//	approx_grid.setInputCloud(filtered_cloud.makeShared());
+//	approx_grid.filter(f);
 //
-	}
-
-	_cloud = filtered_cloud.makeShared();
-	init = false;
-
-
-	std::vector<geometry_msgs::PointStamped> lines;
-	generate_lines_ransac (filtered_cloud,lines);
-//	generate_lines_ransac (f,lines);
-//	generate_lines_ransac (*output_cloud,lines);
+//	_cloud_ = filtered_cloud.makeShared();
+//	pcl::PointCloud<pcl::PointXYZ>::Ptr output_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+//
+//	if (!init) 
+//	{
+//		pcl::NormalDistributionsTransform2D<pcl::PointXYZ,pcl::PointXYZ> ndt;
+//		ndt.setTransformationEpsilon(0.01);
+//	//	ndt.setStepSize(0.1);
+//	//	ndt.setResolution(1.0);
+//		ndt.setMaximumIterations(35);
+//		ndt.setInputSource(_cloud_);
+//		ndt.setInputTarget(_cloud);
+//
+//		Eigen::AngleAxisf init_rotation (0.6931, Eigen::Vector3f::UnitZ());
+//		Eigen::Translation3f init_translation (1.79387, 0.720047, 0);
+//		Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix();
+//
+//		// ndt.align(*output_cloud,init_guess);
+//		ndt.align(*output_cloud);
+//
+//		Eigen::Matrix4f T = ndt.getFinalTransformation();
+////		std::cout << "|" << T(0,0) << "|" << T(0,1) << "|" << T(0,2) << "|" << T(0,3) << std::endl;
+////		std::cout << "|" << T(1,0) << "|" << T(1,1) << "|" << T(1,2) << "|" << T(1,3) << std::endl;
+////		std::cout << "|" << T(2,0) << "|" << T(2,1) << "|" << T(2,2) << "|" << T(2,3) << std::endl;
+////		std::cout << "|" << T(3,0) << "|" << T(3,1) << "|" << T(3,2) << "|" << T(3,3) << std::endl;
+////		std::cout << std::endl;
+////
+//	}
+//
+//	_cloud = filtered_cloud.makeShared();
+//	init = false;
+//
+//
+//	std::vector<geometry_msgs::PointStamped> lines;
+//	generate_lines_ransac (filtered_cloud,lines);
+////	generate_lines_ransac (f,lines);
+////	generate_lines_ransac (*output_cloud,lines);
+////	visualize_walls(lines);
+//
+//	for (size_t i = 0; i < lines.size(); i = i + 2)
+//	{
+//		line_segment ls;
+//		ls.p = lines[i].point;
+//		ls.q = lines[i+1].point;
+//
+//		line l;
+//		l = points_to_line_eq (ls);
+//
+//		wall w;
+//		w.boundaries = ls;
+//		w.line_equation = l;
+//
+//		int index = data_associate(walls,l);
+//
+//		if (index >= 0)
+//		{
+//
+///*			walls[index].line_equation.slope = (walls[index].line_equation.slope 
+//								+ w.line_equation.slope)/2;
+//			walls[index].line_equation.intercept = (walls[index].line_equation.intercept
+//								+ w.line_equation.intercept)/2;
+//*/		}
+//		else
+//			walls.push_back(w); // new wall!
+//
+//	}
+//
+//	std::vector<geometry_msgs::PointStamped> lines2;
+//
+//	if(walls.size() != 0)
+//	{
+//		for(int i = 0; i < walls.size(); i++)
+//		{
+//			geometry_msgs::PointStamped _p; 
+//			_p.point = walls[i].boundaries.p;
+//			lines2.push_back(_p);
+//
+//			geometry_msgs::PointStamped _q; 
+//			_q.point = walls[i].boundaries.q;
+//			lines2.push_back(_q);
+//		}
+//	}
+//
 //	visualize_walls(lines);
-
-	for (size_t i = 0; i < lines.size(); i = i + 2)
-	{
-		line_segment ls;
-		ls.p = lines[i].point;
-		ls.q = lines[i+1].point;
-
-		line l;
-		l = points_to_line_eq (ls);
-
-		wall w;
-		w.boundaries = ls;
-		w.line_equation = l;
-
-		int index = data_associate(walls,l);
-
-		if (index >= 0)
-		{
-
-/*			walls[index].line_equation.slope = (walls[index].line_equation.slope 
-								+ w.line_equation.slope)/2;
-			walls[index].line_equation.intercept = (walls[index].line_equation.intercept
-								+ w.line_equation.intercept)/2;
-*/		}
-		else
-			walls.push_back(w); // new wall!
-
-	}
-
-	std::vector<geometry_msgs::PointStamped> lines2;
-
-	if(walls.size() != 0)
-	{
-		for(int i = 0; i < walls.size(); i++)
-		{
-			geometry_msgs::PointStamped _p; 
-			_p.point = walls[i].boundaries.p;
-			lines2.push_back(_p);
-
-			geometry_msgs::PointStamped _q; 
-			_q.point = walls[i].boundaries.q;
-			lines2.push_back(_q);
-		}
-	}
-
-	visualize_walls(lines);
-
-	pub_filtered_cloud.publish(filtered_cloud);
-}
+//
+//	pub_filtered_cloud.publish(filtered_cloud);
+//}
 
 nav_msgs::Odometry::Ptr o (new nav_msgs::Odometry);
 
@@ -243,7 +266,7 @@ odometry_cb (const nav_msgs::Odometry::Ptr& odometry)
 }
 
 int marker_id = 0;
-void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
+void visualize_walls (line_segment_stamped line)
 {
 	visualization_msgs::Marker marker;
 	marker.header.frame_id = "odom_combined";
@@ -257,27 +280,21 @@ void visualize_walls (std::vector<geometry_msgs::PointStamped> lines)
 	marker.scale.x = 0.1;
 	marker.color.a = 1.0;
 
-	if(lines.size() != 0)
-	{
-		for(size_t i = 0; i < lines.size(); i = i + 2)
-		{
-			geometry_msgs::Point p;
-			geometry_msgs::Point q;
-			
-			p = lines[i].point; p.z = 0;
-			q = lines[i+1].point; q.z = 0;
+    geometry_msgs::Point p;
+    geometry_msgs::Point q;
+    
+    p = line.p.point; p.z = 0;
+    q = line.q.point; q.z = 0;
 
-			marker.color.r = p.x;
-			marker.color.g = p.y;
-			marker.color.b = 1.0;
+    marker.color.r = p.x;
+    marker.color.g = p.y;
+    marker.color.b = 1.0;
 
-			marker.points.push_back(p);
-			marker.points.push_back(q);
-		}
+    marker.points.push_back(p);
+    marker.points.push_back(q);
 
-		marker.lifetime = ros::Duration();
-		pub_marker.publish(marker);
-	}
+    marker.lifetime = ros::Duration();
+    pub_marker.publish(marker);
 }
 
 geometry_msgs::PointStamped
@@ -536,7 +553,7 @@ void reduce_pcl(const pcloud::Ptr& in, const pcloud::Ptr& out)
 	int height = (int) in->height/4;
 	for(int i = 0; i < in->width; i++)
 		out->push_back((*in)(i,height));
-//
+
 //    out->resize(in->size());
 //
 //    pcloud::iterator it = in->begin();
@@ -560,13 +577,13 @@ void filter_pcl(const pcloud::Ptr& in, const pcloud::Ptr& out)
 
 	/* **** Voxelized ***** */
 	pcl::ApproximateVoxelGrid<pcl::PointXYZ> approx_grid;
-	approx_grid.setLeafSize(0.1,0.1,0.1);
+	approx_grid.setLeafSize(0.2,0.2,0.2);
 	approx_grid.setInputCloud(in);
 	approx_grid.filter(*out);
 	/* ************************ */
 }
 
-void line_fitting(const pcloud::Ptr& in, std::vector<geometry_msgs::PointStamped>& lines)
+void line_fitting(const pcloud::Ptr& in, line_segment_stamped& line)
 {
     pcl::ModelCoefficients coefficients;
     pcl::PointIndices inliers;
@@ -578,6 +595,7 @@ void line_fitting(const pcloud::Ptr& in, std::vector<geometry_msgs::PointStamped
     seg.setModelType(pcl::SACMODEL_LINE);
     seg.setMethodType(pcl::SAC_RANSAC);
     seg.setDistanceThreshold(0.1);
+    seg.setAxis(Eigen::Vector3f::UnitY());
 
     seg.setInputCloud(in);
     seg.segment(inliers, coefficients);
@@ -595,25 +613,35 @@ void line_fitting(const pcloud::Ptr& in, std::vector<geometry_msgs::PointStamped
     q.header.frame_id = in->header.frame_id;
     q.header.seq = in->header.seq;
 
-    float scale = 2.0;
+//    float scale = 10.0;
+    float x1 = in->points[inliers.indices.front()].x;
+    float y1 = in->points[inliers.indices.front()].y;
+    float z1 = in->points[inliers.indices.front()].z;
+    float x2 = in->points[inliers.indices.back()].x;
+    float y2 = in->points[inliers.indices.back()].y;
+    float z2 = in->points[inliers.indices.back()].z;
+    
+    float scale = sqrt ( (x1 - x2)*(x1 - x2) + (y1 - y2)*(y1 - y2) + (z1 - z2)*(z1 - z2));
 
-//    p.point.x = coefficients.values[0] - 0.5 * scale * coefficients.values[3];
-//    p.point.y = coefficients.values[1] - 0.5 * scale * coefficients.values[4];;
-//    p.point.z = coefficients.values[2] - 0.5 * scale * coefficients.values[5];;
-//    q.point.x = p.point.x + scale * coefficients.values[3];
-//    q.point.y = p.point.y + scale * coefficients.values[4];
-//    q.point.z = p.point.z + scale * coefficients.values[5];
+    p.point.x = coefficients.values[0] - 0.5 * scale * coefficients.values[3];
+    p.point.y = coefficients.values[1] - 0.5 * scale * coefficients.values[4];;
+    p.point.z = coefficients.values[2] - 0.5 * scale * coefficients.values[5];;
+    q.point.x = p.point.x + scale * coefficients.values[3];
+    q.point.y = p.point.y + scale * coefficients.values[4];
+    q.point.z = p.point.z + scale * coefficients.values[5];
 //
-    p.point.x = in->points[inliers.indices.front()].x;
-    p.point.y = in->points[inliers.indices.front()].y;
-    p.point.z = in->points[inliers.indices.front()].z;
-    q.point.x = in->points[inliers.indices.back()].x;
-    q.point.y = in->points[inliers.indices.back()].y;
-    q.point.z = in->points[inliers.indices.back()].z;
+//    p.point.x = in->points[inliers.indices.front()].x;
+//    p.point.y = in->points[inliers.indices.front()].y;
+//    p.point.z = in->points[inliers.indices.front()].z;
+//    q.point.x = in->points[inliers.indices.back()].x;
+//    q.point.y = in->points[inliers.indices.back()].y;
+//    q.point.z = in->points[inliers.indices.back()].z;
 
-    lines.push_back(transformPoint (boost::ref (listener), p));
-    lines.push_back(transformPoint (boost::ref (listener), q));
+//    lines.push_back(transformPoint (boost::ref (listener), p));
+//    lines.push_back(transformPoint (boost::ref (listener), q));
 
+    line.p = transformPoint (boost::ref (listener), p);
+    line.q = transformPoint (boost::ref (listener), q);
 }
 
 void correct_pcl(const pcloud::Ptr& source, const pcloud::Ptr& target, const pcloud::Ptr& out)
@@ -621,20 +649,20 @@ void correct_pcl(const pcloud::Ptr& source, const pcloud::Ptr& target, const pcl
 
 	tf::TransformListener listener;
 
-    /* ***** NDT ***** */ /*
-    pcl::NormalDistributionsTransform2D<pcl::PointXYZ,pcl::PointXYZ> ndt;
+    /* ***** NDT ***** */ 
+    pcl::NormalDistributionsTransform<pcl::PointXYZ,pcl::PointXYZ> ndt;
     ndt.setTransformationEpsilon(0.1);
-//	ndt.setStepSize(0.1);
-//	ndt.setResolution(1.0);
+	ndt.setStepSize(0.1);
+	ndt.setResolution(1.0);
     ndt.setMaximumIterations(50);
     ndt.setInputSource(source);
-    ndt.setInputTarget(target); */
+    ndt.setInputTarget(target); 
     /* ***** END OF NDT ***** */
 
     /* ***** ICP ***** */
-    pcl::IterativeClosestPoint<pcl::PointXYZ,pcl::PointXYZ> icp;
-    icp.setInputCloud(source);
-    icp.setInputTarget(target);
+//    pcl::IterativeClosestPoint<pcl::PointXYZ,pcl::PointXYZ> icp;
+//    icp.setInputCloud(source);
+//    icp.setInputTarget(target);
     /* ***** END OF ICP ***** */
 
     tf::Pose pose;
@@ -644,20 +672,28 @@ void correct_pcl(const pcloud::Ptr& source, const pcloud::Ptr& target, const pcl
 
     Eigen::AngleAxisf init_rotation (yaw_angle, Eigen::Vector3f::UnitZ());
     Eigen::Translation3f init_translation (
-                            o->pose.pose.position.z, 
-                            0,
-                            o->pose.pose.position.x);
+                            o->pose.pose.position.x, 
+                            o->pose.pose.position.y,
+                            o->pose.pose.position.z);
     Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix();
 
     pcloud::Ptr result (new pcloud);
 //    ndt.align(*result,init_guess);
-//    ndt.align(*out);
-    icp.align(*result);
-
-    Eigen::Matrix4f T = icp.getFinalTransformation();
+    ndt.align(*result);
+//    icp.align(*result);
+//
+    Eigen::Matrix4f T = ndt.getFinalTransformation();
     Eigen::Affine3f Tr;
     Tr = T;
     pcl::transformPointCloud (*target,*out,Tr.inverse());
+
+//    std::cout << "Odometri: " << *o << std::endl;
+    std::cout << "Odo: " << yaw_angle << " | " 
+              << "NDT: " << acos(T(0,0)) << " | "
+              << ndt.hasConverged() << std::endl;
+
+//    std::cout << "Converged? " << ndt.hasConverged() << std::endl;
+//    std::cout << "Score: " << ndt.getFitnessScore() << std::endl;
 }
 
 void get_planes (const pcloud::Ptr& source, std::vector<pcl::ModelCoefficients> coeffs, std::vector<pcl::PointIndices> inliers)
@@ -698,3 +734,30 @@ void get_planes (const pcloud::Ptr& source, std::vector<pcl::ModelCoefficients> 
 //    omps.segment(coeffs, inliers);
 //    std::cout << coeffs.size() << std::endl;
 }
+
+void depth_cb (const sensor_msgs::Image::Ptr& image)
+{
+//    Eigen::Vector3d v1, v2;
+//    Eigen::Vector3d x(1,0,0);
+//    Eigen::Vector3d y(0,1,0);
+//
+//    for (int i = 1; i < image->height - 1; i++)
+//    {
+//        for (int j = 1; j < image->width - 1 ; j++)
+//        {
+//            double depth_xprev = image->data[i * image->width + j - 1];
+//            double depth_xnext = image->data[i * image->width + j + 1];
+//            double depth_yprev = image->data[(i - 1) * image->width + j];
+//            double depth_ynext = image->data[(i + 1) * image->width + j];
+//
+//            float dzdx = (depth_xnext - depth_xprev)/2.0f;
+//            float dzdy = (depth_ynext - depth_yprev)/2.0f;
+//
+//            float magnitude = sqrt(dzdx*dzdx + dzdy*dzdy + 1.0f);
+//            Eigen::Vector3d normal(-dzdx/magnitude,-dzdy/magnitude,1.0f/magnitude);
+//        }
+//    }
+//
+	pub_image_depth.publish(image);
+}
+
