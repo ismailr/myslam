@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   sensor_msgs
+  geometry_msgs
   std_msgs
   tf
 )
@@ -108,7 +109,7 @@ find_package(OpenCV REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES front_end
-#  CATKIN_DEPENDS cmake_modules cv_bridge roscpp rospy sensor_msgs std_msgs tf
+CATKIN_DEPENDS cmake_modules cv_bridge roscpp rospy sensor_msgs std_msgs tf geometry_msgs
 #  DEPENDS Eigen OpenCV
 )
 

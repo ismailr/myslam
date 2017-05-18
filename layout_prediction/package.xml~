@@ -59,6 +59,7 @@
   <run_depend>pcl_msgs</run_depend>
   <run_depend>pcl_ros</run_depend>
   <run_depend>libpcl-all</run_depend>
+  <run_depend>cv_bridge</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->
