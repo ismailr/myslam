@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <iostream>
+#include <ctime>
 
 #include <geometry_msgs/Point.h>
 #include <nav_msgs/Odometry.h>
@@ -80,7 +81,11 @@ cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 
 	std::vector<geometry_msgs::PointStamped> lines;
 //	generate_lines_ransac (filtered_cloud,lines);
+    int start = clock();
 	generate_lines_ransac (f,lines);
+    int stop = clock();
+    std::cout << (stop - start)/double(CLOCKS_PER_SEC)*1000 << std::endl;
+
 	visualize_walls(lines);
 
 	for (size_t i = 0; i < lines.size(); i = i + 2)

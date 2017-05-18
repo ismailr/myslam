@@ -80,7 +80,11 @@ cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 
 	std::vector<geometry_msgs::PointStamped> lines;
 //	generate_lines_ransac (filtered_cloud,lines);
+    int start = clock();
 	generate_lines_ransac (f,lines);
+    int stop = clock();
+    std::cout << (stop - start)/double(CLOCKS_PER_SEC)*1000 << std::endl;
+
 	visualize_walls(lines);
 
 	for (size_t i = 0; i < lines.size(); i = i + 2)
@@ -174,7 +178,7 @@ generate_lines_ransac (pcl::PointCloud<pcl::PointXYZ>& cloud, std::vector<geomet
 			continue;
 		}
 
-		if(in.size() > 80)
+		if(in.size() > 40)
 		{
 			pcl::PointIndices r;
 			r.indices.resize(in.size());
