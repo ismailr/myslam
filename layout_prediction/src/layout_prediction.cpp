@@ -112,10 +112,10 @@ void visualize_walls (std::vector<line>& lines)
 {
 	visualization_msgs::Marker marker;
 	marker.header.frame_id = "odom_combined";
-	marker.header.stamp = ros::Time::now();
+//	marker.header.stamp = ros::Time::now();
 
-//	marker.id = marker_id++;
-	marker.id = 0;
+	marker.id = marker_id++;
+//	marker.id = 0;
 	marker.type = visualization_msgs::Marker::LINE_LIST;
 
 	marker.action = visualization_msgs::Marker::ADD;
