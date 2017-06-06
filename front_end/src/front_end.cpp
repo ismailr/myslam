@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <stdlib.h>
 #include <climits>
+#include <ctime>
 
 #include <sensor_msgs/Image.h>
 #include <cv_bridge/cv_bridge.h>
@@ -110,6 +111,8 @@ void depth_cb (const sensor_msgs::Image::Ptr& depth)
     Eigen::Vector3d y (0,1,0);
     Eigen::Vector3d z (0,0,1);
 
+
+    int start = clock();
     if (indeks > nbuff - 1)
     {
         for (int i = 1; i < row - 1; i++)
@@ -138,17 +141,17 @@ void depth_cb (const sensor_msgs::Image::Ptr& depth)
                 double mag = sqrt (dzdx*dzdx + dzdy*dzdy + 1.0);
                 Eigen::Vector3d normal (-dzdx/mag, -dzdy/mag, 1.0/mag); 
                 
-                /* ********** normal estimation ********** */ 
+//                /* ********** normal estimation ********** */ 
 //                _d  = cv_ptr->image.ptr<ushort>(i - 1);
 //                d   = cv_ptr->image.ptr<ushort>(i);
 //                d_  = cv_ptr->image.ptr<ushort>(i + 1);
-
+//
 //                double dzdx = (d[j + 1] - d[j - 1])/2;
 //                double dzdy = (d_[j] - _d[j])/2;
 //
 //                double mag = sqrt (dzdx*dzdx + dzdy*dzdy + 1);
 //                Eigen::Vector3d normal (-dzdx/mag, -dzdy/mag, 1/mag); 
-                /* ********** end of normal estimation ********** */
+//                /* ********** end of normal estimation ********** */
 
                 m[j * 3] = normal[0] * 255;
                 m[j * 3 + 1] = normal[1] * 255;
@@ -169,6 +172,9 @@ void depth_cb (const sensor_msgs::Image::Ptr& depth)
 //        pub_image.publish(edge_ptr->toImageMsg());
         pub_depth.publish(cv_ptr->toImageMsg());
     }
+
+    int stop = clock();
+    std::cout << (stop - start)/double(CLOCKS_PER_SEC) * 1000 << std::endl;
 
     ++indeks ;
     ++keyframe;
