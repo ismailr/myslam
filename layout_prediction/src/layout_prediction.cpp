@@ -58,7 +58,7 @@ geometry_msgs::PointStamped transformPoint (const tf::TransformListener&, geomet
 void visualize_walls (std::vector<line>&);
 void optimalisasi_graf();
 double calculate_slope (line);
-
+void data_asosiasi (std::vector<line>&);
 
 int main (int argc, char** argv)
 {
@@ -80,6 +80,7 @@ int main (int argc, char** argv)
 	return 0;
 }
 
+std::vector<line> struktur;
 void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -96,7 +97,13 @@ void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 
 	std::vector<line> lines;
 	line_fitting (laser,lines);
-	visualize_walls(lines);
+
+    if (struktur.empty()) 
+        struktur.insert(struktur.end(), lines.begin(), lines.end());
+    else
+        data_asosiasi (lines);
+
+	visualize_walls(struktur);
 
 	pub_filtered_cloud.publish(*laser);
 }
@@ -112,10 +119,8 @@ void visualize_walls (std::vector<line>& lines)
 {
 	visualization_msgs::Marker marker;
 	marker.header.frame_id = "odom_combined";
-//	marker.header.stamp = ros::Time::now();
 
-	marker.id = marker_id++;
-//	marker.id = 0;
+	marker.id = 0; //marker_id++;
 	marker.type = visualization_msgs::Marker::LINE_LIST;
 
 	marker.action = visualization_msgs::Marker::ADD;
@@ -146,29 +151,12 @@ geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listene
 {
 	geometry_msgs::PointStamped q;
 
-	try{
+	try
+    {
 		listener.waitForTransform ("/openni_rgb_optical_frame","/odom_combined",p.header.stamp,ros::Duration(2.0));
 		listener.transformPoint ("/odom_combined", p, q);
-//			ROS_INFO ("p: (%.2f,%.2f,%.2f) -----> q: (%.2f,%.2f,%.2f) at time %.2f",
-//					lines[i].point.x,lines[i].point.y,lines[i].point.z,
-//					q.point.x,q.point.y,q.point.z,
-//					q.header.stamp.toSec());
-	} catch (tf::TransformException ex) {
-		ROS_ERROR ("%s",ex.what());
-	}
-
-	return q;
-}
-
-geometry_msgs::PoseStamped
-transformPose (const tf::TransformListener& listener,geometry_msgs::PoseStamped p)
-{
-	geometry_msgs::PoseStamped q;
-
-	try{
-		listener.waitForTransform ("/base_link","/odom",p.header.stamp,ros::Duration(3.0));
-		listener.transformPose ("/base_link", p, q);
-	} catch (tf::TransformException ex) {
+	} catch (tf::TransformException ex) 
+    {
 		ROS_ERROR ("%s",ex.what());
 	}
 
@@ -266,7 +254,7 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
 				break;
 			}
 
-			if(inliers.indices.size() > 10)
+			if(inliers.indices.size() > 30)
 			{
                 pcl::PointXYZ c, Start, End, p1, p2;
                 c.x = coefficients.values[0];
@@ -292,7 +280,7 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
 				l.q.point.z = coefficients.values[2] + center2End * coefficients.values[5];
 
                 l.p = transformPoint (boost::ref (listener), l.p);
-                l.q = transformPoint (boost::ref (listener), l.p);
+                l.q = transformPoint (boost::ref (listener), l.q);
 
                 l.p.point.z = 0;
                 l.q.point.z = 0;
@@ -374,5 +362,33 @@ double calculate_slope (line l)
 
 void depth_cb (const sensor_msgs::Image::Ptr& depth)
 {
+
+}
+
+void data_asosiasi (std::vector<line>& lines)
+{
+    double m_threshold = 10;
+    double c_threshold = 10;
+    double d_threshold = 50;
+
+    for (int i = 0; i < lines.size(); ++i)
+    {
+        for (int j = 0; j < struktur.size(); ++j)
+        {
+            if (    abs(lines[i].m - struktur[j].m) < m_threshold &&
+                    abs(lines[i].c - struktur[j].c) < c_threshold)
+            {
+                // if distance of lines[i] and struktur[j] < d_threshold
+                // merge (lines[i], struktur[j])
+                // else
+                // struktur.push_back(lines[i]);
+                break;
+            }
+
+            if (j == struktur.size() - 1)
+                struktur.push_back(lines[i]);
+        }
+
+    }
 
 }
