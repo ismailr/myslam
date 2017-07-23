@@ -9,6 +9,7 @@
 #include <geometry_msgs/Pose.h>
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
+#include <pr2_mechanism_controllers/BaseOdometryState.h>
 
 #include <tf/transform_listener.h>
 
@@ -50,6 +51,8 @@ struct line
     double fitness;
 };
 
+nav_msgs::Odometry::Ptr o (new nav_msgs::Odometry);
+
 void cloud_cb (const sensor_msgs::PointCloud2::Ptr&);
 void depth_cb (const sensor_msgs::Image::Ptr&);
 void odometry_cb (const nav_msgs::Odometry::Ptr&);
@@ -59,6 +62,8 @@ void visualize_walls (std::vector<line>&);
 void optimalisasi_graf();
 double calculate_slope (line);
 void data_asosiasi (std::vector<line>&);
+
+void action_cb (const pr2_mechanism_controllers::BaseOdometryState::Ptr&);
 
 int main (int argc, char** argv)
 {
@@ -70,6 +75,7 @@ int main (int argc, char** argv)
 	ros::Subscriber sub_cloud = nh.subscribe ("cloud", 1, cloud_cb);
 	ros::Subscriber sub_odometry = nh.subscribe ("odometry", 1, odometry_cb);
 	ros::Subscriber sub_depth = nh.subscribe ("depth", 1, depth_cb);
+	ros::Subscriber sub_odom = nh.subscribe ("action", 1, action_cb);
 
 	pub_marker = nh.advertise<visualization_msgs::Marker> ("line_strip",1);
 	pub_filtered_cloud = nh.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
@@ -97,6 +103,11 @@ void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 
 	std::vector<line> lines;
 	line_fitting (laser,lines);
+//    std::cout << "position: " << o->pose.pose.position << " ";
+//    std::cout << "orientation: " << o->pose.pose.orientation << std::endl;
+//    for (int i = 0; i < lines.size(); ++i)
+//        std::cout << "line: (" << lines[i].m << "," << lines[i].c << ")" << std::endl; 
+//    std::cout << std::endl;
 
     if (struktur.empty()) 
         struktur.insert(struktur.end(), lines.begin(), lines.end());
@@ -108,7 +119,6 @@ void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 	pub_filtered_cloud.publish(*laser);
 }
 
-nav_msgs::Odometry::Ptr o (new nav_msgs::Odometry);
 void odometry_cb (const nav_msgs::Odometry::Ptr& odometry)
 {
     o = odometry;
@@ -285,6 +295,7 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
                 l.p.point.z = 0;
                 l.q.point.z = 0;
 
+                /* *******
                 l.m = calculate_slope (l); 
 
                 // (y2-y1) = m(x2-x1)
@@ -296,6 +307,14 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
                 l.fitness = 0.0;
 
                 lines.push_back(l);
+                * *******/
+
+                l.m = calculate_slope (l);
+                l.m = atan(-1/l.m) * 180/M_PI;
+                l.c = 1/sqrt (l.m * l.m + 1);
+                l.fitness = 0.0;
+                lines.push_back(l);
+
 			}
 
 			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
@@ -388,7 +407,13 @@ void data_asosiasi (std::vector<line>& lines)
             if (j == struktur.size() - 1)
                 struktur.push_back(lines[i]);
         }
-
     }
+}
 
+void action_cb (const pr2_mechanism_controllers::BaseOdometryState::Ptr& u)
+{
+//    std::cout << "vx = " << u->velocity.linear.x << std::endl;
+//    std::cout << "vy = " << u->velocity.linear.y << std::endl;
+//    std::cout << "wz = " << u->velocity.angular.z << std::endl;
+//    std::cout << "=============================================" << std::endl; 
 }

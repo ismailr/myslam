@@ -17,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 find_package(OpenCV REQUIRED)
 
 
@@ -123,7 +123,7 @@ CATKIN_DEPENDS cmake_modules cv_bridge roscpp rospy sensor_msgs std_msgs tf geom
 # TODO: Check names of system library include directories (Eigen, OpenCV)
 include_directories(
   ${catkin_INCLUDE_DIRS}
-  ${Eigen_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
   ${OpenCV_INCLUDE_DIRS}
 )
 
@@ -147,7 +147,7 @@ add_executable(front_end src/front_end.cpp)
 ## Specify libraries to link a library or executable target against
  target_link_libraries(front_end
    ${catkin_LIBRARIES}
-   ${Eigen_LIBRARIES}
+   #   ${Eigen3_LIBRARIES}
    ${OpenCV_LIBRARIES}
 )
 

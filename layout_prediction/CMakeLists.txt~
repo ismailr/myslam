@@ -13,13 +13,14 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   cmake_modules
   cv_bridge
+  pr2_mechanism_controllers
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(G2O REQUIRED)
 find_package(CSparse REQUIRED)
-find_package(Eigen REQUIRED)
+find_package(Eigen3 REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -109,7 +110,7 @@ find_package(Eigen REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros
+  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers
 #  DEPENDS system_lib
 )
 
