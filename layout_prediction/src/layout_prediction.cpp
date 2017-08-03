@@ -44,8 +44,7 @@ ros::Publisher pub_image_depth;
 
 struct line
 {
-    double m;
-    double c;
+    double m, c, r, theta;
     geometry_msgs::PointStamped p;
     geometry_msgs::PointStamped q;
     double fitness;
@@ -106,13 +105,28 @@ void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 //    std::cout << "position: " << o->pose.pose.position << " ";
 //    std::cout << "orientation: " << o->pose.pose.orientation << std::endl;
 //    for (int i = 0; i < lines.size(); ++i)
-//        std::cout << "line: (" << lines[i].m << "," << lines[i].c << ")" << std::endl; 
+//        std::cout << "line: (" << lines[i].r << "," << lines[i].theta << ")" << std::endl; 
 //    std::cout << std::endl;
 
     if (struktur.empty()) 
         struktur.insert(struktur.end(), lines.begin(), lines.end());
     else
         data_asosiasi (lines);
+
+    /* 
+     * Node untuk landmark sudah ada, yaitu di std::vector<line> lines;
+     * Node untuk pose, diambil dari odometri lalu gunakan model gerak
+     * FRAME    |   DATA ODOMETRI       |   POSE
+     * 0        |   0, 0, 0, 0          |   x_0 = 0, y_0 = 0, z_0 = 0, t_0 = 0
+     * 1        |   dx1, dy1, dz1, dt1  |   x_1 = f(x_0,dx1,dy1,dz1,dt1), ...
+     * 2        |   dx2, dy2, dz2, dt2  |   x_2 = f(x_1,dx2,dy2,dz2,dt2), ... 
+     *
+     * TODO:
+     *  * Sediakan container untuk pose
+     *  * Sinkronisasi antara landmark dan pose (odometri)
+     *  * Setelah itu baru masukkan ke graph-optimizer
+     *  * Tambahkan constraint dari Furlan
+     * *** */
 
 	visualize_walls(struktur);
 
@@ -295,7 +309,6 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
                 l.p.point.z = 0;
                 l.q.point.z = 0;
 
-                /* *******
                 l.m = calculate_slope (l); 
 
                 // (y2-y1) = m(x2-x1)
@@ -304,14 +317,9 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
                 // y2 = m.x2 + c
                 // with c = -m.x1 + y1
                 l.c = -l.m * l.p.point.x + l.p.point.y;
-                l.fitness = 0.0;
 
-                lines.push_back(l);
-                * *******/
-
-                l.m = calculate_slope (l);
-                l.m = atan(-1/l.m) * 180/M_PI;
-                l.c = 1/sqrt (l.m * l.m + 1);
+                l.theta = atan(-1/l.m) * 180/M_PI;
+                l.r = l.c/sqrt (l.m * l.m + 1);
                 l.fitness = 0.0;
                 lines.push_back(l);
 
