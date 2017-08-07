@@ -10,8 +10,13 @@
 #include <nav_msgs/Odometry.h>
 #include <visualization_msgs/Marker.h>
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
+#include <message_filters/subscriber.h>
+#include <message_filters/time_synchronizer.h>
+#include <message_filters/synchronizer.h>
+#include <message_filters/sync_policies/approximate_time.h>
 
 #include <tf/transform_listener.h>
+#include <tf/transform_datatypes.h>
 
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/point_cloud.h>
@@ -38,6 +43,8 @@
 #include <g2o/types/slam3d/vertex_se3.h>
 #include <Eigen/Core>
 
+#include <layout_prediction/vertex_se2.h>
+
 ros::Publisher pub_marker;
 ros::Publisher pub_filtered_cloud;
 ros::Publisher pub_image_depth;
@@ -50,7 +57,8 @@ struct line
     double fitness;
 };
 
-nav_msgs::Odometry::Ptr o (new nav_msgs::Odometry);
+//nav_msgs::Odometry::Ptr o (new nav_msgs::Odometry);
+pr2_mechanism_controllers::BaseOdometryState::Ptr u (new pr2_mechanism_controllers::BaseOdometryState);
 
 void cloud_cb (const sensor_msgs::PointCloud2::Ptr&);
 void depth_cb (const sensor_msgs::Image::Ptr&);
@@ -63,6 +71,7 @@ double calculate_slope (line);
 void data_asosiasi (std::vector<line>&);
 
 void action_cb (const pr2_mechanism_controllers::BaseOdometryState::Ptr&);
+void callback (const sensor_msgs::PointCloud2ConstPtr&, const nav_msgs::OdometryConstPtr&);
 
 int main (int argc, char** argv)
 {
@@ -71,10 +80,18 @@ int main (int argc, char** argv)
 	ros::init(argc,argv,"layout_prediction");
 	ros::NodeHandle nh;
 
-	ros::Subscriber sub_cloud = nh.subscribe ("cloud", 1, cloud_cb);
-	ros::Subscriber sub_odometry = nh.subscribe ("odometry", 1, odometry_cb);
+//	ros::Subscriber sub_cloud = nh.subscribe ("cloud", 1, cloud_cb);
+//	ros::Subscriber sub_odometry = nh.subscribe ("odometry", 1, odometry_cb);
 	ros::Subscriber sub_depth = nh.subscribe ("depth", 1, depth_cb);
 	ros::Subscriber sub_odom = nh.subscribe ("action", 1, action_cb);
+
+    message_filters::Subscriber<sensor_msgs::PointCloud2> cloud_sub (nh, "cloud", 1);
+    message_filters::Subscriber<nav_msgs::Odometry> odometry_sub (nh, "odometry", 1);
+    message_filters::Subscriber<pr2_mechanism_controllers::BaseOdometryState> action_sub (nh, "action", 1);
+
+    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::PointCloud2, nav_msgs::Odometry> MySyncPolicy;
+    message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (10), cloud_sub, odometry_sub);
+    sync.registerCallback (boost::bind (&callback, _1, _2));
 
 	pub_marker = nh.advertise<visualization_msgs::Marker> ("line_strip",1);
 	pub_filtered_cloud = nh.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
@@ -88,30 +105,54 @@ int main (int argc, char** argv)
 std::vector<line> struktur;
 void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
 {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-	pcl::fromROSMsg(*input_cloud, *current_cloud);
-
-	pcl::PointCloud<pcl::PointXYZ>::Ptr laser (new pcl::PointCloud<pcl::PointXYZ>);
-
-	int height = (int) current_cloud->height/4;
-	for(int i = 0; i < current_cloud->width; i++)
-		laser->push_back(current_cloud->at(i,height));
-
-	laser->header.frame_id = current_cloud->header.frame_id;
-	laser->header.seq = current_cloud->header.seq;
-
-	std::vector<line> lines;
-	line_fitting (laser,lines);
-//    std::cout << "position: " << o->pose.pose.position << " ";
-//    std::cout << "orientation: " << o->pose.pose.orientation << std::endl;
+//	pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+//	pcl::fromROSMsg(*input_cloud, *current_cloud);
+//
+//	pcl::PointCloud<pcl::PointXYZ>::Ptr laser (new pcl::PointCloud<pcl::PointXYZ>);
+//
+//	int height = (int) current_cloud->height/4;
+//	for(int i = 0; i < current_cloud->width; i++)
+//		laser->push_back(current_cloud->at(i,height));
+//
+//	laser->header.frame_id = current_cloud->header.frame_id;
+//	laser->header.seq = current_cloud->header.seq;
+//
+//	std::vector<line> lines;
+//	line_fitting (laser,lines);
+//
+//    double roll, pitch, yaw;
+//    tf::Quaternion q (o->pose.pose.orientation.x, o->pose.pose.orientation.y, o->pose.pose.orientation.z, o->pose.pose.orientation.w);
+//    tf::Matrix3x3 m (q);
+//    m.getRPY (roll, pitch, yaw);
+//
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/data.txt", std::ios::out | std::ios::app);
+//    myfile  << o->pose.pose.position.x << "\t"
+//            << o->pose.pose.position.y << "\t"
+//            << roll << "\t"
+//            << pitch << "\t"
+//            << yaw << "\t"
+//            << u->velocity.linear.x << "\t"
+//            << u->velocity.linear.y << "\t"
+//            << u->velocity.angular.z << std::endl;
+//    myfile.close();
+//    std::cout << "=============================================" << std::endl; 
+//    std::cout << "position: " << std::endl;
+//    std::cout << o->pose.pose.position << " " << std::endl;
+//    std::cout << "orientation: " << std::endl;
+//    std::cout << o->pose.pose.orientation << std::endl;
 //    for (int i = 0; i < lines.size(); ++i)
 //        std::cout << "line: (" << lines[i].r << "," << lines[i].theta << ")" << std::endl; 
 //    std::cout << std::endl;
+//    std::cout << "vx = " << u->velocity.linear.x << std::endl;
+//    std::cout << "vy = " << u->velocity.linear.y << std::endl;
+//    std::cout << "wz = " << u->velocity.angular.z << std::endl;
+//    std::cout << "=============================================" << std::endl; 
 
-    if (struktur.empty()) 
-        struktur.insert(struktur.end(), lines.begin(), lines.end());
-    else
-        data_asosiasi (lines);
+//    if (struktur.empty()) 
+//        struktur.insert(struktur.end(), lines.begin(), lines.end());
+//    else
+//        data_asosiasi (lines);
 
     /* 
      * Node untuk landmark sudah ada, yaitu di std::vector<line> lines;
@@ -128,14 +169,14 @@ void cloud_cb (const sensor_msgs::PointCloud2::Ptr& input_cloud)
      *  * Tambahkan constraint dari Furlan
      * *** */
 
-	visualize_walls(struktur);
-
-	pub_filtered_cloud.publish(*laser);
+//	visualize_walls(struktur);
+//
+//	pub_filtered_cloud.publish(*laser);
 }
 
 void odometry_cb (const nav_msgs::Odometry::Ptr& odometry)
 {
-    o = odometry;
+//    o = odometry;
 }
 
 int marker_id = 0;
@@ -336,43 +377,35 @@ void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std::vector<
 int id = 0;
 void optimalisasi_graf()
 {
-    g2o::Isometry3D t;
-    t.matrix() << 1,0,0,1,
-                  0,1,0,1,
-                  0,0,1,1,
-                  0,0,0,0;
+//    g2o::Isometry3D t;
+//    t.matrix() << 1,0,0,1,
+//                  0,1,0,1,
+//                  0,0,1,1,
+//                  0,0,0,0;
+//
+//    g2o::VertexSE3* node = new g2o::VertexSE3;
+//    node->setId(id++);
+//    node->setEstimate(t);
+//    
+//    node->write(std::cout);
 
-    g2o::VertexSE3* node = new g2o::VertexSE3;
-    node->setId(id++);
-    node->setEstimate(t);
-    
-    node->write(std::cout);
+	SE2 t = SE2(5,5,5);  
+	VertexSE2* node = new VertexSE2;
+	node->setId(id++);
+	node->setEstimate(t);
 
-//	SE2 t = SE2(5,5,5);  
-//	VertexSE2* node = new VertexSE2;
-//	node->setId(id++);
-//	node->setEstimate(t);
-//
-//	SE2 r = SE2(7,7,7);  
-//	VertexSE2* noder = new VertexSE2;
-//	noder->setId(id++);
-//	noder->setEstimate(r);
-//
-//	node->write(std::cout);
-//	noder->write(std::cout);
-//
-//	SparseOptimizer optimizer;
-//
-//	typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
-//	typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
-//	
-//	SlamLinearSolver* linearSolver = new SlamLinearSolver();
-//	linearSolver->setBlockOrdering(false);
-//	SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
-//	OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton(blockSolver);
-//
-//	optimizer.setAlgorithm(solver);
-//	optimizer.addVertex(node);
+	SparseOptimizer optimizer;
+
+	typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+	typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+	
+	SlamLinearSolver* linearSolver = new SlamLinearSolver();
+	linearSolver->setBlockOrdering(false);
+	SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
+	OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton(blockSolver);
+
+	optimizer.setAlgorithm(solver);
+	optimizer.addVertex(node);
 }
 
 double calculate_slope (line l)
@@ -418,10 +451,83 @@ void data_asosiasi (std::vector<line>& lines)
     }
 }
 
-void action_cb (const pr2_mechanism_controllers::BaseOdometryState::Ptr& u)
+void action_cb (const pr2_mechanism_controllers::BaseOdometryState::Ptr& _u)
 {
 //    std::cout << "vx = " << u->velocity.linear.x << std::endl;
 //    std::cout << "vy = " << u->velocity.linear.y << std::endl;
 //    std::cout << "wz = " << u->velocity.angular.z << std::endl;
 //    std::cout << "=============================================" << std::endl; 
+    u = _u;
+}
+
+void callback (const sensor_msgs::PointCloud2ConstPtr& input_cloud, const nav_msgs::OdometryConstPtr& o)
+{
+	pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::fromROSMsg(*input_cloud, *current_cloud);
+
+	pcl::PointCloud<pcl::PointXYZ>::Ptr laser (new pcl::PointCloud<pcl::PointXYZ>);
+
+	int height = (int) current_cloud->height/4;
+	for(int i = 0; i < current_cloud->width; i++)
+		laser->push_back(current_cloud->at(i,height));
+
+	laser->header.frame_id = current_cloud->header.frame_id;
+	laser->header.seq = current_cloud->header.seq;
+
+	std::vector<line> lines;
+	line_fitting (laser,lines);
+
+    double roll, pitch, yaw;
+    tf::Quaternion q (o->pose.pose.orientation.x, o->pose.pose.orientation.y, o->pose.pose.orientation.z, o->pose.pose.orientation.w);
+    tf::Matrix3x3 m (q);
+    m.getRPY (roll, pitch, yaw);
+
+    std::ofstream myfile;
+    myfile.open ("/home/ism/data.txt", std::ios::out | std::ios::app);
+    myfile  << o->pose.pose.position.x << "\t"
+            << o->pose.pose.position.y << "\t"
+            << roll << "\t"
+            << pitch << "\t"
+            << yaw << "\t"
+            << u->velocity.linear.x << "\t"
+            << u->velocity.linear.y << "\t"
+            << u->velocity.angular.z << std::endl;
+    myfile.close();
+//    std::cout << "=============================================" << std::endl; 
+//    std::cout << "position: " << std::endl;
+//    std::cout << o->pose.pose.position << " " << std::endl;
+//    std::cout << "orientation: " << std::endl;
+//    std::cout << o->pose.pose.orientation << std::endl;
+//    for (int i = 0; i < lines.size(); ++i)
+//        std::cout << "line: (" << lines[i].r << "," << lines[i].theta << ")" << std::endl; 
+//    std::cout << std::endl;
+//    std::cout << "vx = " << u->velocity.linear.x << std::endl;
+//    std::cout << "vy = " << u->velocity.linear.y << std::endl;
+//    std::cout << "wz = " << u->velocity.angular.z << std::endl;
+//    std::cout << "=============================================" << std::endl; 
+
+    if (struktur.empty()) 
+        struktur.insert(struktur.end(), lines.begin(), lines.end());
+    else
+        data_asosiasi (lines);
+
+    /* 
+     * Node untuk landmark sudah ada, yaitu di std::vector<line> lines;
+     * Node untuk pose, diambil dari odometri lalu gunakan model gerak
+     * FRAME    |   DATA ODOMETRI       |   POSE
+     * 0        |   0, 0, 0, 0          |   x_0 = 0, y_0 = 0, z_0 = 0, t_0 = 0
+     * 1        |   dx1, dy1, dz1, dt1  |   x_1 = f(x_0,dx1,dy1,dz1,dt1), ...
+     * 2        |   dx2, dy2, dz2, dt2  |   x_2 = f(x_1,dx2,dy2,dz2,dt2), ... 
+     *
+     * TODO:
+     *  * Sediakan container untuk pose
+     *  * Sinkronisasi antara landmark dan pose (odometri)
+     *  * Setelah itu baru masukkan ke graph-optimizer
+     *  * Tambahkan constraint dari Furlan
+     * *** */
+
+	visualize_walls(struktur);
+
+	pub_filtered_cloud.publish(*laser);
+
 }

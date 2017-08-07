@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   cv_bridge
   pr2_mechanism_controllers
+  message_filters
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,7 +111,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers
+  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters
 #  DEPENDS system_lib
 )
 
@@ -125,7 +126,7 @@ include_directories(
 	include
 	${catkin_INCLUDE_DIRS}
 	${CSPARSE_INCLUDE_DIR}
-    ${EIGEN_INCLUDE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
@@ -142,8 +143,8 @@ include_directories(
 add_executable(layout_prediction 
 	src/layout_prediction.cpp
 	src/helpers.cpp
-#	src/vertex_se2.cpp
-#	src/edge_se2.cpp
+	src/vertex_se2.cpp
+	src/edge_se2.cpp
 )
 
 ## Add cmake target dependencies of the executable

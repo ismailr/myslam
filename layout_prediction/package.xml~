@@ -51,6 +51,8 @@
   <build_depend>libpcl-all-dev</build_depend>
   <build_depend>cmake_modules</build_depend>
   <build_depend>cv_bridge</build_depend>
+  <build_depend>message_filters</build_depend>
+  <build_depend>pr2_mechanism_controllers</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
@@ -62,6 +64,8 @@
   <run_depend>pcl_ros</run_depend>
   <run_depend>libpcl-all</run_depend>
   <run_depend>cv_bridge</run_depend>
+  <run_depend>message_filters</run_depend>
+  <run_depend>pr2_mechanism_controllers</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

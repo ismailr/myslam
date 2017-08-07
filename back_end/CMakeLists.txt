@@ -1,27 +1,18 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(layout_prediction)
+project(back_end)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   roscpp
+  rospy
   std_msgs
-  tf
-  geometry_msgs
-  pcl_conversions
-  pcl_ros
-  cmake_modules
-  cv_bridge
-  pr2_mechanism_controllers
-  message_filters
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(G2O REQUIRED)
-find_package(CSparse REQUIRED)
-find_package(Eigen3 REQUIRED)
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -110,8 +101,8 @@ find_package(Eigen3 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters
+#  LIBRARIES back_end
+#  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
 
@@ -123,45 +114,30 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-	include
-	${catkin_INCLUDE_DIRS}
-	${CSPARSE_INCLUDE_DIR}
-    ${EIGEN3_INCLUDE_DIR}
+  ${catkin_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(layout_prediction
-#   src/${PROJECT_NAME}/layout_prediction.cpp
+# add_library(back_end
+#   src/${PROJECT_NAME}/back_end.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(layout_prediction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(back_end ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(layout_prediction 
-	src/layout_prediction.cpp
-	src/helpers.cpp
-	src/vertex_se2.cpp
-	src/edge_se2.cpp
-)
+# add_executable(back_end_node src/back_end_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(layout_prediction_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(back_end_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(layout_prediction
-	${catkin_LIBRARIES}
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_SLAM3D}
-)
-
-add_definitions(-std=c++11)
+# target_link_libraries(back_end_node
+#   ${catkin_LIBRARIES}
+# )
 
 #############
 ## Install ##
@@ -178,7 +154,7 @@ add_definitions(-std=c++11)
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS layout_prediction layout_prediction_node
+# install(TARGETS back_end back_end_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -203,7 +179,7 @@ add_definitions(-std=c++11)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_layout_prediction.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_back_end.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
