@@ -145,6 +145,7 @@ add_executable(layout_prediction
 	src/helpers.cpp
 	src/vertex_se2.cpp
 	src/edge_se2.cpp
+    src/vertex_wall.cpp
 )
 
 ## Add cmake target dependencies of the executable

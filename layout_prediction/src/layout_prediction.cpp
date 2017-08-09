@@ -44,10 +44,13 @@
 #include <Eigen/Core>
 
 #include <layout_prediction/vertex_se2.h>
+#include <layout_prediction/vertex_wall.h>
 
 ros::Publisher pub_marker;
 ros::Publisher pub_filtered_cloud;
 ros::Publisher pub_image_depth;
+
+typedef VertexSE2 VertexPose;
 
 struct line
 {
@@ -389,23 +392,23 @@ void optimalisasi_graf()
 //    
 //    node->write(std::cout);
 
-	SE2 t = SE2(5,5,5);  
-	VertexSE2* node = new VertexSE2;
-	node->setId(id++);
-	node->setEstimate(t);
-
-	SparseOptimizer optimizer;
-
-	typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
-	typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
-	
-	SlamLinearSolver* linearSolver = new SlamLinearSolver();
-	linearSolver->setBlockOrdering(false);
-	SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
-	OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton(blockSolver);
-
-	optimizer.setAlgorithm(solver);
-	optimizer.addVertex(node);
+//	SE2 t = SE2(5,5,5);  
+//	VertexSE2* node = new VertexSE2;
+//	node->setId(id++);
+//	node->setEstimate(t);
+//
+//	SparseOptimizer optimizer;
+//
+//	typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+//	typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+//	
+//	SlamLinearSolver* linearSolver = new SlamLinearSolver();
+//	linearSolver->setBlockOrdering(false);
+//	SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
+//	OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton(blockSolver);
+//
+//	optimizer.setAlgorithm(solver);
+//	optimizer.addVertex(node);
 }
 
 double calculate_slope (line l)
@@ -460,8 +463,24 @@ void action_cb (const pr2_mechanism_controllers::BaseOdometryState::Ptr& _u)
     u = _u;
 }
 
+SparseOptimizer optimizer;
+typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+SlamLinearSolver* linearSolver = new SlamLinearSolver();
+SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
+OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton(blockSolver);
+
+SE2 t = SE2();
+VertexSE2* node = new VertexSE2;
+
 void callback (const sensor_msgs::PointCloud2ConstPtr& input_cloud, const nav_msgs::OdometryConstPtr& o)
 {
+	linearSolver->setBlockOrdering(false);
+	optimizer.setAlgorithm(solver);
+    node->setId(id++);
+    node->setEstimate(t);
+	optimizer.addVertex(node);
+
 	pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*input_cloud, *current_cloud);
 
@@ -477,22 +496,22 @@ void callback (const sensor_msgs::PointCloud2ConstPtr& input_cloud, const nav_ms
 	std::vector<line> lines;
 	line_fitting (laser,lines);
 
-    double roll, pitch, yaw;
-    tf::Quaternion q (o->pose.pose.orientation.x, o->pose.pose.orientation.y, o->pose.pose.orientation.z, o->pose.pose.orientation.w);
-    tf::Matrix3x3 m (q);
-    m.getRPY (roll, pitch, yaw);
+//    double roll, pitch, yaw;
+//    tf::Quaternion q (o->pose.pose.orientation.x, o->pose.pose.orientation.y, o->pose.pose.orientation.z, o->pose.pose.orientation.w);
+//    tf::Matrix3x3 m (q);
+//    m.getRPY (roll, pitch, yaw);
 
-    std::ofstream myfile;
-    myfile.open ("/home/ism/data.txt", std::ios::out | std::ios::app);
-    myfile  << o->pose.pose.position.x << "\t"
-            << o->pose.pose.position.y << "\t"
-            << roll << "\t"
-            << pitch << "\t"
-            << yaw << "\t"
-            << u->velocity.linear.x << "\t"
-            << u->velocity.linear.y << "\t"
-            << u->velocity.angular.z << std::endl;
-    myfile.close();
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/data.txt", std::ios::out | std::ios::app);
+//    myfile  << o->pose.pose.position.x << "\t"
+//            << o->pose.pose.position.y << "\t"
+//            << roll << "\t"
+//            << pitch << "\t"
+//            << yaw << "\t"
+//            << u->velocity.linear.x << "\t"
+//            << u->velocity.linear.y << "\t"
+//            << u->velocity.angular.z << std::endl;
+//    myfile.close();
 //    std::cout << "=============================================" << std::endl; 
 //    std::cout << "position: " << std::endl;
 //    std::cout << o->pose.pose.position << " " << std::endl;
@@ -525,6 +544,8 @@ void callback (const sensor_msgs::PointCloud2ConstPtr& input_cloud, const nav_ms
      *  * Setelah itu baru masukkan ke graph-optimizer
      *  * Tambahkan constraint dari Furlan
      * *** */
+
+
 
 	visualize_walls(struktur);
 
