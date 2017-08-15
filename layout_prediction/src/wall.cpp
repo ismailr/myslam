@@ -23,27 +23,62 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Copyright (C) 2017 Ismail
+// All rights reserved.
 
-#include "layout_prediction/vertex_wall.h"
+#include "layout_prediction/wall.h"
+#include <typeinfo>
+#include "g2o/stuff/macros.h"
 
-using namespace Eigen;
+Wall::Wall() :
+BaseVertex<2, Line2D>()
+{
+    _estimate.setZero();
+    _p.setZero();
+    _q.setZero();
+    _fitness = 0.0;
+    p1Id=p2Id=-1;
+}
 
-namespace g2o {
-    VertexWall::VertexWall() :
-      BaseVertex<2, Vector2d>()
-    {
-      _estimate.setZero();
-    }
+Wall::Wall(double rho, double theta) :
+BaseVertex<2, Line2D>()
+{
+    setTheta (theta);
+    setRho (rho);
+    _p.setZero();
+    _q.setZero();
+    _fitness = 0.0;
+}
 
-    bool VertexWall::read(std::istream& is)
-    {
-      is >> _estimate[0] >> _estimate[1];
-      return true;
-    }
+Wall::Wall(double rho, double theta, Eigen::Vector2d p, Eigen::Vector2d q) :
+BaseVertex<2, Line2D>()
+{
+    setTheta (theta);
+    setRho (rho);
+    _p = p;
+    _q = q;
+    _fitness = 0.0;
+}
 
-    bool VertexWall::write(std::ostream& os) const
-    {
-      os << estimate()(0) << " " << estimate()(1);
-      return os.good();
-    }
-} // end namespace
+bool Wall::read(std::istream& is)
+{
+    is >> _estimate[0] >> _estimate[1] >> p1Id >> p2Id;
+    return true;
+}
+
+bool Wall::write(std::ostream& os) const
+{
+    os << estimate()(0) << " " << estimate()(1) << " " << p1Id << " " << p2Id;
+    return os.good();
+}
+
+double Wall::getFitness ()
+{
+    return _fitness;
+}
+
+void Wall::setFitness (double fitness)
+{
+    _fitness = fitness;
+}

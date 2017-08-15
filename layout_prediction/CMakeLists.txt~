@@ -143,9 +143,8 @@ include_directories(
 add_executable(layout_prediction 
 	src/layout_prediction.cpp
 	src/helpers.cpp
-	src/vertex_se2.cpp
-	src/edge_se2.cpp
-    src/vertex_wall.cpp
+	src/pose.cpp
+    src/wall.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -160,6 +159,7 @@ target_link_libraries(layout_prediction
 	${G2O_SOLVER_CSPARSE}
 	${G2O_SOLVER_CSPARSE_EXTENSION}
     ${G2O_TYPES_SLAM3D}
+    ${G2O_TYPES_SLAM2D}
 )
 
 add_definitions(-std=c++11)

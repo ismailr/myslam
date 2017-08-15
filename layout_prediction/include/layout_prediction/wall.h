@@ -23,33 +23,84 @@
 // LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+//
+// Copyright (C) 2017 Ismail
+// All rights reserved.
 
-#ifndef MYSLAM_VERTEX_SE2_H
-#define MYSLAM_VERTEX_SE2_H
+#ifndef _WALL_H_
+#define _WALL_H_
 
+#include "g2o/config.h"
 #include "g2o/core/base_vertex.h"
 #include "g2o/core/hyper_graph_action.h"
-#include "se2.h"
+#include "g2o/stuff/misc.h"
+#include "g2o/types/slam2d/vertex_point_xy.h"
+#include "line_2d.h"
 
 using namespace g2o;
 
-class VertexSE2 : public BaseVertex<3, SE2>
+class Wall : public BaseVertex <2, Line2D>
 {
     public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    VertexSE2();
+    Wall (); // Set line params to zero
+    Wall (double rho, double theta); // Set line params
+    Wall (double rho, double theta, Eigen::Vector2d p, Eigen::Vector2d q); // Set line params and two edges
+
+    double theta() const {return _estimate[0]; }
+    void setTheta(double t) { _estimate[0] = t; }
+
+    double rho() const {return _estimate[1]; }
+    void setRho(double r) { _estimate[1] = r; }
 
     virtual void setToOriginImpl() {
-        _estimate = SE2();
+        _estimate.setZero();
+    }
+
+    virtual bool setEstimateDataImpl(const double* est){
+        Eigen::Map<const Vector2D> v(est);
+        _estimate=Line2D(v);
+        return true;
+    }
+
+    virtual bool getEstimateData(double* est) const{
+        Eigen::Map<Vector2D> v(est);
+        v=_estimate;
+        return true;
+    }
+
+    virtual int estimateDimension() const {
+        return 2;
+    }
+
+    virtual bool setMinimalEstimateDataImpl(const double* est){
+        return setEstimateData(est);
+    }
+
+    virtual bool getMinimalEstimateData(double* est) const{
+        return getEstimateData(est);
+    }
+
+    virtual int minimalEstimateDimension() const {
+        return 2;
     }
 
     virtual void oplusImpl(const double* update)
     {
-        SE2 up(update[0], update[1], update[2]);
-        _estimate *= up;
+        _estimate += Eigen::Map<const Vector2D>(update);
+        _estimate(0) = normalize_theta(_estimate(0));
     }
 
     virtual bool read(std::istream& is);
     virtual bool write(std::ostream& os) const;
+    int p1Id, p2Id;
+
+    double getFitness ();
+    void setFitness (double fitness);
+
+    private:
+    Eigen::Vector2d _p,_q; // edges 
+    double _fitness; // fitness of wall as a result of line-fitting process
+
 };
 #endif

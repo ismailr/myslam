@@ -24,34 +24,24 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef _VERTEX_WALL_H_
-#define _VERTEX_WALL_H_
+#include "layout_prediction/pose.h"
 
-#include "g2o/core/base_vertex.h"
-#include "g2o/core/hyper_graph_action.h"
-
-#include <Eigen/Core>
-
-namespace g2o {
-    class VertexWall : public BaseVertex<2, Eigen::Vector2d>
-    {
-      public:
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-        VertexWall();
-
-        virtual void setToOriginImpl() {
-          _estimate.setZero();
-        }
-
-        virtual void oplusImpl(const double* update)
-        {
-          _estimate[0] += update[0];
-          _estimate[1] += update[1];
-        }
-
-        virtual bool read(std::istream& is);
-        virtual bool write(std::ostream& os) const;
-    };
+Pose::Pose() :
+    BaseVertex<3, SE2>()
+{
 }
 
-#endif
+bool Pose::read(std::istream& is)
+{
+    Eigen::Vector3d p;
+    is >> p[0] >> p[1] >> p[2];
+    _estimate.fromVector(p);
+    return true;
+}
+
+bool Pose::write(std::ostream& os) const
+{
+    Eigen::Vector3d p = estimate().toVector();
+    os << p[0] << " " << p[1] << " " << p[2];
+    return os.good();
+}

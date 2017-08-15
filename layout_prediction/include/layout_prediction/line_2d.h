@@ -24,24 +24,36 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/vertex_se2.h"
+#ifndef G2O_LINE2D_H
+#define G2O_LINE2D_H
 
-VertexSE2::VertexSE2() :
-    BaseVertex<3, SE2>()
-{
+#include "se2.h"
+
+#include <Eigen/Core>
+#include <Eigen/Geometry>
+
+namespace g2o {
+
+  struct Line2D : public Vector2D{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    Line2D() {
+      setZero();
+    }
+    Line2D(const Vector2D& v) {
+      (*this)(0) = v(0);
+      (*this)(1) = v(1);
+    }
+  };
+
+  inline Line2D operator * (const SE2 & t, const Line2D& l){
+    Line2D est = l;
+    est[0] += t.rotation().angle();
+    est[0] = normalize_theta(est[0]);
+    Vector2D n(cos(est[0]), sin(est[0]));
+    est[1] += n.dot(t.translation());
+    return est;
+  }
+
 }
 
-bool VertexSE2::read(std::istream& is)
-{
-    Eigen::Vector3d p;
-    is >> p[0] >> p[1] >> p[2];
-    _estimate.fromVector(p);
-    return true;
-}
-
-bool VertexSE2::write(std::ostream& os) const
-{
-    Eigen::Vector3d p = estimate().toVector();
-    os << p[0] << " " << p[1] << " " << p[2];
-    return os.good();
-}
+#endif

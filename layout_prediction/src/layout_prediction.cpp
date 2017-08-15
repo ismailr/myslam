@@ -43,14 +43,12 @@
 #include <g2o/types/slam3d/vertex_se3.h>
 #include <Eigen/Core>
 
-#include <layout_prediction/vertex_se2.h>
-#include <layout_prediction/vertex_wall.h>
+#include "layout_prediction/wall.h"
+#include "layout_prediction/pose.h"
 
 ros::Publisher pub_marker;
 ros::Publisher pub_filtered_cloud;
 ros::Publisher pub_image_depth;
-
-typedef VertexSE2 VertexPose;
 
 struct line
 {
@@ -470,16 +468,12 @@ SlamLinearSolver* linearSolver = new SlamLinearSolver();
 SlamBlockSolver* blockSolver = new SlamBlockSolver(linearSolver);
 OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton(blockSolver);
 
-SE2 t = SE2();
-VertexSE2* node = new VertexSE2;
+static int poseid = 0;
 
 void callback (const sensor_msgs::PointCloud2ConstPtr& input_cloud, const nav_msgs::OdometryConstPtr& o)
 {
 	linearSolver->setBlockOrdering(false);
 	optimizer.setAlgorithm(solver);
-    node->setId(id++);
-    node->setEstimate(t);
-	optimizer.addVertex(node);
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr current_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*input_cloud, *current_cloud);
@@ -496,7 +490,9 @@ void callback (const sensor_msgs::PointCloud2ConstPtr& input_cloud, const nav_ms
 	std::vector<line> lines;
 	line_fitting (laser,lines);
 
+
 //    double roll, pitch, yaw;
+//
 //    tf::Quaternion q (o->pose.pose.orientation.x, o->pose.pose.orientation.y, o->pose.pose.orientation.z, o->pose.pose.orientation.w);
 //    tf::Matrix3x3 m (q);
 //    m.getRPY (roll, pitch, yaw);
