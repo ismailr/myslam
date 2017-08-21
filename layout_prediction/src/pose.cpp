@@ -26,8 +26,7 @@
 
 #include "layout_prediction/pose.h"
 
-Pose::Pose() :
-    BaseVertex<3, SE2>()
+Pose::Pose() : BaseVertex<3, SE2>()
 {
 }
 
