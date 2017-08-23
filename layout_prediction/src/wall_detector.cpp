@@ -28,8 +28,11 @@ void WallDetector::run ()
         if (_framesQueue.empty())
             continue;
         std::unique_lock <std::mutex> lock (_framesQueueMutex);
-        detect (_framesQueue.front());
-        _framesQueue.pop ();
+        for (int i = 0; i < _framesQueue.size(); ++i)
+        {
+            detect (_framesQueue.front());
+            _framesQueue.pop ();
+        }
         lock.unlock ();
     }
 }

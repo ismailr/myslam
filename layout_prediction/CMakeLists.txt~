@@ -148,6 +148,8 @@ add_executable(layout_prediction
     src/tracker.cpp
     src/wall_detector.cpp
     src/system.cpp
+    src/frame.cpp
+    src/optimizer.cpp
 )
 
 ## Add cmake target dependencies of the executable

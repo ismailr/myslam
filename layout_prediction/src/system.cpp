@@ -13,6 +13,8 @@
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
+#include "layout_prediction/optimizer.h"
+#include "layout_prediction/graph.h"
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_cloud.h>

@@ -9,6 +9,8 @@
 
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/wall_detector.h"
+#include "layout_prediction/optimizer.h"
+#include "layout_prediction/graph.h"
 
 class Tracker;
 class WallDetector;

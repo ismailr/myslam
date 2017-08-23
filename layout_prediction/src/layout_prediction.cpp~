@@ -14,6 +14,8 @@
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/system.h"
+#include "layout_prediction/graph.h"
+#include "layout_prediction/optimizer.h"
 
 #include <thread>
 
@@ -28,12 +30,15 @@ int main (int argc, char** argv)
     System *system = new System (nh);
     Tracker *tracker = new Tracker ();
     WallDetector *wall_detector = new WallDetector ();
+    Graph *graph = new Graph ();
+    Optimizer *optimizer = new Optimizer (graph);
     
     system->setTracker (tracker);
     system->setWallDetector (wall_detector);
 
-//    system->run ();
+    // initialize threads
     std::thread wall_detector_thread (&WallDetector::run, wall_detector);
+    std::thread optimizer_thread (&Optimizer::run, optimizer);
 
     // Get action data
 	ros::Subscriber sub_odom = nh.subscribe ("action", 1, &System::readActionData, system);
