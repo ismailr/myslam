@@ -29,13 +29,11 @@ System::System(ros::NodeHandle nh):_rosnodehandle (nh)
 void System::setWallDetector (WallDetector& wall_detector)
 {
     _wall_detector = &wall_detector;
-    _wall_detector->attachTo (this);
 };
 
 void System::setOptimizer (Optimizer& optimizer)
 {
     _optimizer = &optimizer;
-    _optimizer->attachTo (this);
 };
 
 void System::readSensorsData (

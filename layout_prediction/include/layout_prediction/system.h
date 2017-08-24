@@ -15,9 +15,11 @@
 class WallDetector;
 class Optimizer;
 class Frame;
+class Graph;
 class System
 {
     public:
+        Graph *_graph;
         std::queue <Frame*> _framesQueue;
         std::mutex _framesQueueMutex;
 
@@ -47,7 +49,6 @@ class System
         ros::Publisher _pub_marker;
         ros::Publisher _pub_cloud;
         ros::Publisher _pub_depth;
-
 };
 
 #endif

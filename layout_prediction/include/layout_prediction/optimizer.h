@@ -14,13 +14,11 @@ class System;
 class Optimizer
 {
     public:
-        Graph *_graph;
-
-        Optimizer ();
+        Optimizer (System&, Graph&);
         void run ();
-        void attachTo (System*);
 
     private:
+        Graph *_graph;
         System *_system;
         g2o::SparseOptimizer* _optimizer;
 

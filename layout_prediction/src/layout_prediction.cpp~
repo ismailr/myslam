@@ -24,13 +24,11 @@ int main (int argc, char** argv)
 
     // Define system ...
     System * system = new System (nh);
+    Graph * graph = new Graph ();
 
     // .. and subsystem
-    WallDetector * wall_detector = new WallDetector ();
-    Optimizer * optimizer = new Optimizer ();
-    
-    system->setWallDetector (*wall_detector);
-    system->setOptimizer (*optimizer);
+    WallDetector * wall_detector = new WallDetector (*system, *graph);
+    Optimizer * optimizer = new Optimizer (*system, *graph);
 
     // initialize threads
     std::thread wall_detector_thread (&WallDetector::run, wall_detector);
@@ -54,12 +52,6 @@ int main (int argc, char** argv)
 
 
     ros::spin();
-//    ros::Rate r (10);
-//    while (ros::ok())
-//    {
-//        ros::spinOnce ();
-//        r.sleep ();
-//    }
 
 	return 0;
 }

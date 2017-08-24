@@ -17,21 +17,24 @@
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
+#include "layout_prediction/graph.h"
 
 class System;
+class Graph;
 class WallDetector
 {
     public:
-        WallDetector ();
+        WallDetector (System&, Graph&);
         void detect (Frame*);
-        void attachTo (System*);
         void run ();
 
     private:
         System *_system;
-        std::vector<line> _lines;
+        Graph *_graph;
+        std::vector<line> _lines; // todo: delete!
 
         void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, std::vector<line>&);
+        void line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
         geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
 };
 

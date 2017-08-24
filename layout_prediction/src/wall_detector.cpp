@@ -18,9 +18,13 @@
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
+#include "layout_prediction/graph.h"
 
 
-WallDetector::WallDetector (){}
+WallDetector::WallDetector (System& system, Graph& graph)
+    :_system (&system), _graph (&graph) {
+    _system->setWallDetector (*this);
+}
 
 void WallDetector::run ()
 {
@@ -36,11 +40,6 @@ void WallDetector::run ()
         }
         lock.unlock ();
     }
-}
-
-void WallDetector::attachTo (System* system)
-{
-    _system = system;
 }
 
 void WallDetector::detect (Frame* frame)
@@ -205,6 +204,11 @@ WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, std
                 l.r = l.c/sqrt (l.m * l.m + 1);
                 l.fitness = 0.0;
                 lines.push_back(l);
+
+                // for each wall:
+                //    do data_association
+                //    add/update vertex
+                // endfor
 
 			}
 
