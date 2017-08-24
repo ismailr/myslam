@@ -9,7 +9,6 @@
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
 
 #include "layout_prediction/system.h"
-#include "layout_prediction/tracker.h"
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
@@ -20,8 +19,6 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-unsigned long int System::_frameId = 0;
-
 System::System(ros::NodeHandle nh):_rosnodehandle (nh)
 {
     _pub_marker = _rosnodehandle.advertise<visualization_msgs::Marker> ("line_strip",1);
@@ -29,16 +26,16 @@ System::System(ros::NodeHandle nh):_rosnodehandle (nh)
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 }
 
-void System::setTracker (Tracker* tracker)
+void System::setWallDetector (WallDetector& wall_detector)
 {
-    _tracker = tracker;
-    _tracker->attachTo (this);
-}
-
-void System::setWallDetector (WallDetector *wall_detector)
-{
-    _wall_detector = wall_detector;
+    _wall_detector = &wall_detector;
     _wall_detector->attachTo (this);
+};
+
+void System::setOptimizer (Optimizer& optimizer)
+{
+    _optimizer = &optimizer;
+    _optimizer->attachTo (this);
 };
 
 void System::readSensorsData (
@@ -68,13 +65,12 @@ void System::readSensorsData (
     SE2 t (odom_x, odom_y, odom_theta);
 
     Pose *pose = new Pose ();
-    pose->setId (System::_frameId++);
     pose->setEstimate (t);
 
-    Frame *frame = new Frame (_cloud, pose);
+    Frame *frame = new Frame (_cloud, *pose);
     
-    std::unique_lock <std::mutex> lock (_wall_detector->_framesQueueMutex);
-    _wall_detector->_framesQueue.push (frame);
+    std::unique_lock <std::mutex> lock (_framesQueueMutex);
+    _framesQueue.push (frame);
     lock.unlock ();
 
     // Odometry data

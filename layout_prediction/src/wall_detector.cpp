@@ -19,19 +19,20 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
 
+
 WallDetector::WallDetector (){}
 
 void WallDetector::run ()
 {
     while (1)
     {
-        if (_framesQueue.empty())
+        if (_system->_framesQueue.empty())
             continue;
-        std::unique_lock <std::mutex> lock (_framesQueueMutex);
-        for (int i = 0; i < _framesQueue.size(); ++i)
+        std::unique_lock <std::mutex> lock (_system->_framesQueueMutex);
+        for (int i = 0; i < _system->_framesQueue.size(); ++i)
         {
-            detect (_framesQueue.front());
-            _framesQueue.pop ();
+            detect (_system->_framesQueue.front());
+            _system->_framesQueue.pop ();
         }
         lock.unlock ();
     }
@@ -45,7 +46,7 @@ void WallDetector::attachTo (System* system)
 void WallDetector::detect (Frame* frame)
 {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = frame->getCloud();
-    Pose* pose = frame->getPose();
+    Pose* pose = &frame->getPose();
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
 

@@ -11,12 +11,13 @@ class Pose;
 class Frame
 {
     public:
-        Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose*);
+        Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
         pcl::PointCloud<pcl::PointXYZ>::Ptr getCloud ();
-        Pose* getPose ();
+        Pose& getPose ();
 
     private:
-        unsigned long int _id;
+        static unsigned long _frameId;
+        unsigned long _id;
         pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
         Pose *_pose;
 

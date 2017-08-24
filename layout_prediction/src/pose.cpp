@@ -26,8 +26,11 @@
 
 #include "layout_prediction/pose.h"
 
+unsigned long Pose::_poseId = 0;
+
 Pose::Pose() : BaseVertex<3, SE2>()
 {
+    setId (++Pose::_poseId);
 }
 
 bool Pose::read(std::istream& is)

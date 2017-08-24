@@ -7,15 +7,21 @@
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 
 #include "layout_prediction/graph.h"
+#include "layout_prediction/system.h"
 
-
+class Graph;
+class System;
 class Optimizer
 {
     public:
-        Optimizer (Graph*);
+        Graph *_graph;
+
+        Optimizer ();
         void run ();
+        void attachTo (System*);
 
     private:
+        System *_system;
         g2o::SparseOptimizer* _optimizer;
 
 };

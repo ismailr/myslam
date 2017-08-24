@@ -19,13 +19,9 @@
 #include "layout_prediction/frame.h"
 
 class System;
-class Frame;
 class WallDetector
 {
     public:
-        std::queue <Frame*> _framesQueue;
-        std::mutex _framesQueueMutex;
-
         WallDetector ();
         void detect (Frame*);
         void attachTo (System*);

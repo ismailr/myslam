@@ -4,9 +4,11 @@
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
 
-Frame::Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose* pose)
-    :_cloud (cloud), _pose (pose) {
-        _id = _pose->id();
+unsigned long Frame::_frameId = 0;
+
+Frame::Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
+    :_cloud (cloud), _pose (&pose) {
+       _id = _frameId++; 
 }
 
 pcl::PointCloud<pcl::PointXYZ>::Ptr Frame::getCloud ()
@@ -14,7 +16,7 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr Frame::getCloud ()
     return _cloud;
 }
 
-Pose* Frame::getPose ()
+Pose& Frame::getPose ()
 {
-    return _pose;
+    return *_pose;
 }

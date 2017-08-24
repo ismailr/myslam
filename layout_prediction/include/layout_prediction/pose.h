@@ -36,6 +36,8 @@ using namespace g2o;
 class Pose : public BaseVertex<3, SE2>
 {
     public:
+    static unsigned long _poseId;
+
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     Pose();
 

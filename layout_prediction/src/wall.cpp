@@ -27,9 +27,13 @@
 // Copyright (C) 2017 Ismail
 // All rights reserved.
 
-#include "layout_prediction/wall.h"
 #include <typeinfo>
 #include "g2o/stuff/macros.h"
+
+#include "layout_prediction/wall.h"
+#include "layout_prediction/pose.h"
+
+unsigned long Wall::_wallId = 0;
 
 Wall::Wall() :
 BaseVertex<2, Line2D>()
@@ -39,6 +43,7 @@ BaseVertex<2, Line2D>()
     _q.setZero();
     _fitness = 0.0;
     p1Id=p2Id=-1;
+    setId (++Wall::_wallId);
 }
 
 Wall::Wall(double rho, double theta) :
@@ -81,4 +86,9 @@ double Wall::getFitness ()
 void Wall::setFitness (double fitness)
 {
     _fitness = fitness;
+}
+
+void Wall::setObserverPose (Pose* observerPose)
+{
+    _observerPoses.push_back (observerPose);
 }

@@ -1,11 +1,18 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/graph.h"
 
-Optimizer::Optimizer (Graph* graph){}
+Optimizer::Optimizer (){
+    _graph = new Graph ();
+
+}
 
 void Optimizer::run (){
     while(1)
     {
-        std::cout << "optimizer is running." << std::endl;
     }
+}
+
+void Optimizer::attachTo (System* system)
+{
+    _system = system;
 }

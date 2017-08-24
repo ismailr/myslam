@@ -35,13 +35,18 @@
 #include "g2o/core/hyper_graph_action.h"
 #include "g2o/stuff/misc.h"
 #include "g2o/types/slam2d/vertex_point_xy.h"
-#include "line_2d.h"
+
+#include "layout_prediction/line_2d.h"
+#include "layout_prediction/pose.h"
 
 using namespace g2o;
 
+class Pose;
 class Wall : public BaseVertex <2, Line2D>
 {
     public:
+    static unsigned long _wallId;
+
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     Wall (); // Set line params to zero
     Wall (double rho, double theta); // Set line params
@@ -98,9 +103,12 @@ class Wall : public BaseVertex <2, Line2D>
     double getFitness ();
     void setFitness (double fitness);
 
+    void setObserverPose (Pose*);
+
     private:
     Eigen::Vector2d _p,_q; // edges 
     double _fitness; // fitness of wall as a result of line-fitting process
+    std::vector <Pose*> _observerPoses;
 
 };
 #endif
