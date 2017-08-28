@@ -21,4 +21,14 @@ void Graph::updateGraph (std::vector<Wall> newGraph)
     lock.unlock();
 }
 
+void Graph::dataAssociationNN (Wall& wall)
+{
+    double r_threshold = 10;
+    double t_threshold = 10;
+    double d_threshold = 50;
 
+    for (int i = 0; i < _walls.size(); ++i)
+    {
+    }
+
+}

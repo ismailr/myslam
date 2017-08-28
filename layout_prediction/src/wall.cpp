@@ -88,7 +88,7 @@ void Wall::setFitness (double fitness)
     _fitness = fitness;
 }
 
-void Wall::setObserverPose (Pose* observerPose)
+void Wall::setObserverPose (Pose& observerPose)
 {
-    _observerPoses.push_back (observerPose);
+    _observerPoses.push_back (&observerPose);
 }

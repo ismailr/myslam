@@ -17,6 +17,7 @@ class Graph
         void addVertex (Wall*);
         std::vector<Wall*> getAllVertices ();
         void updateGraph (std::vector<Wall>);
+        void dataAssociationNN (Wall&); // Simple but inaccurate Nearest Neighbour
 
     private:
         std::vector<Wall*> _walls;

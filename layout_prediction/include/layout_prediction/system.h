@@ -28,14 +28,15 @@ class System
         void setOptimizer (Optimizer&);
 
         void readSensorsData (const sensor_msgs::PointCloud2ConstPtr&, 
-//                const sensor_msgs::ImageConstPtr&,
+                const sensor_msgs::ImageConstPtr&,
+                const sensor_msgs::ImageConstPtr&,
                 const nav_msgs::OdometryConstPtr&);
         void readActionData (const pr2_mechanism_controllers::BaseOdometryState::Ptr&);
         
         std::queue <Frame*> getFramesQueue ();
 
-
-        void visualize();
+        template <typename T>
+        void visualize(T&);
         
     private:
         // Main components
@@ -49,6 +50,7 @@ class System
         ros::Publisher _pub_marker;
         ros::Publisher _pub_cloud;
         ros::Publisher _pub_depth;
+        ros::Publisher _pub_rgb;
 };
 
 #endif

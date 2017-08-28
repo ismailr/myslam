@@ -103,7 +103,7 @@ class Wall : public BaseVertex <2, Line2D>
     double getFitness ();
     void setFitness (double fitness);
 
-    void setObserverPose (Pose*);
+    void setObserverPose (Pose&);
 
     private:
     Eigen::Vector2d _p,_q; // edges 

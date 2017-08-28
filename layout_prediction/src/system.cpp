@@ -24,6 +24,7 @@ System::System(ros::NodeHandle nh):_rosnodehandle (nh)
     _pub_marker = _rosnodehandle.advertise<visualization_msgs::Marker> ("line_strip",1);
 	_pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
+	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
 }
 
 void System::setWallDetector (WallDetector& wall_detector)
@@ -38,7 +39,8 @@ void System::setOptimizer (Optimizer& optimizer)
 
 void System::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
-//        const sensor_msgs::ImageConstPtr& depth,
+        const sensor_msgs::ImageConstPtr& rgb,
+        const sensor_msgs::ImageConstPtr& depth,
         const nav_msgs::OdometryConstPtr& odom)
 {
 	// Pointcloud data
@@ -87,7 +89,14 @@ void System::readActionData (const pr2_mechanism_controllers::BaseOdometryState:
 //    std::cout << "=============================================" << std::endl; 
 }
 
-void System::visualize()
+template <typename T>
+void System::visualize(T& type)
 {
 
+}
+
+template <>
+void System::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
+{
+    _pub_cloud.publish (cloud);
 }
