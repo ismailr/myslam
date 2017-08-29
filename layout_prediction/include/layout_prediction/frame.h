@@ -15,6 +15,8 @@ class Frame
         pcl::PointCloud<pcl::PointXYZ>::Ptr getCloud ();
         Pose& getPose ();
 
+        ~Frame ();
+
     private:
         static unsigned long _frameId;
         unsigned long _id;

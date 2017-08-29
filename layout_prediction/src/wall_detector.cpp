@@ -35,8 +35,10 @@ void WallDetector::run ()
         std::unique_lock <std::mutex> lock (_system->_framesQueueMutex);
         for (int i = 0; i < _system->_framesQueue.size(); ++i)
         {
-            detect (_system->_framesQueue.front());
+            Frame *frame = _system->_framesQueue.front();
+            detect (frame);
             _system->_framesQueue.pop ();
+            delete frame; // it's a must, otherwise memory leak!
         }
         lock.unlock ();
     }
@@ -52,17 +54,19 @@ void WallDetector::detect (Frame* frame)
 	int height = static_cast<int>(cloud->height/4);
 	for(int i = 0; i < cloud->width; i++)
     {
-		_laser->push_back(cloud->at(i,0));
-		_laser->push_back(cloud->at(i,cloud->height/8));
-		_laser->push_back(cloud->at(i,cloud->height/6));
-		_laser->push_back(cloud->at(i,cloud->height/4));
-		_laser->push_back(cloud->at(i,cloud->height/2));
+        for(int j = cloud->height/2; j < cloud->height; j++)
+        {
+            if (i % 20 == 0 && j % 20 == 0)
+                _laser->push_back(cloud->at(i,j));
+        }
     }
 
 	_laser->header.frame_id = cloud->header.frame_id;
 	_laser->header.seq = cloud->header.seq;
 
     _system->visualize (_laser);
+
+//    plane_fitting (_laser, *pose);
 
 //    line_fitting2 (_laser, *pose);
 //	line_fitting (_laser, _lines);
@@ -460,4 +464,28 @@ void WallDetector::line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 
 		j++;
 	}
+}
+
+void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose&)
+{
+    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    seg.setOptimizeCoefficients (true);
+    seg.setModelType (pcl::SACMODEL_PLANE);
+    seg.setMethodType (pcl::SAC_RANSAC);
+    seg.setDistanceThreshold (0.1);
+    seg.setInputCloud (cloud);
+    seg.segment (*inliers, *coefficients);
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr _plane (new pcl::PointCloud<pcl::PointXYZ>);
+    for (int i = 0; i < inliers->indices.size(); ++i)
+    {
+        _plane->push_back (cloud->points [inliers->indices[i]]);
+    }
+
+	_plane->header.frame_id = cloud->header.frame_id;
+	_plane->header.seq = cloud->header.seq;
+
+    _system->visualize (_plane);
 }

@@ -20,3 +20,7 @@ Pose& Frame::getPose ()
 {
     return *_pose;
 }
+
+Frame::~Frame()
+{
+}
