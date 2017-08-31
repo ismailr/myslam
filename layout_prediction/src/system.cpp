@@ -14,6 +14,7 @@
 #include "layout_prediction/frame.h"
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/graph.h"
+#include "layout_prediction/tracker.h"
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_cloud.h>
@@ -36,6 +37,11 @@ void System::setOptimizer (Optimizer& optimizer)
 {
     _optimizer = &optimizer;
 };
+
+void System::setTracker (Tracker& tracker)
+{
+    _tracker = &tracker;
+}
 
 void System::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 

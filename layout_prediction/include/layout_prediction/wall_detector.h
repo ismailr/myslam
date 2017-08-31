@@ -24,8 +24,9 @@ class Graph;
 class WallDetector
 {
     public:
+        unsigned long _previousFrameProcessed;
         WallDetector (System&, Graph&);
-        void detect (Frame*);
+        void detect (Frame&);
         void run ();
 
     private:
@@ -35,8 +36,8 @@ class WallDetector
 
         void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, std::vector<line>&);
         void line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
-        geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
         void plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
+        geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
 };
 
 #endif

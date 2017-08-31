@@ -11,9 +11,11 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/graph.h"
 #include "layout_prediction/frame.h"
+#include "layout_prediction/tracker.h"
 
 class WallDetector;
 class Optimizer;
+class Tracker;
 class Frame;
 class Graph;
 class System
@@ -26,6 +28,7 @@ class System
         System(ros::NodeHandle nh);
         void setWallDetector (WallDetector&);
         void setOptimizer (Optimizer&);
+        void setTracker (Tracker&);
 
         void readSensorsData (const sensor_msgs::PointCloud2ConstPtr&, 
                 const sensor_msgs::ImageConstPtr&,
@@ -42,6 +45,7 @@ class System
         // Main components
         WallDetector *_wall_detector;
         Optimizer *_optimizer;
+        Tracker *_tracker;
 
         // Ros nodehandle
         ros::NodeHandle _rosnodehandle;

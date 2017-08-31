@@ -9,6 +9,7 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/registration/ndt.h>
 
 #include <tf/transform_listener.h>
 #include <tf/transform_datatypes.h>
@@ -20,9 +21,8 @@
 #include "layout_prediction/frame.h"
 #include "layout_prediction/graph.h"
 
-
 WallDetector::WallDetector (System& system, Graph& graph)
-    :_system (&system), _graph (&graph) {
+    :_system (&system), _graph (&graph), _previousFrameProcessed (0) {
     _system->setWallDetector (*this);
 }
 
@@ -32,22 +32,33 @@ void WallDetector::run ()
     {
         if (_system->_framesQueue.empty())
             continue;
-        std::unique_lock <std::mutex> lock (_system->_framesQueueMutex);
+
+        std::unique_lock <std::mutex> lock_frames_queue (_system->_framesQueueMutex);
         for (int i = 0; i < _system->_framesQueue.size(); ++i)
         {
             Frame *frame = _system->_framesQueue.front();
-            detect (frame);
-            _system->_framesQueue.pop ();
-            delete frame; // it's a must, otherwise memory leak!
+
+            if (frame->_id == _previousFrameProcessed) // already process this frame
+                continue;
+
+            _previousFrameProcessed = frame->_id;
+            int useCount = ++frame->_useCount; // copy usercount and use the frame and increment count
+
+            detect (*frame);
+            if (useCount == 2) // Tracker already used it, so pop and delete
+            {
+                _system->_framesQueue.pop ();
+                delete frame; // it's a must, otherwise memory leak!
+            }
         }
-        lock.unlock ();
+        lock_frames_queue.unlock ();
     }
 }
 
-void WallDetector::detect (Frame* frame)
+void WallDetector::detect (Frame& frame)
 {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = frame->getCloud();
-    Pose* pose = &frame->getPose();
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = frame.getCloud();
+    Pose* pose = &frame.getPose();
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -466,8 +477,35 @@ void WallDetector::line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 	}
 }
 
+pcl::PointCloud<pcl::PointXYZ>::Ptr source (new pcl::PointCloud<pcl::PointXYZ>);
+static int init = 1;
 void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose&)
 {
+
+    /* NDT */
+    if (init)
+    {
+        source = cloud;
+        init = 0;
+        return;
+    }
+
+    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> ndt;
+    ndt.setTransformationEpsilon (0.01);
+    ndt.setStepSize (0.1);
+    ndt.setResolution (10);
+    ndt.setMaximumIterations (35);
+    ndt.setInputSource (source);
+    ndt.setInputTarget (cloud);
+    ndt.align (*source);
+
+    Eigen::Matrix4f t = ndt.getFinalTransformation ();
+    source = cloud;
+
+    std::cout << t;
+
+    /* END OF NDT */
+
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
     pcl::SACSegmentation<pcl::PointXYZ> seg;

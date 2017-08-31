@@ -1,6 +1,8 @@
 #ifndef _FRAME_H_
 #define _FRAME_H_
 
+#include <mutex>
+
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl_conversions/pcl_conversions.h>
@@ -11,6 +13,10 @@ class Pose;
 class Frame
 {
     public:
+        int _useCount;
+        static unsigned long _frameId;
+        unsigned long _id;
+
         Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
         pcl::PointCloud<pcl::PointXYZ>::Ptr getCloud ();
         Pose& getPose ();
@@ -18,8 +24,6 @@ class Frame
         ~Frame ();
 
     private:
-        static unsigned long _frameId;
-        unsigned long _id;
         pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
         Pose *_pose;
 
