@@ -1,6 +1,9 @@
 #ifndef _TRACKER_H_
 #define _TRACKER_H_
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
 #include "layout_prediction/system.h"
 #include "layout_prediction/frame.h"
 
@@ -10,6 +13,7 @@ class Frame;
 class Tracker
 {
     public:
+        static bool init;
         unsigned long _previousFrameProcessed;
 
         Tracker (System&, Graph&);
@@ -19,6 +23,8 @@ class Tracker
     private:
         System *_system;
         Graph *_graph;
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr _prevCloud; 
 };
 
 #endif

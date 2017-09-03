@@ -10,6 +10,7 @@
 
 #include "layout_prediction/system.h"
 #include "layout_prediction/wall_detector.h"
+#include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/optimizer.h"
@@ -89,10 +90,10 @@ void System::readSensorsData (
 
 void System::readActionData (const pr2_mechanism_controllers::BaseOdometryState::Ptr& action)
 {
-//    std::cout << "vx = " << action->velocity.linear.x << std::endl;
-//    std::cout << "vy = " << action->velocity.linear.y << std::endl;
-//    std::cout << "wz = " << action->velocity.angular.z << std::endl;
-//    std::cout << "=============================================" << std::endl; 
+    std::cout << "vx = " << action->velocity.linear.x << std::endl;
+    std::cout << "vy = " << action->velocity.linear.y << std::endl;
+    std::cout << "wz = " << action->velocity.angular.z << std::endl;
+    std::cout << "=============================================" << std::endl; 
 }
 
 template <typename T>
@@ -105,4 +106,41 @@ template <>
 void System::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
 {
     _pub_cloud.publish (cloud);
+}
+
+static int marker_id = 0;
+template <>
+void System::visualize<Wall> (std::vector<Wall*> walls)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "odom_combined";
+
+    marker.id = 0; //marker_id++;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.1;
+    marker.color.a = 1.0;
+
+    for (int i = 0; i < walls.size (); ++i)
+    {
+        geometry_msgs::Point p;
+        geometry_msgs::Point q;
+
+        Eigen::Vector2d _p = walls[i]->p();
+        Eigen::Vector2d _q = walls[i]->q();
+
+        p.x = _p(0); p.y = _p(1);
+        q.x = _q(0); q.y = _q(1);
+
+        marker.color.r = p.x;
+        marker.color.g = p.y;
+        marker.color.b = 1.0;
+
+        marker.points.push_back(p);
+        marker.points.push_back(q);
+    }
+
+    marker.lifetime = ros::Duration();
+    _pub_marker.publish(marker);
 }

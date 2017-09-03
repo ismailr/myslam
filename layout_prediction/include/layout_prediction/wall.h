@@ -58,6 +58,9 @@ class Wall : public BaseVertex <2, Line2D>
     double rho() const {return _estimate[1]; }
     void setRho(double r) { _estimate[1] = r; }
 
+    Eigen::Vector2d p() const {return _p;}
+    Eigen::Vector2d q() const {return _q;}
+
     virtual void setToOriginImpl() {
         _estimate.setZero();
     }

@@ -61,27 +61,28 @@ void WallDetector::detect (Frame& frame)
     Pose* pose = &frame.getPose();
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
+	_laser->header.frame_id = cloud->header.frame_id;
+	_laser->header.seq = cloud->header.seq;
 
-	int height = static_cast<int>(cloud->height/4);
 	for(int i = 0; i < cloud->width; i++)
     {
-        for(int j = cloud->height/2; j < cloud->height; j++)
+        for(int j = 0; j < cloud->height/2; j++)
         {
             if (i % 20 == 0 && j % 20 == 0)
                 _laser->push_back(cloud->at(i,j));
         }
     }
 
-	_laser->header.frame_id = cloud->header.frame_id;
-	_laser->header.seq = cloud->header.seq;
+    plane_fitting (_laser, *pose);
 
-    _system->visualize (_laser);
-
-//    plane_fitting (_laser, *pose);
-
+//	int height = static_cast<int>(cloud->height/4);
+//	for(int i = 0; i < cloud->width; i++)
+//        _laser->push_back(cloud->at(i,height));
+//
+//    _system->visualize (cloud);
 //    line_fitting2 (_laser, *pose);
 //	line_fitting (_laser, _lines);
-//
+
 //    if (struktur.empty()) 
 //        struktur.insert(struktur.end(), lines.begin(), lines.end());
 //    else
@@ -260,41 +261,6 @@ WallDetector::transformPoint (const tf::TransformListener& listener,geometry_msg
 	return q;
 }
 
-//int marker_id = 0;
-//void visualize_walls (std::vector<line>& lines)
-//{
-//	visualization_msgs::Marker marker;
-//	marker.header.frame_id = "odom_combined";
-//
-//	marker.id = 0; //marker_id++;
-//	marker.type = visualization_msgs::Marker::LINE_LIST;
-//
-//	marker.action = visualization_msgs::Marker::ADD;
-//	marker.scale.x = 0.1;
-//    marker.color.a = 1.0;
-//
-//    for (int i = 0; i < lines.size(); ++i)
-//    {
-//        geometry_msgs::Point p;
-//        geometry_msgs::Point q;
-//
-//        p = lines[i].p.point;
-//        q = lines[i].q.point;
-//
-//        marker.color.r = p.x;
-//        marker.color.g = p.y;
-//        marker.color.b = 1.0;
-//
-//        marker.points.push_back(p);
-//        marker.points.push_back(q);
-//    }
-//
-//    marker.lifetime = ros::Duration();
-////    pub_marker.publish(marker);
-//}
-
-
-
 //void data_asosiasi (std::vector<line>& lines)
 //{
 //    double m_threshold = 10;
@@ -326,6 +292,8 @@ void WallDetector::line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 {
 	std::vector<pcl::PointIndices> cluster_indices;
 	tf::TransformListener listener;
+
+    std::vector<Wall*> walls;
 
 	// NaN-based clustering
 	std::vector<int> in;
@@ -459,8 +427,10 @@ void WallDetector::line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
                 wall->setFitness (l.fitness);
                 wall->setObserverPose (pose);
 
-                wall->write (std::cout);
-                std::cout << std::endl;
+//                wall->write (std::cout);
+//                std::cout << std::endl;
+//                _system->visualize (*wall);
+                walls.push_back (wall);
 
                 // for each wall:
                 //    do data_association
@@ -475,36 +445,14 @@ void WallDetector::line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 
 		j++;
 	}
+
+    _system->visualize (walls);
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr source (new pcl::PointCloud<pcl::PointXYZ>);
-static int init = 1;
-void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose&)
+void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
 {
-
-    /* NDT */
-    if (init)
-    {
-        source = cloud;
-        init = 0;
-        return;
-    }
-
-    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> ndt;
-    ndt.setTransformationEpsilon (0.01);
-    ndt.setStepSize (0.1);
-    ndt.setResolution (10);
-    ndt.setMaximumIterations (35);
-    ndt.setInputSource (source);
-    ndt.setInputTarget (cloud);
-    ndt.align (*source);
-
-    Eigen::Matrix4f t = ndt.getFinalTransformation ();
-    source = cloud;
-
-    std::cout << t;
-
-    /* END OF NDT */
+	tf::TransformListener listener;
+    Eigen::Vector3f axis (0,0,1);
 
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
@@ -512,8 +460,9 @@ void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
     seg.setOptimizeCoefficients (true);
     seg.setModelType (pcl::SACMODEL_PLANE);
     seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.1);
+    seg.setDistanceThreshold (0.01);
     seg.setInputCloud (cloud);
+    seg.setAxis (axis);
     seg.segment (*inliers, *coefficients);
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr _plane (new pcl::PointCloud<pcl::PointXYZ>);
@@ -525,5 +474,42 @@ void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 	_plane->header.frame_id = cloud->header.frame_id;
 	_plane->header.seq = cloud->header.seq;
 
+    line l;
+    l.p.header.frame_id = cloud->header.frame_id;
+    l.p.header.seq = cloud->header.seq;
+    l.q.header.frame_id = cloud->header.frame_id;
+    l.q.header.seq = cloud->header.seq;
+
+    l.m = - (coefficients->values[0]/coefficients->values[1]);
+    l.c = coefficients->values[4]/coefficients->values[1];
+
+    l.theta = atan(-1/l.m) * 180/M_PI;
+    l.r = l.c/sqrt (l.m * l.m + 1);
+    l.fitness = 0.0;
+
+    l.p.point.x = cloud->points [inliers->indices.front()].x;
+    l.p.point.y = cloud->points [inliers->indices.front()].y;
+    l.p.point.z = cloud->points [inliers->indices.front()].z;
+    l.q.point.x = cloud->points [inliers->indices.back()].x;
+    l.q.point.y = cloud->points [inliers->indices.back()].y;
+    l.q.point.z = cloud->points [inliers->indices.back()].z;
+
+    l.p = transformPoint (boost::ref (listener), l.p);
+    l.q = transformPoint (boost::ref (listener), l.q);
+
+    l.p.point.z = 0;
+    l.q.point.z = 0;
+
+    Eigen::Vector2d p (l.p.point.x, l.p.point.y);
+    Eigen::Vector2d q (l.q.point.x, l.q.point.y);
+
+    Wall *wall = new Wall (l.r, l.theta, p, q); 
+    wall->setFitness (l.fitness);
+    wall->setObserverPose (pose);
+
+    std::vector<Wall*> walls;
+    walls.push_back (wall);
+
     _system->visualize (_plane);
+    _system->visualize (walls);
 }

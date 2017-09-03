@@ -7,7 +7,7 @@
 unsigned long Frame::_frameId = 1;
 
 Frame::Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
-    :_cloud (cloud), _pose (&pose), _useCount (0) {
+    :_cloud (cloud), _pose (&pose), _useCount (0), _goodFrame (true) {
        _id = Frame::_frameId++; 
 }
 

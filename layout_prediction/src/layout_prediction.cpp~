@@ -36,6 +36,7 @@ int main (int argc, char** argv)
     // initialize threads
     std::thread wall_detector_thread (&WallDetector::run, wall_detector);
     std::thread optimizer_thread (&Optimizer::run, optimizer);
+    std::thread tracker_thread (&Tracker::run, tracker);
 
     // Get action data
 	ros::Subscriber sub_odom = nh.subscribe ("action", 1, &System::readActionData, system);

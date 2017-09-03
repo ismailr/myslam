@@ -16,6 +16,7 @@ class Frame
         int _useCount;
         static unsigned long _frameId;
         unsigned long _id;
+        bool _goodFrame;
 
         Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
         pcl::PointCloud<pcl::PointXYZ>::Ptr getCloud ();
@@ -26,6 +27,7 @@ class Frame
     private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
         Pose *_pose;
+
 
 };
 
