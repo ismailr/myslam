@@ -1,5 +1,6 @@
 #include <thread>
 #include <mutex>
+#include <stdlib.h>
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -48,7 +49,8 @@ void System::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
         const sensor_msgs::ImageConstPtr& depth,
-        const nav_msgs::OdometryConstPtr& odom)
+        const nav_msgs::OdometryConstPtr& odom,
+        const nav_msgs::OdometryConstPtr& action)
 {
 	// Pointcloud data
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -75,10 +77,13 @@ void System::readSensorsData (
     pose->setEstimate (t);
 
     Frame *frame = new Frame (_cloud, *pose);
+    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
+    {
+        std::unique_lock <std::mutex> lock (_framesQueueMutex);
+        _framesQueue.push (frame);
+        lock.unlock ();
+    }
     
-    std::unique_lock <std::mutex> lock (_framesQueueMutex);
-    _framesQueue.push (frame);
-    lock.unlock ();
 
     // Odometry data
     
@@ -86,14 +91,6 @@ void System::readSensorsData (
 
 //    WallDetector wall_detector (_pub_cloud);
 //    wall_detector.detect (_cloud);
-}
-
-void System::readActionData (const pr2_mechanism_controllers::BaseOdometryState::Ptr& action)
-{
-    std::cout << "vx = " << action->velocity.linear.x << std::endl;
-    std::cout << "vy = " << action->velocity.linear.y << std::endl;
-    std::cout << "wz = " << action->velocity.angular.z << std::endl;
-    std::cout << "=============================================" << std::endl; 
 }
 
 template <typename T>
@@ -115,7 +112,7 @@ void System::visualize<Wall> (std::vector<Wall*> walls)
     visualization_msgs::Marker marker;
     marker.header.frame_id = "odom_combined";
 
-    marker.id = 0; //marker_id++;
+    marker.id = /*0;*/ marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;

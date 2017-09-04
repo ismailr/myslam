@@ -38,19 +38,26 @@ int main (int argc, char** argv)
     std::thread optimizer_thread (&Optimizer::run, optimizer);
     std::thread tracker_thread (&Tracker::run, tracker);
 
-    // Get action data
-	ros::Subscriber sub_odom = nh.subscribe ("action", 1, &System::readActionData, system);
-
     // Get sensors data
     message_filters::Subscriber<sensor_msgs::PointCloud2> cloud_sub (nh, "cloud", 1);
     message_filters::Subscriber<sensor_msgs::Image> rgb_sub (nh, "rgb", 1);
     message_filters::Subscriber<sensor_msgs::Image> depth_sub (nh, "depth", 1);
     message_filters::Subscriber<nav_msgs::Odometry> odometry_sub (nh, "odometry", 1);
+    message_filters::Subscriber<nav_msgs::Odometry> action_sub (nh, "action", 1);
 
     typedef message_filters::sync_policies::ApproximateTime
-        <sensor_msgs::PointCloud2, sensor_msgs::Image, sensor_msgs::Image, nav_msgs::Odometry> MySyncPolicy;
-    message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (10), cloud_sub, rgb_sub, depth_sub, odometry_sub);
-    sync.registerCallback (boost::bind (&System::readSensorsData, system, _1, _2, _3, _4));
+        <   sensor_msgs::PointCloud2, 
+            sensor_msgs::Image, 
+            sensor_msgs::Image, 
+            nav_msgs::Odometry, 
+            nav_msgs::Odometry> MySyncPolicy;
+    message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (10),    cloud_sub, 
+                                                                            rgb_sub, 
+                                                                            depth_sub, 
+                                                                            odometry_sub, 
+                                                                            action_sub);
+
+    sync.registerCallback (boost::bind (&System::readSensorsData, system, _1, _2, _3, _4, _5));
 
     ros::spin();
 

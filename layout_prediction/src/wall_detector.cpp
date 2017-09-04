@@ -79,7 +79,7 @@ void WallDetector::detect (Frame& frame)
 //	for(int i = 0; i < cloud->width; i++)
 //        _laser->push_back(cloud->at(i,height));
 //
-//    _system->visualize (cloud);
+//    _system->visualize (_laser);
 //    line_fitting2 (_laser, *pose);
 //	line_fitting (_laser, _lines);
 

@@ -33,8 +33,8 @@ class System
         void readSensorsData (const sensor_msgs::PointCloud2ConstPtr&, 
                 const sensor_msgs::ImageConstPtr&,
                 const sensor_msgs::ImageConstPtr&,
+                const nav_msgs::OdometryConstPtr&,
                 const nav_msgs::OdometryConstPtr&);
-        void readActionData (const pr2_mechanism_controllers::BaseOdometryState::Ptr&);
         
         std::queue <Frame*> getFramesQueue ();
 
