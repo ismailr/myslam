@@ -9,7 +9,13 @@
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
+#include <pcl/segmentation/extract_clusters.h>
 #include <pcl/registration/ndt.h>
+#include <pcl/filters/extract_indices.h>
+#include <pcl/filters/voxel_grid.h>
+#include <pcl/features/normal_3d.h>
+#include <pcl/kdtree/kdtree.h>
+
 
 #include <tf/transform_listener.h>
 #include <tf/transform_datatypes.h>
@@ -66,9 +72,9 @@ void WallDetector::detect (Frame& frame)
 
 	for(int i = 0; i < cloud->width; i++)
     {
-        for(int j = 0; j < cloud->height/2; j++)
+        for(int j = 0; j < cloud->height/5; j++)
         {
-            if (i % 20 == 0 && j % 20 == 0)
+            if (i % 10 == 0 && j % 10 == 0)
                 _laser->push_back(cloud->at(i,j));
         }
     }
@@ -452,64 +458,95 @@ void WallDetector::line_fitting2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
 {
 	tf::TransformListener listener;
-    Eigen::Vector3f axis (0,0,1);
+    Eigen::Vector3f axis (0.0f,0.0f,1.0f);
 
-    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
-    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
-    pcl::SACSegmentation<pcl::PointXYZ> seg;
-    seg.setOptimizeCoefficients (true);
-    seg.setModelType (pcl::SACMODEL_PLANE);
-    seg.setMethodType (pcl::SAC_RANSAC);
-    seg.setDistanceThreshold (0.01);
-    seg.setInputCloud (cloud);
-    seg.setAxis (axis);
-    seg.segment (*inliers, *coefficients);
+    /* *** EUCLIDEAN CLUSTER EXTRACTION ***/
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    tree->setInputCloud (cloud);
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr _plane (new pcl::PointCloud<pcl::PointXYZ>);
-    for (int i = 0; i < inliers->indices.size(); ++i)
+    std::vector<pcl::PointIndices> cluster_indices;
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance (1);
+    ec.setMinClusterSize (200);
+    ec.setMaxClusterSize (25000);
+    ec.setSearchMethod (tree);
+    ec.setInputCloud (cloud);
+    ec.extract (cluster_indices);
+    /* *** END OF EUCLIDEAN CLUSTER EXTRACTION ***/
+
+    int j = 0;
+    for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin();
+            it != cluster_indices.end(); ++it)
     {
-        _plane->push_back (cloud->points [inliers->indices[i]]);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
+        cloud_cluster->header.frame_id = cloud->header.frame_id;
+        for (std::vector<int>::const_iterator pit = it->indices.begin();
+                pit != it->indices.end(); ++pit)
+            cloud_cluster->points.push_back (cloud->points [*pit]);
+        cloud_cluster->width = cloud_cluster->points.size ();
+        cloud_cluster->height = 1;
+        cloud_cluster->is_dense = true;
+
+        pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+        pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+        pcl::SACSegmentation<pcl::PointXYZ> seg;
+        seg.setOptimizeCoefficients (true);
+        seg.setModelType (pcl::SACMODEL_PLANE);
+        seg.setMethodType (pcl::SAC_RANSAC);
+        seg.setDistanceThreshold (0.02);
+        seg.setInputCloud (cloud_cluster);
+        seg.setAxis (axis);
+        seg.setEpsAngle (10.0f * (M_PI/180.0f));
+        seg.segment (*inliers, *coefficients);
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr _plane (new pcl::PointCloud<pcl::PointXYZ>);
+        for (int i = 0; i < inliers->indices.size(); ++i)
+        {
+            _plane->push_back (cloud_cluster->points [inliers->indices[i]]);
+        }
+
+        _plane->header.frame_id = cloud_cluster->header.frame_id;
+        _plane->header.seq = cloud_cluster->header.seq;
+
+        line l;
+        l.p.header.frame_id = cloud_cluster->header.frame_id;
+        l.p.header.seq = cloud_cluster->header.seq;
+        l.q.header.frame_id = cloud_cluster->header.frame_id;
+        l.q.header.seq = cloud_cluster->header.seq;
+
+        l.m = - (coefficients->values[0]/coefficients->values[1]);
+        l.c = coefficients->values[4]/coefficients->values[1];
+
+        l.theta = atan(-1/l.m) * 180/M_PI;
+        l.r = l.c/sqrt (l.m * l.m + 1);
+        l.fitness = 0.0;
+
+        l.p.point.x = cloud_cluster->points [inliers->indices.front()].x;
+        l.p.point.y = cloud_cluster->points [inliers->indices.front()].y;
+        l.p.point.z = cloud_cluster->points [inliers->indices.front()].z;
+        l.q.point.x = cloud_cluster->points [inliers->indices.back()].x;
+        l.q.point.y = cloud_cluster->points [inliers->indices.back()].y;
+        l.q.point.z = cloud_cluster->points [inliers->indices.back()].z;
+
+        l.p = transformPoint (boost::ref (listener), l.p);
+        l.q = transformPoint (boost::ref (listener), l.q);
+
+        l.p.point.z = 0;
+        l.q.point.z = 0;
+
+        Eigen::Vector2d p (l.p.point.x, l.p.point.y);
+        Eigen::Vector2d q (l.q.point.x, l.q.point.y);
+
+        Wall *wall = new Wall (l.r, l.theta, p, q); 
+        wall->setFitness (l.fitness);
+        wall->setObserverPose (pose);
+
+        std::vector<Wall*> walls;
+        walls.push_back (wall);
+
+        _system->visualize (_plane);
+        _system->visualize (walls);
+
+        j++;
     }
-
-	_plane->header.frame_id = cloud->header.frame_id;
-	_plane->header.seq = cloud->header.seq;
-
-    line l;
-    l.p.header.frame_id = cloud->header.frame_id;
-    l.p.header.seq = cloud->header.seq;
-    l.q.header.frame_id = cloud->header.frame_id;
-    l.q.header.seq = cloud->header.seq;
-
-    l.m = - (coefficients->values[0]/coefficients->values[1]);
-    l.c = coefficients->values[4]/coefficients->values[1];
-
-    l.theta = atan(-1/l.m) * 180/M_PI;
-    l.r = l.c/sqrt (l.m * l.m + 1);
-    l.fitness = 0.0;
-
-    l.p.point.x = cloud->points [inliers->indices.front()].x;
-    l.p.point.y = cloud->points [inliers->indices.front()].y;
-    l.p.point.z = cloud->points [inliers->indices.front()].z;
-    l.q.point.x = cloud->points [inliers->indices.back()].x;
-    l.q.point.y = cloud->points [inliers->indices.back()].y;
-    l.q.point.z = cloud->points [inliers->indices.back()].z;
-
-    l.p = transformPoint (boost::ref (listener), l.p);
-    l.q = transformPoint (boost::ref (listener), l.q);
-
-    l.p.point.z = 0;
-    l.q.point.z = 0;
-
-    Eigen::Vector2d p (l.p.point.x, l.p.point.y);
-    Eigen::Vector2d q (l.q.point.x, l.q.point.y);
-
-    Wall *wall = new Wall (l.r, l.theta, p, q); 
-    wall->setFitness (l.fitness);
-    wall->setObserverPose (pose);
-
-    std::vector<Wall*> walls;
-    walls.push_back (wall);
-
-    _system->visualize (_plane);
-    _system->visualize (walls);
 }
