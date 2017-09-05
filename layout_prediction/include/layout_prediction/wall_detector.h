@@ -21,6 +21,7 @@
 
 class System;
 class Graph;
+class Wall;
 class WallDetector
 {
     public:
@@ -28,6 +29,7 @@ class WallDetector
         WallDetector (System&, Graph&);
         void detect (Frame&);
         void run ();
+        void associate_walls (std::vector<Wall*>);
 
     private:
         System *_system;
@@ -35,7 +37,7 @@ class WallDetector
         std::vector<line> _lines; // todo: delete!
 
         void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
-        void plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
+        std::vector<Wall*> plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose&);
         geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
 };
 

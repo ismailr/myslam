@@ -93,14 +93,12 @@ void System::readSensorsData (
 //    wall_detector.detect (_cloud);
 }
 
-template <typename T>
-void System::visualize(T& type)
+template <typename T> void System::visualize(T& type)
 {
 
 }
 
-template <>
-void System::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
+template <> void System::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
 {
     _pub_cloud.publish (cloud);
 }

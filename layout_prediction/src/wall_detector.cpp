@@ -1,4 +1,5 @@
 #include <mutex>
+#include <stdlib.h>
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_cloud.h>
@@ -79,7 +80,6 @@ void WallDetector::detect (Frame& frame)
         }
     }
 
-    plane_fitting (_laser, *pose);
 
 //	int height = static_cast<int>(cloud->height/4);
 //	for(int i = 0; i < cloud->width; i++)
@@ -87,16 +87,9 @@ void WallDetector::detect (Frame& frame)
 //
 //    _system->visualize (_laser);
 //    line_fitting (_laser, *pose);
-//	line_fitting (_laser, _lines);
 
-//    if (struktur.empty()) 
-//        struktur.insert(struktur.end(), lines.begin(), lines.end());
-//    else
-//        data_asosiasi (lines);
-//
-//	visualize_walls(struktur);
-
-//	_pub.publish(*_laser);
+    std::vector<Wall*> walls = plane_fitting (_laser, *pose);
+    associate_walls (walls); // data association
 };
 
 geometry_msgs::PointStamped 
@@ -116,31 +109,41 @@ WallDetector::transformPoint (const tf::TransformListener& listener,geometry_msg
 	return q;
 }
 
-//void data_asosiasi (std::vector<line>& lines)
-//{
-//    double m_threshold = 10;
-//    double c_threshold = 10;
-//    double d_threshold = 50;
-//
-//    for (int i = 0; i < lines.size(); ++i)
-//    {
-//        for (int j = 0; j < struktur.size(); ++j)
-//        {
-//            if (    abs(lines[i].m - struktur[j].m) < m_threshold &&
-//                    abs(lines[i].c - struktur[j].c) < c_threshold)
-//            {
-//                // if distance of lines[i] and struktur[j] < d_threshold
-//                // merge (lines[i], struktur[j])
-//                // else
-//                // struktur.push_back(lines[i]);
-//                break;
-//            }
-//
-//            if (j == struktur.size() - 1)
-//                struktur.push_back(lines[i]);
-//        }
-//    }
-//}
+void WallDetector::associate_walls (std::vector<Wall*> walls)
+{
+    std::vector<Wall*> wall_marks = _graph->getAllVertices ();
+    if (wall_marks.empty())
+    {
+        std::unique_lock <std::mutex> lock (_graph->_graphUpdateMutex);
+        for (int i = 0; i < walls.size(); ++i)
+            _graph->addVertex (walls[i]);
+        lock.unlock();
+    }
+
+    double rho_threshold = 1.0;
+    double theta_threshold = 1.0;
+
+    /*** BRUTE FORCE !!! ***/
+    for (int i = 0; i < walls.size(); i++)
+    {
+        for (int j = 0; i < wall_marks.size (); j++)
+        {
+            if (    abs (walls[i]->rho() - wall_marks[j]->rho()) < rho_threshold && 
+                    abs (walls[i]->theta() - wall_marks[j]->theta()) < theta_threshold)
+            {
+                // update graph
+                break;
+            } 
+
+            if (j == wall_marks.size() - 1)
+            {
+                std::unique_lock <std::mutex> lock (_graph->_graphUpdateMutex);
+                _graph->addVertex (walls[i]);
+                lock.unlock();
+            }
+        }
+    }
+}
 
 
 void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
@@ -304,8 +307,10 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
     _system->visualize (walls);
 }
 
-void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
+std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
 {
+    std::vector<Wall*> walls;
+
 	tf::TransformListener listener;
     Eigen::Vector3f axis (0.0f,0.0f,1.0f);
 
@@ -390,7 +395,6 @@ void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
         wall->setFitness (l.fitness);
         wall->setObserverPose (pose);
 
-        std::vector<Wall*> walls;
         walls.push_back (wall);
 
         _system->visualize (_plane);
@@ -398,4 +402,6 @@ void WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr clou
 
         j++;
     }
+
+    return walls;
 }

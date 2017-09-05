@@ -21,7 +21,7 @@ class Graph;
 class System
 {
     public:
-        Graph *_graph;
+        std::shared_ptr<Graph> _graphPtr;
         std::queue <Frame*> _framesQueue;
         std::mutex _framesQueueMutex;
 
@@ -38,11 +38,8 @@ class System
         
         std::queue <Frame*> getFramesQueue ();
 
-        template <typename T>
-            void visualize(T&);
-
-        template <typename T>
-            void visualize (std::vector<T*>);
+        template <typename T> void visualize(T&);
+        template <typename T> void visualize (std::vector<T*>);
         
     private:
         // Main components
