@@ -1,6 +1,7 @@
 #ifndef _SYSTEM_H_
 #define _SYSTEM_H_
 
+
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -21,6 +22,9 @@ class Graph;
 class System
 {
     public:
+        typedef std::shared_ptr<System> Ptr;
+        typedef std::shared_ptr<const System> ConstPtr;
+
         std::shared_ptr<Graph> _graphPtr;
         std::queue <Frame*> _framesQueue;
         std::mutex _framesQueueMutex;

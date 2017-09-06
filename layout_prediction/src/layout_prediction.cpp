@@ -24,8 +24,10 @@ int main (int argc, char** argv)
 	ros::NodeHandle nh;
 
     // Define system ...
-    auto systemPtr = std::make_shared<System> (nh);
-    auto graphPtr = std::make_shared<Graph> ();
+    System::Ptr systemPtr (new System (nh));
+    Graph::Ptr graphPtr (new Graph);
+//    auto systemPtr = std::make_shared<System> (nh);
+//    auto graphPtr = std::make_shared<Graph> ();
 
     // .. and subsystem
     auto wallDetectorPtr = std::make_shared<WallDetector> (*systemPtr, *graphPtr);

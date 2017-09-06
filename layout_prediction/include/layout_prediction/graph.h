@@ -2,6 +2,7 @@
 #define _GRAPH_H_
 
 #include <mutex>
+#include <memory>
 
 #include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
@@ -11,6 +12,9 @@ class Pose;
 class Graph
 {
     public:
+        typedef std::shared_ptr<Graph> Ptr;
+        typedef std::shared_ptr<const Graph> ConstPtr;
+
         std::mutex _graphUpdateMutex;
 
         Graph ();
