@@ -73,14 +73,14 @@ void System::readSensorsData (
     double odom_theta = yaw;
     SE2 t (odom_x, odom_y, odom_theta);
 
-    Pose *pose = new Pose ();
-    pose->setEstimate (t);
+    Pose::Ptr posePtr (new Pose);
+    posePtr->setEstimate (t);
 
-    Frame *frame = new Frame (_cloud, *pose);
+    Frame::Ptr framePtr (new Frame (_cloud, posePtr));
     if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
     {
         std::unique_lock <std::mutex> lock (_framesQueueMutex);
-        _framesQueue.push (frame);
+        _framesQueue.push (framePtr);
         lock.unlock ();
     }
     

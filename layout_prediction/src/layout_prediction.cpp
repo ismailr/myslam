@@ -24,20 +24,16 @@ int main (int argc, char** argv)
 	ros::NodeHandle nh;
 
     // Define system ...
-    System::Ptr systemPtr (new System (nh));
-    Graph::Ptr graphPtr (new Graph);
-//    auto systemPtr = std::make_shared<System> (nh);
-//    auto graphPtr = std::make_shared<Graph> ();
-
-    // .. and subsystem
-    auto wallDetectorPtr = std::make_shared<WallDetector> (*systemPtr, *graphPtr);
-    auto optimizerPtr = std::make_shared<Optimizer> (*systemPtr, *graphPtr);
-    auto trackerPtr = std::make_shared<Tracker> (*systemPtr, *graphPtr);
+    System system (nh);
+    Graph graph;
+    WallDetector wallDetector (system, graph);
+    Optimizer optimizer (system, graph);
+    Tracker tracker (system, graph);
 
     // initialize threads
-    std::thread wall_detector_thread (&WallDetector::run, wallDetectorPtr);
-    std::thread optimizer_thread (&Optimizer::run, optimizerPtr);
-    std::thread tracker_thread (&Tracker::run, trackerPtr);
+    std::thread wall_detector_thread (&WallDetector::run, wallDetector);
+    std::thread optimizer_thread (&Optimizer::run, optimizer);
+    std::thread tracker_thread (&Tracker::run, tracker);
 
 
     // Get sensors data
@@ -59,7 +55,7 @@ int main (int argc, char** argv)
                                                                             odometry_sub, 
                                                                             action_sub);
 
-    sync.registerCallback (boost::bind (&System::readSensorsData, systemPtr, _1, _2, _3, _4, _5));
+    sync.registerCallback (boost::bind (&System::readSensorsData, &system, _1, _2, _3, _4, _5));
 
     ros::spin();
 

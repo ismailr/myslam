@@ -28,6 +28,8 @@
 // All rights reserved.
 
 #include <typeinfo>
+#include <algorithm>
+#include <math.h>
 #include "g2o/stuff/macros.h"
 
 #include "layout_prediction/wall.h"
@@ -41,6 +43,7 @@ BaseVertex<2, Line2D>()
     _estimate.setZero();
     _p.setZero();
     _q.setZero();
+    _pq.setZero();
     _fitness = 0.0;
     p1Id=p2Id=-1;
     setId (++Wall::_wallId);
@@ -53,6 +56,8 @@ BaseVertex<2, Line2D>()
     setRho (rho);
     _p.setZero();
     _q.setZero();
+    _pq(0) = rho * cos(theta);
+    _pq(1) = rho * sin(theta);
     _fitness = 0.0;
 }
 
@@ -63,6 +68,8 @@ BaseVertex<2, Line2D>()
     setRho (rho);
     _p = p;
     _q = q;
+    _pq(0) = abs (_p(0) - _q(0))/2 + std::min (_p(0),_q(0));
+    _pq(1) = abs (_p(1) - _q(1))/2 + std::min (_p(1),_q(1));
     _fitness = 0.0;
 }
 
@@ -88,7 +95,7 @@ void Wall::setFitness (double fitness)
     _fitness = fitness;
 }
 
-void Wall::setObserverPose (Pose& observerPose)
+void Wall::setObserverPose (Pose::Ptr& observerPose)
 {
-    _observerPoses.push_back (&observerPose);
+    _observerPoses.push_back (observerPose);
 }

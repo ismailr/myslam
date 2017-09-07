@@ -27,6 +27,8 @@
 #ifndef _POSE_H_
 #define _POSE_H_
 
+#include <memory>
+
 #include "g2o/core/base_vertex.h"
 #include "g2o/core/hyper_graph_action.h"
 #include "se2.h"
@@ -36,6 +38,9 @@ using namespace g2o;
 class Pose : public BaseVertex<3, SE2>
 {
     public:
+    typedef std::shared_ptr<Pose> Ptr;
+    typedef std::shared_ptr<const Pose> ConstPtr;
+
     static unsigned long _poseId;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;

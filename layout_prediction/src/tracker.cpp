@@ -32,19 +32,19 @@ void Tracker::run ()
         std::unique_lock <std::mutex> lock_frames_queue (_system->_framesQueueMutex);
         for (int i = 0; i < _system->_framesQueue.size(); ++i)
         {
-            Frame *frame = _system->_framesQueue.front();
+            Frame::Ptr framePtr (_system->_framesQueue.front());
 
-            if (frame->_id == _previousFrameProcessed) // already process this frame
+            if (framePtr->_id == _previousFrameProcessed) // already process this frame
                 continue;
 
-            _previousFrameProcessed = frame->_id;
+            _previousFrameProcessed = framePtr->_id;
 
-            int useCount = ++frame->_useCount; // use the frame and increment count
-            track (*frame);
+            int useCount = ++framePtr->_useCount; // use the frame and increment count
+            track (*framePtr);
             if (useCount == 2) // WallDetector already used it, so pop and delete
             {
                 _system->_framesQueue.pop ();
-                delete frame; // it's a must, otherwise memory leak!
+//                delete frame; // it's a must, otherwise memory leak!
             }
         }
         lock_frames_queue.unlock ();
@@ -54,7 +54,6 @@ void Tracker::run ()
 
 void Tracker::track (Frame& frame)
 {
-    Pose *pose = &frame.getPose();
 //	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = frame.getCloud();
 //	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
 //

@@ -43,29 +43,29 @@ void WallDetector::run ()
         std::unique_lock <std::mutex> lock_frames_queue (_system->_framesQueueMutex);
         for (int i = 0; i < _system->_framesQueue.size(); ++i)
         {
-            Frame *frame = _system->_framesQueue.front();
+            Frame::Ptr framePtr (_system->_framesQueue.front());
 
-            if (frame->_id == _previousFrameProcessed) // already process this frame
+            if (framePtr->_id == _previousFrameProcessed) // already process this frame
                 continue;
 
-            _previousFrameProcessed = frame->_id;
-            int useCount = ++frame->_useCount; // copy usercount and use the frame and increment count
+            _previousFrameProcessed = framePtr->_id;
+            int useCount = ++framePtr->_useCount; // copy usercount and use the frame and increment count
 
-            detect (*frame);
+            detect (framePtr);
             if (useCount == 2) // Tracker already used it, so pop and delete
             {
                 _system->_framesQueue.pop ();
-                delete frame; // it's a must, otherwise memory leak!
+//                delete frame; // it's a must, otherwise memory leak!
             }
         }
         lock_frames_queue.unlock ();
     }
 }
 
-void WallDetector::detect (Frame& frame)
+void WallDetector::detect (Frame::Ptr& framePtr)
 {
-	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = frame.getCloud();
-    Pose* pose = &frame.getPose();
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = framePtr->getCloud();
+    Pose::Ptr posePtr (framePtr->getPose());
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
 	_laser->header.frame_id = cloud->header.frame_id;
@@ -88,8 +88,10 @@ void WallDetector::detect (Frame& frame)
 //    _system->visualize (_laser);
 //    line_fitting (_laser, *pose);
 
-    std::vector<Wall*> walls = plane_fitting (_laser, *pose);
+    std::vector<Wall*> walls = plane_fitting (_laser, posePtr);
     associate_walls (walls); // data association
+    std::cout << "Jumlah vertex: " << _graph->getAllVertices().size() << std::endl;
+    _system->visualize (_graph->getAllVertices());
 };
 
 geometry_msgs::PointStamped 
@@ -121,15 +123,21 @@ void WallDetector::associate_walls (std::vector<Wall*> walls)
     }
 
     double rho_threshold = 1.0;
-    double theta_threshold = 1.0;
+    double theta_threshold = 30.0;
+    double center_threshold = 10.0;
 
     /*** BRUTE FORCE !!! ***/
     for (int i = 0; i < walls.size(); i++)
     {
-        for (int j = 0; i < wall_marks.size (); j++)
+        for (int j = 0; j < wall_marks.size (); j++)
         {
+            double xDist = abs (walls[i]->center()[0] - wall_marks[j]->center()[0]);
+            double yDist = abs (walls[i]->center()[1] - wall_marks[j]->center()[1]);
+            double dist = sqrt (xDist * xDist + yDist * yDist);
+
             if (    abs (walls[i]->rho() - wall_marks[j]->rho()) < rho_threshold && 
-                    abs (walls[i]->theta() - wall_marks[j]->theta()) < theta_threshold)
+                    abs (walls[i]->theta() - wall_marks[j]->theta()) < theta_threshold &&
+                    dist < center_threshold)
             {
                 // update graph
                 break;
@@ -146,7 +154,7 @@ void WallDetector::associate_walls (std::vector<Wall*> walls)
 }
 
 
-void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
+void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose::Ptr& posePtr)
 {
 	std::vector<pcl::PointIndices> cluster_indices;
 	tf::TransformListener listener;
@@ -283,7 +291,7 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
 
                 Wall *wall = new Wall (l.r, l.theta, p, q); 
                 wall->setFitness (l.fitness);
-                wall->setObserverPose (pose);
+                wall->setObserverPose (posePtr);
 
 //                wall->write (std::cout);
 //                std::cout << std::endl;
@@ -307,7 +315,7 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
     _system->visualize (walls);
 }
 
-std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose& pose)
+std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose::Ptr& posePtr)
 {
     std::vector<Wall*> walls;
 
@@ -393,12 +401,12 @@ std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::Point
 
         Wall *wall = new Wall (l.r, l.theta, p, q); 
         wall->setFitness (l.fitness);
-        wall->setObserverPose (pose);
+        wall->setObserverPose (posePtr);
 
         walls.push_back (wall);
 
         _system->visualize (_plane);
-        _system->visualize (walls);
+//        _system->visualize (walls);
 
         j++;
     }

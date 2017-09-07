@@ -26,7 +26,7 @@ class System
         typedef std::shared_ptr<const System> ConstPtr;
 
         std::shared_ptr<Graph> _graphPtr;
-        std::queue <Frame*> _framesQueue;
+        std::queue <Frame::Ptr> _framesQueue;
         std::mutex _framesQueueMutex;
 
         System(ros::NodeHandle nh);

@@ -60,6 +60,7 @@ class Wall : public BaseVertex <2, Line2D>
 
     Eigen::Vector2d p() const {return _p;}
     Eigen::Vector2d q() const {return _q;}
+    Eigen::Vector2d center() const {return _pq;};
 
     virtual void setToOriginImpl() {
         _estimate.setZero();
@@ -106,12 +107,11 @@ class Wall : public BaseVertex <2, Line2D>
     double getFitness ();
     void setFitness (double fitness);
 
-    void setObserverPose (Pose&);
+    void setObserverPose (Pose::Ptr&);
 
     private:
-    Eigen::Vector2d _p,_q; // edges 
+    Eigen::Vector2d _p,_q /* edges */, _pq /* center of p and q */; 
     double _fitness; // fitness of wall as a result of line-fitting process
-    std::vector <Pose*> _observerPoses;
-
+    std::vector <Pose::Ptr> _observerPoses;
 };
 #endif
