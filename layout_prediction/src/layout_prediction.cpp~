@@ -25,7 +25,7 @@ int main (int argc, char** argv)
 
     // Define system ...
     System system (nh);
-    Graph graph;;
+    Graph graph;
     WallDetector wallDetector (system, graph);
     Optimizer optimizer (system, graph);
     Tracker tracker (system, graph);

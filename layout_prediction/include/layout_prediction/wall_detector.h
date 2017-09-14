@@ -29,7 +29,8 @@ class WallDetector
         WallDetector (System&, Graph&);
         void detect (Frame::Ptr&);
         void run ();
-        void associate_walls (std::vector<Wall*>);
+        void associate_walls (std::vector<Wall::Ptr>);
+        void localToGlobal (Wall::Ptr); // measurement model
 
     private:
         System *_system;
@@ -37,7 +38,7 @@ class WallDetector
         std::vector<line> _lines; // todo: delete!
 
         void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose::Ptr&);
-        std::vector<Wall*> plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose::Ptr&);
+        std::vector<Wall::Ptr> plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose::Ptr&);
         geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
 };
 

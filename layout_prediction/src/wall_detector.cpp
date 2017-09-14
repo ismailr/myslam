@@ -1,5 +1,9 @@
 #include <mutex>
 #include <stdlib.h>
+#include <iostream>
+#include <fstream>
+#include <math.h>
+#include <cmath>
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl/point_cloud.h>
@@ -88,10 +92,18 @@ void WallDetector::detect (Frame::Ptr& framePtr)
 //    _system->visualize (_laser);
 //    line_fitting (_laser, *pose);
 
-    std::vector<Wall*> walls = plane_fitting (_laser, posePtr);
-    associate_walls (walls); // data association
-    std::cout << "Jumlah vertex: " << _graph->getAllVertices().size() << std::endl;
-    _system->visualize (_graph->getAllVertices());
+    std::vector<Wall::Ptr> walls = plane_fitting (_laser, posePtr);
+    std::ofstream myfile ("/home/ism/cloud", std::ios::out | std::ios::app);
+    for (int i = 0; i < walls.size(); i++)
+    {
+        localToGlobal (walls[i]);
+        walls[i]->getPose()->write (myfile);
+        myfile << ": ";
+        myfile << walls[i]->rhoGlobal() << ", " << walls[i]->thetaGlobal() << std::endl;
+    }
+    myfile.close();
+
+    _system->visualize (walls);
 };
 
 geometry_msgs::PointStamped 
@@ -111,9 +123,9 @@ WallDetector::transformPoint (const tf::TransformListener& listener,geometry_msg
 	return q;
 }
 
-void WallDetector::associate_walls (std::vector<Wall*> walls)
+void WallDetector::associate_walls (std::vector<Wall::Ptr> walls)
 {
-    std::vector<Wall*> wall_marks = _graph->getAllVertices ();
+    std::vector<Wall::Ptr> wall_marks = _graph->getAllVertices ();
     if (wall_marks.empty())
     {
         std::unique_lock <std::mutex> lock (_graph->_graphUpdateMutex);
@@ -123,20 +135,20 @@ void WallDetector::associate_walls (std::vector<Wall*> walls)
     }
 
     double rho_threshold = 1.0;
-    double theta_threshold = 30.0;
-    double center_threshold = 10.0;
+    double theta_threshold = 10.0;
+    double center_threshold = 1.0;
 
     /*** BRUTE FORCE !!! ***/
     for (int i = 0; i < walls.size(); i++)
     {
         for (int j = 0; j < wall_marks.size (); j++)
         {
-            double xDist = abs (walls[i]->center()[0] - wall_marks[j]->center()[0]);
-            double yDist = abs (walls[i]->center()[1] - wall_marks[j]->center()[1]);
+            double xDist = std::abs (walls[i]->center()[0] - wall_marks[j]->center()[0]);
+            double yDist = std::abs (walls[i]->center()[1] - wall_marks[j]->center()[1]);
             double dist = sqrt (xDist * xDist + yDist * yDist);
 
-            if (    abs (walls[i]->rho() - wall_marks[j]->rho()) < rho_threshold && 
-                    abs (walls[i]->theta() - wall_marks[j]->theta()) < theta_threshold &&
+            if (    std::abs (walls[i]->rho() - wall_marks[j]->rho()) < rho_threshold && 
+                    std::abs (walls[i]->theta() - wall_marks[j]->theta()) < theta_threshold &&
                     dist < center_threshold)
             {
                 // update graph
@@ -159,7 +171,7 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
 	std::vector<pcl::PointIndices> cluster_indices;
 	tf::TransformListener listener;
 
-    std::vector<Wall*> walls;
+    std::vector<Wall::Ptr> walls;
 
 	// NaN-based clustering
 	std::vector<int> in;
@@ -289,20 +301,11 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
                 Eigen::Vector2d p (l.p.point.x, l.p.point.y);
                 Eigen::Vector2d q (l.q.point.x, l.q.point.y);
 
-                Wall *wall = new Wall (l.r, l.theta, p, q); 
+                Wall::Ptr wall (new Wall (l.r, l.theta, p, q)); 
                 wall->setFitness (l.fitness);
                 wall->setObserverPose (posePtr);
 
-//                wall->write (std::cout);
-//                std::cout << std::endl;
-//                _system->visualize (*wall);
                 walls.push_back (wall);
-
-                // for each wall:
-                //    do data_association
-                //    add/update vertex
-                // endfor
-
 			}
 
 			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
@@ -315,12 +318,12 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
     _system->visualize (walls);
 }
 
-std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose::Ptr& posePtr)
+std::vector<Wall::Ptr> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose::Ptr& posePtr)
 {
-    std::vector<Wall*> walls;
+    std::vector<Wall::Ptr> walls;
 
 	tf::TransformListener listener;
-    Eigen::Vector3f axis (0.0f,0.0f,1.0f);
+    Eigen::Vector3f axis (0.0f,-1.0f,0.0f);
 
     /* *** EUCLIDEAN CLUSTER EXTRACTION ***/
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
@@ -329,7 +332,7 @@ std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::Point
     std::vector<pcl::PointIndices> cluster_indices;
     pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
     ec.setClusterTolerance (1);
-    ec.setMinClusterSize (200);
+    ec.setMinClusterSize (100);
     ec.setMaxClusterSize (25000);
     ec.setSearchMethod (tree);
     ec.setInputCloud (cloud);
@@ -365,7 +368,7 @@ std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::Point
         for (int i = 0; i < inliers->indices.size(); ++i)
         {
             _plane->push_back (cloud_cluster->points [inliers->indices[i]]);
-        }
+      }
 
         _plane->header.frame_id = cloud_cluster->header.frame_id;
         _plane->header.seq = cloud_cluster->header.seq;
@@ -376,11 +379,17 @@ std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::Point
         l.q.header.frame_id = cloud_cluster->header.frame_id;
         l.q.header.seq = cloud_cluster->header.seq;
 
-        l.m = - (coefficients->values[0]/coefficients->values[1]);
-        l.c = coefficients->values[4]/coefficients->values[1];
+        // ax + by + cz + d = 0
+        // for y = 0
+        // cz = - ax - d
+        // z = -(a/c)x - d/c
+        // m = -(a/c)
+        // c = -(d/c)
+        l.m = - (coefficients->values[0]/coefficients->values[2]);
+        l.c = - (coefficients->values[3]/coefficients->values[2]);
 
         l.theta = atan(-1/l.m) * 180/M_PI;
-        l.r = l.c/sqrt (l.m * l.m + 1);
+        l.r = std::abs (l.c) /sqrt (pow (l.m, 2) + 1);
         l.fitness = 0.0;
 
         l.p.point.x = cloud_cluster->points [inliers->indices.front()].x;
@@ -399,9 +408,14 @@ std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::Point
         Eigen::Vector2d p (l.p.point.x, l.p.point.y);
         Eigen::Vector2d q (l.q.point.x, l.q.point.y);
 
-        Wall *wall = new Wall (l.r, l.theta, p, q); 
+        Wall::Ptr wall (new Wall (l.r, l.theta, p, q)); 
         wall->setFitness (l.fitness);
         wall->setObserverPose (posePtr);
+        
+        std::ofstream myfile ("/home/ism/cloud", std::ios::out | std::ios::app);
+        wall->getPose()->write (myfile);
+        myfile << "---> " << "(" << l.r << ", " << l.theta << ")" << std::endl;
+        myfile.close();
 
         walls.push_back (wall);
 
@@ -412,4 +426,23 @@ std::vector<Wall*> WallDetector::plane_fitting (const pcl::PointCloud<pcl::Point
     }
 
     return walls;
+}
+
+void WallDetector::localToGlobal (Wall::Ptr wall)
+{
+    double rhoGlobal, thetaGlobal;
+    double rho = wall->rho();
+    double theta = wall->theta();
+
+    Pose::Ptr posePtr = wall->getPose();
+    auto x = posePtr->b(0);
+    auto y = posePtr->b(1);
+    auto alpha = posePtr->b(2);
+
+    // measurement model
+    rhoGlobal = rho + x * cos (theta - alpha) + y * sin (theta - alpha);
+    thetaGlobal = theta - alpha;
+
+    wall->setRhoGlobal (rhoGlobal);
+    wall->setThetaGlobal (thetaGlobal);
 }

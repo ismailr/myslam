@@ -47,6 +47,8 @@ BaseVertex<2, Line2D>()
     _fitness = 0.0;
     p1Id=p2Id=-1;
     setId (++Wall::_wallId);
+    _rhoGlobal = 0.0;
+    _thetaGlobal = 0.0;
 }
 
 Wall::Wall(double rho, double theta) :
@@ -59,6 +61,8 @@ BaseVertex<2, Line2D>()
     _pq(0) = rho * cos(theta);
     _pq(1) = rho * sin(theta);
     _fitness = 0.0;
+    _rhoGlobal = 0.0;
+    _thetaGlobal = 0.0;
 }
 
 Wall::Wall(double rho, double theta, Eigen::Vector2d p, Eigen::Vector2d q) :
@@ -71,6 +75,8 @@ BaseVertex<2, Line2D>()
     _pq(0) = abs (_p(0) - _q(0))/2 + std::min (_p(0),_q(0));
     _pq(1) = abs (_p(1) - _q(1))/2 + std::min (_p(1),_q(1));
     _fitness = 0.0;
+    _rhoGlobal = 0.0;
+    _thetaGlobal = 0.0;
 }
 
 bool Wall::read(std::istream& is)

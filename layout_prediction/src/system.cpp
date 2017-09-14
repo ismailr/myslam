@@ -19,8 +19,10 @@
 #include "layout_prediction/tracker.h"
 
 #include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/transforms.h>
 
 System::System(ros::NodeHandle nh):_rosnodehandle (nh)
 {
@@ -52,7 +54,6 @@ void System::readSensorsData (
         const nav_msgs::OdometryConstPtr& odom,
         const nav_msgs::OdometryConstPtr& action)
 {
-	// Pointcloud data
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*cloud, *_cloud);
 
@@ -77,20 +78,12 @@ void System::readSensorsData (
     posePtr->setEstimate (t);
 
     Frame::Ptr framePtr (new Frame (_cloud, posePtr));
-    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
-    {
+//    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
+//    {
         std::unique_lock <std::mutex> lock (_framesQueueMutex);
         _framesQueue.push (framePtr);
         lock.unlock ();
-    }
-    
-
-    // Odometry data
-    
-    // Process pointcloud with _wall_detector
-
-//    WallDetector wall_detector (_pub_cloud);
-//    wall_detector.detect (_cloud);
+//    }
 }
 
 template <typename T> void System::visualize(T& type)
@@ -105,7 +98,7 @@ template <> void System::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::Po
 
 static int marker_id = 0;
 template <>
-void System::visualize<Wall> (std::vector<Wall*> walls)
+void System::visualize<Wall::Ptr> (std::vector<Wall::Ptr> walls)
 {
     visualization_msgs::Marker marker;
     marker.header.frame_id = "odom_combined";

@@ -46,6 +46,8 @@ class Wall : public BaseVertex <2, Line2D>
 {
     public:
     static unsigned long _wallId;
+    typedef std::shared_ptr<Wall> Ptr;
+    typedef std::shared_ptr<const Wall> ConstPtr;
 
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     Wall (); // Set line params to zero
@@ -54,13 +56,18 @@ class Wall : public BaseVertex <2, Line2D>
 
     double theta() const {return _estimate[0]; }
     void setTheta(double t) { _estimate[0] = t; }
+    double thetaGlobal() const { return _thetaGlobal; }
+    void setThetaGlobal (double t) { _thetaGlobal = t; }
 
     double rho() const {return _estimate[1]; }
     void setRho(double r) { _estimate[1] = r; }
+    double rhoGlobal () const {return _rhoGlobal; }
+    void setRhoGlobal (double r) { _rhoGlobal = r; }
 
     Eigen::Vector2d p() const {return _p;}
     Eigen::Vector2d q() const {return _q;}
     Eigen::Vector2d center() const {return _pq;};
+    Pose::Ptr getPose() { return _observerPoses.front(); }
 
     virtual void setToOriginImpl() {
         _estimate.setZero();
@@ -113,5 +120,6 @@ class Wall : public BaseVertex <2, Line2D>
     Eigen::Vector2d _p,_q /* edges */, _pq /* center of p and q */; 
     double _fitness; // fitness of wall as a result of line-fitting process
     std::vector <Pose::Ptr> _observerPoses;
+    double _rhoGlobal, _thetaGlobal;
 };
 #endif
