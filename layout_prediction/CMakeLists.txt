@@ -151,6 +151,10 @@ add_executable(layout_prediction
     src/frame.cpp
     src/optimizer.cpp
     src/graph.cpp
+    src/pose_measurement.cpp
+    src/wall_measurement.cpp
+    src/types_myslam.cpp
+    src/local_mapper.cpp
 )
 
 ## Add cmake target dependencies of the executable

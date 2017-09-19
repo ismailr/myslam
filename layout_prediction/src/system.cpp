@@ -13,6 +13,7 @@
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/graph.h"
@@ -24,12 +25,16 @@
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
 
-System::System(ros::NodeHandle nh):_rosnodehandle (nh)
+System::System(ros::NodeHandle nh, Graph& graph)
+    :_rosnodehandle (nh), _graph (&graph), _previousTime (0.0), 
+    _currentTime (0.0), _init (true)
 {
     _pub_marker = _rosnodehandle.advertise<visualization_msgs::Marker> ("line_strip",1);
 	_pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
+
+    _localMapper = new LocalMapper (graph);
 }
 
 void System::setWallDetector (WallDetector& wall_detector)
@@ -57,33 +62,51 @@ void System::readSensorsData (
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*cloud, *_cloud);
 
-    // Getting orientation from odometry 
-    // (yaw only since we are working in 2D)
-    tf::Quaternion q (
-                odom->pose.pose.orientation.x,
-                odom->pose.pose.orientation.y,
-                odom->pose.pose.orientation.z,
-                odom->pose.pose.orientation.w
-            );
-    tf::Matrix3x3 m (q);
-    double roll, pitch, yaw;
-    m.getRPY (roll, pitch, yaw);
+    _currentTime = ros::Time::now().toSec();
+    _currentPosePtr = Pose::Ptr (new Pose);
 
-    double odom_x = odom->pose.pose.position.x;
-    double odom_y = odom->pose.pose.position.y;
-    double odom_theta = yaw;
-    SE2 t (odom_x, odom_y, odom_theta);
+    if (_init)
+    {
+        _currentPosePtr->setEstimate (*(estimateFromOdom (odom)));
+        _init = false;
+    } else {
+        double deltaTime = _currentTime - _previousTime;
 
-    Pose::Ptr posePtr (new Pose);
-    posePtr->setEstimate (t);
+        // pose by motion model
+        double vx = action->pose.pose.position.x;
+        double vy = action->pose.pose.position.y;
+        double w  = action->pose.pose.orientation.z;
+        double x0 = _lastPosePtr->estimate()[0];
+        double y0 = _lastPosePtr->estimate()[1];
+        double theta0 = _lastPosePtr->estimate()[2];
 
-    Frame::Ptr framePtr (new Frame (_cloud, posePtr));
-//    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
-//    {
+        double x = x0 + (vx * cos(theta0) + vy * sin(theta0)) * deltaTime;
+        double y = y0 + (-vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
+        double theta = theta0 + w * deltaTime;
+
+        SE2 m (x, y, theta);
+        _currentPosePtr->setEstimate (m);
+
+        // set measurement
+        std::tuple<int, int> ids (_lastPosePtr->id(), _currentPosePtr->id());
+        _graph->addEdgePose2Pose (ids, *(estimateFromOdom (odom)));
+    }
+
+    _graph->addVertex (_currentPosePtr);
+    Frame::Ptr framePtr (new Frame (_cloud, _currentPosePtr->id()));
+    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
+    {
         std::unique_lock <std::mutex> lock (_framesQueueMutex);
         _framesQueue.push (framePtr);
         lock.unlock ();
-//    }
+    }
+
+    _previousTime = _currentTime;
+    _lastPosePtr = _currentPosePtr;
+
+    int frameId = framePtr->getId();
+    if (frameId % 3 == 0)
+        _graph->localOptimize (frameId);
 }
 
 template <typename T> void System::visualize(T& type)
@@ -131,4 +154,23 @@ void System::visualize<Wall::Ptr> (std::vector<Wall::Ptr> walls)
 
     marker.lifetime = ros::Duration();
     _pub_marker.publish(marker);
+}
+
+SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
+{
+    tf::Quaternion q (
+                odom->pose.pose.orientation.x,
+                odom->pose.pose.orientation.y,
+                odom->pose.pose.orientation.z,
+                odom->pose.pose.orientation.w
+            );
+    tf::Matrix3x3 m (q);
+    double roll, pitch, yaw;
+    m.getRPY (roll, pitch, yaw);
+
+    double odom_x = odom->pose.pose.position.x;
+    double odom_y = odom->pose.pose.position.y;
+    double odom_theta = yaw;
+    SE2* t = new SE2 (odom_x, odom_y, odom_theta);
+    return t;
 }

@@ -34,10 +34,10 @@ void Tracker::run ()
         {
             Frame::Ptr framePtr (_system->_framesQueue.front());
 
-            if (framePtr->_id == _previousFrameProcessed) // already process this frame
+            if (framePtr->getId() == _previousFrameProcessed) // already process this frame
                 continue;
 
-            _previousFrameProcessed = framePtr->_id;
+            _previousFrameProcessed = framePtr->getId();
 
             int useCount = ++framePtr->_useCount; // use the frame and increment count
             track (*framePtr);

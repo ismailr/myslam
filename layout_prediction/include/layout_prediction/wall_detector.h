@@ -18,6 +18,7 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/graph.h"
+#include "layout_prediction/local_mapper.h"
 
 class System;
 class Graph;
@@ -29,7 +30,6 @@ class WallDetector
         WallDetector (System&, Graph&);
         void detect (Frame::Ptr&);
         void run ();
-        void associate_walls (std::vector<Wall::Ptr>);
         void localToGlobal (Wall::Ptr); // measurement model
 
     private:
@@ -37,8 +37,8 @@ class WallDetector
         Graph *_graph;
         std::vector<line> _lines; // todo: delete!
 
-        void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose::Ptr&);
-        std::vector<Wall::Ptr> plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose::Ptr&);
+        void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, int poseId);
+        std::vector<int> plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, int poseId);
         geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
 };
 

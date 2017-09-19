@@ -24,8 +24,8 @@ int main (int argc, char** argv)
 	ros::NodeHandle nh;
 
     // Define system ...
-    System system (nh);
     Graph graph;
+    System system (nh, graph);
     WallDetector wallDetector (system, graph);
     Optimizer optimizer (system, graph);
     Tracker tracker (system, graph);

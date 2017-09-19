@@ -24,49 +24,38 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef _POSE_H_
-#define _POSE_H_
+#include "layout_prediction/pose_measurement.h"
 
-#include <memory>
+using namespace Eigen;
 
-#include "g2o/core/base_vertex.h"
-#include "g2o/core/hyper_graph_action.h"
-#include "se2.h"
-
-using namespace g2o;
-
-class Pose : public BaseVertex<3, SE2>
+PoseMeasurement::PoseMeasurement() :
+BaseBinaryEdge<3, SE2, Pose, Pose>()
 {
-    public:
-    typedef std::shared_ptr<Pose> Ptr;
-    typedef std::shared_ptr<const Pose> ConstPtr;
+}
 
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    Pose();
+bool PoseMeasurement::read(std::istream& is)
+{
+    Vector3d p;
+    is >> p[0] >> p[1] >> p[2];
+    _measurement.fromVector(p);
+    _inverseMeasurement = measurement().inverse();
 
-    virtual void setToOriginImpl() {
-        _estimate = SE2();
-    }
+    for (int i = 0; i < 3; ++i)
+        for (int j = i; j < 3; ++j) {
+            is >> information()(i, j);
+            if (i != j)
+                information()(j, i) = information()(i, j);
+        }
+    return true;
+}
 
-    virtual void oplusImpl(const double* update)
-    {
-        SE2 up(update[0], update[1], update[2]);
-        _estimate *= up;
-    }
+bool PoseMeasurement::write(std::ostream& os) const
+{
+    Vector3d p = measurement().toVector();
+    os << p.x() << " " << p.y() << " " << p.z();
 
-    virtual bool read(std::istream& is);
-    virtual bool write(std::ostream& os) const;
-
-    bool operator == (const Pose::Ptr& posePtr) const
-    {
-        if (this->id() == posePtr->id())
-            return true;
-        else
-            return false;
-    }
-
-
-    private:
-        static unsigned long _poseId;
-};
-#endif
+    for (int i = 0; i < 3; ++i)
+        for (int j = i; j < 3; ++j)
+            os << " " << information()(i, j);
+    return os.good();
+}

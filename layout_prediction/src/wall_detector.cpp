@@ -31,6 +31,7 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/graph.h"
+#include "layout_prediction/local_mapper.h"
 
 WallDetector::WallDetector (System& system, Graph& graph)
     :_system (&system), _graph (&graph), _previousFrameProcessed (0) {
@@ -49,10 +50,10 @@ void WallDetector::run ()
         {
             Frame::Ptr framePtr (_system->_framesQueue.front());
 
-            if (framePtr->_id == _previousFrameProcessed) // already process this frame
+            if (framePtr->getId() == _previousFrameProcessed) // already process this frame
                 continue;
 
-            _previousFrameProcessed = framePtr->_id;
+            _previousFrameProcessed = framePtr->getId();
             int useCount = ++framePtr->_useCount; // copy usercount and use the frame and increment count
 
             detect (framePtr);
@@ -69,7 +70,7 @@ void WallDetector::run ()
 void WallDetector::detect (Frame::Ptr& framePtr)
 {
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = framePtr->getCloud();
-    Pose::Ptr posePtr (framePtr->getPose());
+    int poseId = framePtr->getPoseId();
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
 	_laser->header.frame_id = cloud->header.frame_id;
@@ -90,20 +91,14 @@ void WallDetector::detect (Frame::Ptr& framePtr)
 //        _laser->push_back(cloud->at(i,height));
 //
 //    _system->visualize (_laser);
-//    line_fitting (_laser, *pose);
+//    line_fitting (_laser, poseId);
 
-    std::vector<Wall::Ptr> walls = plane_fitting (_laser, posePtr);
-    std::ofstream myfile ("/home/ism/cloud", std::ios::out | std::ios::app);
-    for (int i = 0; i < walls.size(); i++)
-    {
-        localToGlobal (walls[i]);
-        walls[i]->getPose()->write (myfile);
-        myfile << ": ";
-        myfile << walls[i]->rhoGlobal() << ", " << walls[i]->thetaGlobal() << std::endl;
-    }
-    myfile.close();
+    std::vector<int> walls = plane_fitting (_laser, poseId);
+//    _localMapper->optimize (walls);
+//    for (int i = 0; i < walls.size(); i++)
+//        localToGlobal (walls[i]);
 
-    _system->visualize (walls);
+//    _system->visualize (walls);
 };
 
 geometry_msgs::PointStamped 
@@ -123,55 +118,12 @@ WallDetector::transformPoint (const tf::TransformListener& listener,geometry_msg
 	return q;
 }
 
-void WallDetector::associate_walls (std::vector<Wall::Ptr> walls)
-{
-    std::vector<Wall::Ptr> wall_marks = _graph->getAllVertices ();
-    if (wall_marks.empty())
-    {
-        std::unique_lock <std::mutex> lock (_graph->_graphUpdateMutex);
-        for (int i = 0; i < walls.size(); ++i)
-            _graph->addVertex (walls[i]);
-        lock.unlock();
-    }
-
-    double rho_threshold = 1.0;
-    double theta_threshold = 10.0;
-    double center_threshold = 1.0;
-
-    /*** BRUTE FORCE !!! ***/
-    for (int i = 0; i < walls.size(); i++)
-    {
-        for (int j = 0; j < wall_marks.size (); j++)
-        {
-            double xDist = std::abs (walls[i]->center()[0] - wall_marks[j]->center()[0]);
-            double yDist = std::abs (walls[i]->center()[1] - wall_marks[j]->center()[1]);
-            double dist = sqrt (xDist * xDist + yDist * yDist);
-
-            if (    std::abs (walls[i]->rho() - wall_marks[j]->rho()) < rho_threshold && 
-                    std::abs (walls[i]->theta() - wall_marks[j]->theta()) < theta_threshold &&
-                    dist < center_threshold)
-            {
-                // update graph
-                break;
-            } 
-
-            if (j == wall_marks.size() - 1)
-            {
-                std::unique_lock <std::mutex> lock (_graph->_graphUpdateMutex);
-                _graph->addVertex (walls[i]);
-                lock.unlock();
-            }
-        }
-    }
-}
-
-
-void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose::Ptr& posePtr)
+void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int poseId)
 {
 	std::vector<pcl::PointIndices> cluster_indices;
 	tf::TransformListener listener;
 
-    std::vector<Wall::Ptr> walls;
+    std::vector<int> wallIds;
 
 	// NaN-based clustering
 	std::vector<int> in;
@@ -303,9 +255,14 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
 
                 Wall::Ptr wall (new Wall (l.r, l.theta, p, q)); 
                 wall->setFitness (l.fitness);
-                wall->setObserverPose (posePtr);
 
-                walls.push_back (wall);
+                double m[2] = {l.r, l.theta};
+                _graph->addVertex (wall);
+                _graph->addEdgePose2Wall (std::tuple<int, int> (poseId, wall->id()), m);
+                
+                wall->setObserverPose (poseId);
+
+                wallIds.push_back (wall->id());
 			}
 
 			pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = cloud_cluster->begin();
@@ -315,12 +272,12 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
 		j++;
 	}
 
-    _system->visualize (walls);
+//    _system->visualize (walls);
 }
 
-std::vector<Wall::Ptr> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, Pose::Ptr& posePtr)
+std::vector<int> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int poseId)
 {
-    std::vector<Wall::Ptr> walls;
+    std::vector<int> wallIds;
 
 	tf::TransformListener listener;
     Eigen::Vector3f axis (0.0f,-1.0f,0.0f);
@@ -410,14 +367,14 @@ std::vector<Wall::Ptr> WallDetector::plane_fitting (const pcl::PointCloud<pcl::P
 
         Wall::Ptr wall (new Wall (l.r, l.theta, p, q)); 
         wall->setFitness (l.fitness);
-        wall->setObserverPose (posePtr);
-        
-        std::ofstream myfile ("/home/ism/cloud", std::ios::out | std::ios::app);
-        wall->getPose()->write (myfile);
-        myfile << "---> " << "(" << l.r << ", " << l.theta << ")" << std::endl;
-        myfile.close();
 
-        walls.push_back (wall);
+        double m[2] = {l.r, l.theta};
+        _graph->addVertex (wall);
+        _graph->addEdgePose2Wall (std::tuple<int, int> (poseId, wall->id()), m);
+        
+        wall->setObserverPose (poseId);
+
+        wallIds.push_back (wall->id());
 
         _system->visualize (_plane);
 //        _system->visualize (walls);
@@ -425,24 +382,32 @@ std::vector<Wall::Ptr> WallDetector::plane_fitting (const pcl::PointCloud<pcl::P
         j++;
     }
 
-    return walls;
+    return wallIds;
 }
 
 void WallDetector::localToGlobal (Wall::Ptr wall)
 {
-    double rhoGlobal, thetaGlobal;
-    double rho = wall->rho();
-    double theta = wall->theta();
-
-    Pose::Ptr posePtr = wall->getPose();
-    auto x = posePtr->b(0);
-    auto y = posePtr->b(1);
-    auto alpha = posePtr->b(2);
-
-    // measurement model
-    rhoGlobal = rho + x * cos (theta - alpha) + y * sin (theta - alpha);
-    thetaGlobal = theta - alpha;
-
-    wall->setRhoGlobal (rhoGlobal);
-    wall->setThetaGlobal (thetaGlobal);
+//    double rhoGlobal, thetaGlobal;
+//    double rho = wall->rho();
+//    double theta = wall->theta();
+//
+//    Pose::Ptr posePtr = wall->getPose();
+//    Eigen::Vector3d v = posePtr->estimate().toVector();
+//    auto x = v[0];
+//    auto y = v[1];
+//    auto alpha = v[2] * 180/M_PI;
+//
+//    // measurement model
+//    rhoGlobal = std::abs (rho + x * std::abs (cos (theta - alpha)) + y * std::abs (sin (theta - alpha)));
+//    thetaGlobal = theta - alpha;
+//
+////    std::ofstream myfile ("/home/ism/global", std::ios::out | std::ios::app);
+////    myfile << rhoGlobal << " <--- " << rho << std::endl;
+////    myfile << thetaGlobal << " <--- " << theta << std::endl;
+////    myfile << std::endl << std::endl;
+////    
+////    myfile.close();
+//
+//    wall->setRhoGlobal (rhoGlobal);
+//    wall->setThetaGlobal (thetaGlobal);
 }

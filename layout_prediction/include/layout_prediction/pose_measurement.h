@@ -24,38 +24,40 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/edge_se2.h"
+#ifndef _MYSLAM_POSE_MEASUREMENT_H
+#define _MYSLAM_POSE_MEASUREMENT_H
 
-using namespace Eigen;
+#include <memory>
 
-EdgeSE2::EdgeSE2() :
-BaseBinaryEdge<3, SE2, VertexSE2, VertexSE2>()
+#include "layout_prediction/pose.h"
+#include "g2o/core/base_binary_edge.h"
+
+class PoseMeasurement: public BaseBinaryEdge<3, SE2, Pose, Pose>
 {
-}
+    public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    PoseMeasurement();
 
-bool EdgeSE2::read(std::istream& is)
-{
-    Vector3d p;
-    is >> p[0] >> p[1] >> p[2];
-    _measurement.fromVector(p);
-    _inverseMeasurement = measurement().inverse();
+    typedef std::shared_ptr<PoseMeasurement> Ptr;
+    typedef std::shared_ptr<const PoseMeasurement> ConstPtr;
 
-    for (int i = 0; i < 3; ++i)
-        for (int j = i; j < 3; ++j) {
-            is >> information()(i, j);
-            if (i != j)
-                information()(j, i) = information()(i, j);
-        }
-    return true;
-}
+    void computeError()
+    {
+        const Pose* v1 = static_cast<const Pose*>(_vertices[0]);
+        const Pose* v2 = static_cast<const Pose*>(_vertices[1]);
+        SE2 delta = _inverseMeasurement * (v1->estimate().inverse()*v2->estimate());
+        _error = delta.toVector();
+    }
 
-bool EdgeSE2::write(std::ostream& os) const
-{
-    Vector3d p = measurement().toVector();
-    os << p.x() << " " << p.y() << " " << p.z();
+    void setMeasurement(const SE2& m){
+        _measurement = m;
+        _inverseMeasurement = m.inverse();
+    }
 
-    for (int i = 0; i < 3; ++i)
-        for (int j = i; j < 3; ++j)
-            os << " " << information()(i, j);
-    return os.good();
-}
+    virtual bool read(std::istream& is);
+    virtual bool write(std::ostream& os) const;
+
+    protected:
+    SE2 _inverseMeasurement;
+};
+#endif

@@ -63,6 +63,7 @@ BaseVertex<2, Line2D>()
     _fitness = 0.0;
     _rhoGlobal = 0.0;
     _thetaGlobal = 0.0;
+    setId (++Wall::_wallId);
 }
 
 Wall::Wall(double rho, double theta, Eigen::Vector2d p, Eigen::Vector2d q) :
@@ -77,6 +78,7 @@ BaseVertex<2, Line2D>()
     _fitness = 0.0;
     _rhoGlobal = 0.0;
     _thetaGlobal = 0.0;
+    setId (++Wall::_wallId);
 }
 
 bool Wall::read(std::istream& is)
@@ -101,7 +103,7 @@ void Wall::setFitness (double fitness)
     _fitness = fitness;
 }
 
-void Wall::setObserverPose (Pose::Ptr& observerPose)
+void Wall::setObserverPose (int poseId)
 {
-    _observerPoses.push_back (observerPose);
+    _observerPoses.push_back (poseId);
 }

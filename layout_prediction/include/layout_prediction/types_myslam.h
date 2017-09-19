@@ -24,49 +24,12 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef _POSE_H_
-#define _POSE_H_
+#ifndef _TYPES_MYSLAM_H_
+#define _TYPES_MYSLAM_H_
 
-#include <memory>
+#include "pose.h"
+#include "pose_measurement.h"
+#include "wall.h"
+#include "wall_measurement.h"
 
-#include "g2o/core/base_vertex.h"
-#include "g2o/core/hyper_graph_action.h"
-#include "se2.h"
-
-using namespace g2o;
-
-class Pose : public BaseVertex<3, SE2>
-{
-    public:
-    typedef std::shared_ptr<Pose> Ptr;
-    typedef std::shared_ptr<const Pose> ConstPtr;
-
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    Pose();
-
-    virtual void setToOriginImpl() {
-        _estimate = SE2();
-    }
-
-    virtual void oplusImpl(const double* update)
-    {
-        SE2 up(update[0], update[1], update[2]);
-        _estimate *= up;
-    }
-
-    virtual bool read(std::istream& is);
-    virtual bool write(std::ostream& os) const;
-
-    bool operator == (const Pose::Ptr& posePtr) const
-    {
-        if (this->id() == posePtr->id())
-            return true;
-        else
-            return false;
-    }
-
-
-    private:
-        static unsigned long _poseId;
-};
 #endif

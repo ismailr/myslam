@@ -13,23 +13,25 @@
 #include "layout_prediction/graph.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/tracker.h"
+#include "layout_prediction/se2.h"
+#include "layout_prediction/local_mapper.h"
 
 class WallDetector;
 class Optimizer;
 class Tracker;
 class Frame;
 class Graph;
+class Pose;
 class System
 {
     public:
         typedef std::shared_ptr<System> Ptr;
         typedef std::shared_ptr<const System> ConstPtr;
 
-        std::shared_ptr<Graph> _graphPtr;
         std::queue <Frame::Ptr> _framesQueue;
         std::mutex _framesQueueMutex;
 
-        System(ros::NodeHandle nh);
+        System(ros::NodeHandle nh, Graph&);
         void setWallDetector (WallDetector&);
         void setOptimizer (Optimizer&);
         void setTracker (Tracker&);
@@ -40,8 +42,6 @@ class System
                 const nav_msgs::OdometryConstPtr&,
                 const nav_msgs::OdometryConstPtr&);
         
-        std::queue <Frame*> getFramesQueue ();
-
         template <typename T> void visualize(T&);
         template <typename T> void visualize (std::vector<T>);
         
@@ -50,6 +50,15 @@ class System
         WallDetector *_wall_detector;
         Optimizer *_optimizer;
         Tracker *_tracker;
+        Graph *_graph;
+        LocalMapper *_localMapper;
+
+        double _previousTime;
+        double _currentTime;
+        bool _init;
+
+        Pose::Ptr _lastPosePtr;
+        Pose::Ptr _currentPosePtr;
 
         // Ros nodehandle
         ros::NodeHandle _rosnodehandle;
@@ -59,6 +68,8 @@ class System
         ros::Publisher _pub_cloud;
         ros::Publisher _pub_depth;
         ros::Publisher _pub_rgb;
+
+        SE2* estimateFromOdom (const nav_msgs::OdometryConstPtr&); 
 };
 
 #endif

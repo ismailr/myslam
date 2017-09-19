@@ -16,19 +16,19 @@ class Frame
         typedef std::shared_ptr<const Frame> ConstPtr;
 
         int _useCount;
-        static unsigned long _frameId;
-        unsigned long _id;
         bool _goodFrame;
 
-        Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr, Pose::Ptr&);
-        pcl::PointCloud<pcl::PointXYZ>::Ptr getCloud ();
-        Pose::Ptr getPose ();
+        Frame (pcl::PointCloud<pcl::PointXYZ>::Ptr&, int);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr getCloud () { return _cloud; };
+        int getPoseId () { return _poseId; };
+        int getId () { return _frameId; };
 
         ~Frame ();
 
     private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
-        Pose::Ptr _posePtr;
+        int _poseId;
+        unsigned long _frameId;
 };
 
 #endif
