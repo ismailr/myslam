@@ -99,6 +99,10 @@ void WallDetector::detect (Frame::Ptr& framePtr)
 //        localToGlobal (walls[i]);
 
 //    _system->visualize (walls);
+
+    int frameId = framePtr->getId();
+    if (frameId % 3 == 0)
+        _graph->localOptimize (poseId);
 };
 
 geometry_msgs::PointStamped 
@@ -254,6 +258,7 @@ void WallDetector::line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud
                 Eigen::Vector2d q (l.q.point.x, l.q.point.y);
 
                 Wall::Ptr wall (new Wall (l.r, l.theta, p, q)); 
+                wall->setId (_graph->generateIdForVertex());
                 wall->setFitness (l.fitness);
 
                 double m[2] = {l.r, l.theta};
@@ -366,6 +371,7 @@ std::vector<int> WallDetector::plane_fitting (const pcl::PointCloud<pcl::PointXY
         Eigen::Vector2d q (l.q.point.x, l.q.point.y);
 
         Wall::Ptr wall (new Wall (l.r, l.theta, p, q)); 
+        wall->setId (_graph->generateIdForVertex());
         wall->setFitness (l.fitness);
 
         double m[2] = {l.r, l.theta};

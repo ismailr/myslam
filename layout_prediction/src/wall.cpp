@@ -35,8 +35,6 @@
 #include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
 
-unsigned long Wall::_wallId = 0;
-
 Wall::Wall() :
 BaseVertex<2, Line2D>()
 {
@@ -46,7 +44,6 @@ BaseVertex<2, Line2D>()
     _pq.setZero();
     _fitness = 0.0;
     p1Id=p2Id=-1;
-    setId (++Wall::_wallId);
     _rhoGlobal = 0.0;
     _thetaGlobal = 0.0;
 }
@@ -63,7 +60,6 @@ BaseVertex<2, Line2D>()
     _fitness = 0.0;
     _rhoGlobal = 0.0;
     _thetaGlobal = 0.0;
-    setId (++Wall::_wallId);
 }
 
 Wall::Wall(double rho, double theta, Eigen::Vector2d p, Eigen::Vector2d q) :
@@ -78,7 +74,6 @@ BaseVertex<2, Line2D>()
     _fitness = 0.0;
     _rhoGlobal = 0.0;
     _thetaGlobal = 0.0;
-    setId (++Wall::_wallId);
 }
 
 bool Wall::read(std::istream& is)

@@ -64,6 +64,7 @@ void System::readSensorsData (
 
     _currentTime = ros::Time::now().toSec();
     _currentPosePtr = Pose::Ptr (new Pose);
+    _currentPosePtr->setId (_graph->generateIdForVertex());
 
     if (_init)
     {
@@ -103,10 +104,6 @@ void System::readSensorsData (
 
     _previousTime = _currentTime;
     _lastPosePtr = _currentPosePtr;
-
-    int frameId = framePtr->getId();
-    if (frameId % 3 == 0)
-        _graph->localOptimize (frameId);
 }
 
 template <typename T> void System::visualize(T& type)

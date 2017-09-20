@@ -28,7 +28,7 @@ class Frame
     private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
         int _poseId;
-        unsigned long _frameId;
+        static unsigned long _frameId;
 };
 
 #endif

@@ -64,9 +64,5 @@ class Pose : public BaseVertex<3, SE2>
         else
             return false;
     }
-
-
-    private:
-        static unsigned long _poseId;
 };
 #endif

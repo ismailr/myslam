@@ -45,7 +45,6 @@ class Pose;
 class Wall : public BaseVertex <2, Line2D>
 {
     public:
-    static unsigned long _wallId;
     typedef std::shared_ptr<Wall> Ptr;
     typedef std::shared_ptr<const Wall> ConstPtr;
 
