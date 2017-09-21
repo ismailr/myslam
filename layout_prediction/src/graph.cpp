@@ -49,6 +49,9 @@ void Graph::addEdgePose2Wall (std::tuple<int, int> e, double* m)
     wallMeasurementPtr.get()->vertices()[0] = getPoseVertex (std::get<0>(e)).get();
     wallMeasurementPtr.get()->vertices()[1] = getWallVertex (std::get<1>(e)).get();
     wallMeasurementPtr->setMeasurementData (m);
+    Eigen::Matrix<double, 2, 2> inf;
+    inf.setIdentity();
+    wallMeasurementPtr.get()->information() = inf;
     _pose2wall[e] = wallMeasurementPtr;
     _pose2wallmap[std::get<0>(e)].push_back(std::get<1>(e));
 }
@@ -63,6 +66,7 @@ void Graph::updateGraph (std::vector<Wall::Ptr> newGraph)
 
 bool Graph::localOptimize (int poseId)
 {
+    std::cout << "*************** NEW LOCAL OPTIMIZE ***********************" << std::endl;
     typedef BlockSolver<BlockSolverTraits<-1, -1> > SlamBlockSolver;
     typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
     g2o::SparseOptimizer graph;
@@ -71,58 +75,97 @@ bool Graph::localOptimize (int poseId)
     SlamBlockSolver* blockSolver = new SlamBlockSolver (linearSolver);
     OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton (blockSolver);
     graph.setAlgorithm (solver);
+    graph.setVerbose (true);
+
+    occupancyGrid (poseId);
 
     std::vector<int>::iterator pose_it = std::find (_poseIds.begin(), _poseIds.end(), poseId);
 
-//    for (int i = 3; i >= 0; i--)
-//    {
-//        // if anchored vertices
-//        if (i == 0)
-//            setAnchor (*pose_it, true);
-//
-//        // add pose vertices
-//        std::cout << "trying to add vertex pose of id: " << *pose_it << std::endl;
-//        graph.addVertex (_poses[*pose_it].get());
-//        std::cout << "success.." << std::endl;
-//
-//        // add wall vertices and pose2wall edges
-//        for (std::vector<int>::iterator wall_it = _pose2wallmap[*pose_it].begin(); 
-//                wall_it != _pose2wallmap[*pose_it].end(); wall_it++)
-//        {
-//            std::cout << "trying to add vertex wall of id: " << *wall_it << std::endl;
-//            graph.addVertex (_walls[*wall_it].get());
-//            std::cout << "success.." << std::endl;
-//            graph.addEdge (_pose2wall[std::tuple<int, int> (*pose_it, *wall_it)].get());
-//        }
-//
-//        // add edge between poses
-//        if (i != 0)
-//            graph.addEdge (_pose2pose[std::tuple<int, int> (*(pose_it - 1), *pose_it)].get());
-//
-//        pose_it--;
-//    }
+    for (int i = 2; i >= 0; i--)
+    {
+        // if anchored vertices
+        if (i == 0)
+            setAnchor (*pose_it, true);
 
-//    graph.save ("/home/ism/local_before.g2o");
-//    graph.initializeOptimization();
-//    graph.optimize (10);
-//    graph.save ("/home/ism/local_after.g2o");
-//    graph.clear();
+        // add pose vertices
+        std::cout << "trying to add vertex pose of id: " << *pose_it << std::endl;
+        graph.addVertex (_poses[*pose_it].get());
+        std::cout << "success.." << std::endl;
 
-//    Factory::destroy();
-//    OptimizationAlgorithmFactory::destroy();
-//    HyperGraphActionLibrary::destroy();
+        // add wall vertices and pose2wall edges
+        for (std::vector<int>::iterator wall_it = _pose2wallmap[*pose_it].begin(); 
+                wall_it != _pose2wallmap[*pose_it].end(); wall_it++)
+        {
+            std::cout << "trying to add vertex wall of id: " << *wall_it << std::endl;
+            graph.addVertex (_walls[*wall_it].get());
+            std::cout << "success.." << std::endl;
+            std::cout << "add edge pose: " << *pose_it << " to wall: " << *wall_it << std::endl;
+            graph.addEdge (_pose2wall[std::tuple<int, int> (*pose_it, *wall_it)].get());
+            std::cout << "success.." << std::endl; 
+        }
 
-//    setAnchor (*pose_it, false);
-    occupancyGrid (poseId);
+        // add edge between poses
+        if (i != 0)
+        {
+            std::cout << "add edges pose: " << *(pose_it - 1) << " to pose: " << *pose_it << std::endl;
+            graph.addEdge (_pose2pose[std::tuple<int, int> (*(pose_it - 1), *pose_it)].get());
+            std::cout << "success.." << std::endl;
+        }
+
+        pose_it--;
+    }
+
+    std::cout << "***** VERTICES in GRAPH *****" << std::endl;
+    auto v = graph.vertices();
+    for (auto vit = v.begin(); vit != v.end(); vit++)
+    {
+        std::cout << vit->first << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "***** EDGES in GRAPH *****" << std::endl;
+    auto w = graph.edges();
+    for (auto wit = w.begin(); wit != w.end(); wit++)
+    {
+        std::cout << ((*(wit))->vertices()[0])->id() << " --> " << ((*(wit))->vertices()[1])->id() << std::endl;
+    }
+    std::cout << std::endl;
+
+    graph.initializeOptimization();
+    std::cout << "************ INITIALIZED ***** " << std::endl;
+    std::cout << "START OPTIMIZING" << std::endl;
+    graph.save ("/home/ism/local_before.g2o");
+    graph.optimize (10);
+    graph.save ("/home/ism/local_after.g2o");
+    std::cout << "SUCCESS OPTIMIZING" << std::endl;
+
+    std::cout << "READY TO CLEAR GRAPH" << std::endl;
+    graph.clear();
+    std::cout << "SUCCESS CLEARING GRAPH" << std::endl;
+
+    std::cout << "READY TO DESTROY" << std::endl;
+    Factory::destroy();
+    OptimizationAlgorithmFactory::destroy();
+    HyperGraphActionLibrary::destroy();
+
+    std::cout << "REMOVING ANCHORING" << std::endl;
+    setAnchor (*pose_it, false);
+    std::cout << "SUCCESS REMOVING ANCHORING" << std::endl;
+    std::cout << "************************ END OF LOCAL OPTIMIZE ***************" << std::endl;
 }
 
 void Graph::setAnchor (int poseId, bool set)
 {
-    _poses[poseId]->setFixed (set);
+    std::cout << "UNSET FIXED VERTICES" << std::endl;
+
+    if (_poses.find (poseId) != _poses.end())
+        _poses[poseId]->setFixed (set);
+    std::cout << "SUCCESS UNSET" << std::endl;
     for (std::vector<int>::iterator it = _pose2wallmap[poseId].begin();
             it != _pose2wallmap[poseId].end(); it++)
     {
-        _walls[*it]->setFixed (set);
+        if (_walls.find (*it) != _walls.end())
+            _walls[*it]->setFixed (set);
     }
 }
 
@@ -146,7 +189,13 @@ void Graph::occupancyGrid (int poseId)
                 wall_it != _pose2wallmap[*pose_it].end(); wall_it++)    // ... match wall detected in that pose to wall_ref
         {
             std::cout << *wall_it << " --> ";
-            *wall_it = associateData (*wall_it, wall_ref); // rewire pose from which *wall_it observed to wall \w id match
+            int return_id = associateData (*wall_it, wall_ref); // rewire pose from which *wall_it observed to wall \w id match
+            if (*wall_it != return_id)
+            {
+                _pose2wall[std::tuple<int,int>(*pose_it,return_id)]=_pose2wall[std::tuple<int,int>(*pose_it,*wall_it)];
+                _pose2wall.erase(std::tuple<int,int>(*pose_it,*wall_it));
+                *wall_it = return_id;
+            }
             std::cout << *wall_it << std::endl;
         }
         std::cout << "-------------------------" << std::endl;

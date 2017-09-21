@@ -95,12 +95,12 @@ void System::readSensorsData (
 
     _graph->addVertex (_currentPosePtr);
     Frame::Ptr framePtr (new Frame (_cloud, _currentPosePtr->id()));
-    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
-    {
+//    if (action->pose.pose.orientation.z < 0.05 && action->pose.pose.orientation.z > -0.05)
+//    {
         std::unique_lock <std::mutex> lock (_framesQueueMutex);
         _framesQueue.push (framePtr);
         lock.unlock ();
-    }
+//    }
 
     _previousTime = _currentTime;
     _lastPosePtr = _currentPosePtr;

@@ -5,6 +5,7 @@
 #include <memory>
 #include <map>
 #include <tuple>
+#include <set>
 
 #include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
