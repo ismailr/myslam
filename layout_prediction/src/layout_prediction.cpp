@@ -33,7 +33,7 @@ int main (int argc, char** argv)
     // initialize threads
     std::thread wall_detector_thread (&WallDetector::run, wallDetector);
     std::thread optimizer_thread (&Optimizer::run, optimizer);
-    std::thread tracker_thread (&Tracker::run, tracker);
+//    std::thread tracker_thread (&Tracker::run, tracker);
 
     // Get sensors data
     message_filters::Subscriber<sensor_msgs::PointCloud2> cloud_sub (nh, "cloud", 1);
