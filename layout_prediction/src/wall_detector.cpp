@@ -417,3 +417,28 @@ void WallDetector::localToGlobal (Wall::Ptr wall)
 //    wall->setRhoGlobal (rhoGlobal);
 //    wall->setThetaGlobal (thetaGlobal);
 }
+
+WallDetector2::WallDetector2(){}
+
+void WallDetector2::detect(std::vector<Wall::Ptr>& walls, const PointCloud::Ptr cloud)
+{
+    PointCloud _preparedCloud;
+    prepare_cloud (_preparedCloud, cloud);
+    line_fitting (walls, _preparedCloud);
+    plane_fitting (walls, _preparedCloud);
+}
+
+void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud)
+{
+
+}
+
+void WallDetector2::line_fitting (Walls& walls, PointCloud& _preparedCloud)
+{
+
+}
+
+void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
+{
+
+}

@@ -20,6 +20,9 @@
 #include "layout_prediction/graph.h"
 #include "layout_prediction/local_mapper.h"
 
+typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+typedef std::vector<Wall::Ptr> Walls;
+
 class System;
 class Graph;
 class Wall;
@@ -40,6 +43,18 @@ class WallDetector
         void line_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, int poseId);
         std::vector<int> plane_fitting (const pcl::PointCloud<pcl::PointXYZ>::Ptr, int poseId);
         geometry_msgs::PointStamped transformPoint (const tf::TransformListener& listener,geometry_msgs::PointStamped p);
+};
+
+class WallDetector2
+{
+    public:
+        WallDetector2();
+        void detect(Walls& walls, const PointCloud::Ptr cloud);
+
+    private:
+        void prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud);
+        void line_fitting (Walls& walls, PointCloud& _preparedCloud);
+        void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
 };
 
 #endif
