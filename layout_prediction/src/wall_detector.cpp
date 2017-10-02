@@ -443,23 +443,18 @@ void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud:
     int height = static_cast<int>(cloud->height/CLOUD_DIVISOR);
 
     if (_method == WallDetector2::USE_LINE_FITTING)
-    {
         for(int i = 0; i < width; i++)
             _preparedCloud.push_back(cloud->at(i,height));
-    }
+
     else if (_method == WallDetector2::USE_PLANE_FITTING)
     {
         const int WIDTH_JUMP = 10;
         const int HEIGHT_JUMP = 10;
 
         for(int i = 0; i < width; i++)
-        {
             for(int j = 0; j < height; j++)
-            {
                 if (i % WIDTH_JUMP == 0 && j % HEIGHT_JUMP == 0)
                     _preparedCloud.push_back(cloud->at(i,j));
-            }
-        }
     }
 }
 
@@ -470,5 +465,21 @@ void WallDetector2::line_fitting (Walls& walls, PointCloud& _preparedCloud)
 
 void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
 {
+    std::vector<pcl::PointIndices> cluster;
+    cluster_cloud (cluster, _preparedCloud);
 
+}
+
+void WallDetector2::cluster_cloud (std::vector<pcl::PointIndices>& cluster, PointCloud& _preparedCloud)
+{
+    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+    tree->setInputCloud (_preparedCloud.makeShared());
+
+    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+    ec.setClusterTolerance (1);
+    ec.setMinClusterSize (100);
+    ec.setMaxClusterSize (25000);
+    ec.setSearchMethod (tree);
+    ec.setInputCloud (_preparedCloud.makeShared());
+    ec.extract (cluster);
 }

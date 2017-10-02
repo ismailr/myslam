@@ -59,6 +59,7 @@ class WallDetector2
         void prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud);
         void line_fitting (Walls& walls, PointCloud& _preparedCloud);
         void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
+        void cluster_cloud (std::vector<pcl::PointIndices>& cluster, PointCloud& _preparedCloud);
 };
 
 #endif
