@@ -66,92 +66,92 @@ void Graph::updateGraph (std::vector<Wall::Ptr> newGraph)
 
 bool Graph::localOptimize (int poseId)
 {
-    std::cout << "*************** NEW LOCAL OPTIMIZE ***********************" << std::endl;
-    typedef BlockSolver<BlockSolverTraits<-1, -1> > SlamBlockSolver;
-    typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
-    g2o::SparseOptimizer graph;
-    SlamLinearSolver* linearSolver = new SlamLinearSolver();
-    linearSolver->setBlockOrdering (false);
-    SlamBlockSolver* blockSolver = new SlamBlockSolver (linearSolver);
-    OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton (blockSolver);
-    graph.setAlgorithm (solver);
-    graph.setVerbose (true);
-
-    occupancyGrid (poseId);
-
-    std::vector<int>::iterator pose_it = std::find (_poseIds.begin(), _poseIds.end(), poseId);
-
-    for (int i = 2; i >= 0; i--)
-    {
-        // if anchored vertices
-        if (i == 0)
-            setAnchor (*pose_it, true);
-
-        // add pose vertices
-        std::cout << "trying to add vertex pose of id: " << *pose_it << std::endl;
-        graph.addVertex (_poses[*pose_it].get());
-        std::cout << "success.." << std::endl;
-
-        // add wall vertices and pose2wall edges
-        for (std::vector<int>::iterator wall_it = _pose2wallmap[*pose_it].begin(); 
-                wall_it != _pose2wallmap[*pose_it].end(); wall_it++)
-        {
-            std::cout << "trying to add vertex wall of id: " << *wall_it << std::endl;
-            graph.addVertex (_walls[*wall_it].get());
-            std::cout << "success.." << std::endl;
-            std::cout << "add edge pose: " << *pose_it << " to wall: " << *wall_it << std::endl;
-            graph.addEdge (_pose2wall[std::tuple<int, int> (*pose_it, *wall_it)].get());
-            std::cout << "success.." << std::endl; 
-        }
-
-        // add edge between poses
-        if (i != 0)
-        {
-            std::cout << "add edges pose: " << *(pose_it - 1) << " to pose: " << *pose_it << std::endl;
-            graph.addEdge (_pose2pose[std::tuple<int, int> (*(pose_it - 1), *pose_it)].get());
-            std::cout << "success.." << std::endl;
-        }
-
-        pose_it--;
-    }
-
-    std::cout << "***** VERTICES in GRAPH *****" << std::endl;
-    auto v = graph.vertices();
-    for (auto vit = v.begin(); vit != v.end(); vit++)
-    {
-        std::cout << vit->first << " ";
-    }
-    std::cout << std::endl;
-
-    std::cout << "***** EDGES in GRAPH *****" << std::endl;
-    auto w = graph.edges();
-    for (auto wit = w.begin(); wit != w.end(); wit++)
-    {
-        std::cout << ((*(wit))->vertices()[0])->id() << " --> " << ((*(wit))->vertices()[1])->id() << std::endl;
-    }
-    std::cout << std::endl;
-
-    graph.initializeOptimization();
-    std::cout << "************ INITIALIZED ***** " << std::endl;
-    std::cout << "START OPTIMIZING" << std::endl;
-    graph.save ("/home/ism/local_before.g2o");
-    graph.optimize (10);
-    graph.save ("/home/ism/local_after.g2o");
-    std::cout << "SUCCESS OPTIMIZING" << std::endl;
-
-    std::cout << "READY TO CLEAR GRAPH" << std::endl;
-    graph.clear();
-    std::cout << "SUCCESS CLEARING GRAPH" << std::endl;
-
-    std::cout << "READY TO DESTROY" << std::endl;
-    Factory::destroy();
-    OptimizationAlgorithmFactory::destroy();
-    HyperGraphActionLibrary::destroy();
-
-    std::cout << "REMOVING ANCHORING" << std::endl;
-    setAnchor (*pose_it, false);
-    std::cout << "SUCCESS REMOVING ANCHORING" << std::endl;
-    std::cout << "************************ END OF LOCAL OPTIMIZE ***************" << std::endl;
+//    std::cout << "*************** NEW LOCAL OPTIMIZE ***********************" << std::endl;
+//    typedef BlockSolver<BlockSolverTraits<-1, -1> > SlamBlockSolver;
+//    typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+//    g2o::SparseOptimizer graph;
+//    SlamLinearSolver* linearSolver = new SlamLinearSolver();
+//    linearSolver->setBlockOrdering (false);
+//    SlamBlockSolver* blockSolver = new SlamBlockSolver (linearSolver);
+//    OptimizationAlgorithmGaussNewton* solver = new OptimizationAlgorithmGaussNewton (blockSolver);
+//    graph.setAlgorithm (solver);
+//    graph.setVerbose (true);
+//
+//    occupancyGrid (poseId);
+//
+//    std::vector<int>::iterator pose_it = std::find (_poseIds.begin(), _poseIds.end(), poseId);
+//
+//    for (int i = 2; i >= 0; i--)
+//    {
+//        // if anchored vertices
+//        if (i == 0)
+//            setAnchor (*pose_it, true);
+//
+//        // add pose vertices
+//        std::cout << "trying to add vertex pose of id: " << *pose_it << std::endl;
+//        graph.addVertex (_poses[*pose_it].get());
+//        std::cout << "success.." << std::endl;
+//
+//        // add wall vertices and pose2wall edges
+//        for (std::vector<int>::iterator wall_it = _pose2wallmap[*pose_it].begin(); 
+//                wall_it != _pose2wallmap[*pose_it].end(); wall_it++)
+//        {
+//            std::cout << "trying to add vertex wall of id: " << *wall_it << std::endl;
+//            graph.addVertex (_walls[*wall_it].get());
+//            std::cout << "success.." << std::endl;
+//            std::cout << "add edge pose: " << *pose_it << " to wall: " << *wall_it << std::endl;
+//            graph.addEdge (_pose2wall[std::tuple<int, int> (*pose_it, *wall_it)].get());
+//            std::cout << "success.." << std::endl; 
+//        }
+//
+//        // add edge between poses
+//        if (i != 0)
+//        {
+//            std::cout << "add edges pose: " << *(pose_it - 1) << " to pose: " << *pose_it << std::endl;
+//            graph.addEdge (_pose2pose[std::tuple<int, int> (*(pose_it - 1), *pose_it)].get());
+//            std::cout << "success.." << std::endl;
+//        }
+//
+//        pose_it--;
+//    }
+//
+//    std::cout << "***** VERTICES in GRAPH *****" << std::endl;
+//    auto v = graph.vertices();
+//    for (auto vit = v.begin(); vit != v.end(); vit++)
+//    {
+//        std::cout << vit->first << " ";
+//    }
+//    std::cout << std::endl;
+//
+//    std::cout << "***** EDGES in GRAPH *****" << std::endl;
+//    auto w = graph.edges();
+//    for (auto wit = w.begin(); wit != w.end(); wit++)
+//    {
+//        std::cout << ((*(wit))->vertices()[0])->id() << " --> " << ((*(wit))->vertices()[1])->id() << std::endl;
+//    }
+//    std::cout << std::endl;
+//
+//    graph.initializeOptimization();
+//    std::cout << "************ INITIALIZED ***** " << std::endl;
+//    std::cout << "START OPTIMIZING" << std::endl;
+//    graph.save ("/home/ism/local_before.g2o");
+//    graph.optimize (10);
+//    graph.save ("/home/ism/local_after.g2o");
+//    std::cout << "SUCCESS OPTIMIZING" << std::endl;
+//
+//    std::cout << "READY TO CLEAR GRAPH" << std::endl;
+//    graph.clear();
+//    std::cout << "SUCCESS CLEARING GRAPH" << std::endl;
+//
+//    std::cout << "READY TO DESTROY" << std::endl;
+//    Factory::destroy();
+//    OptimizationAlgorithmFactory::destroy();
+//    HyperGraphActionLibrary::destroy();
+//
+//    std::cout << "REMOVING ANCHORING" << std::endl;
+//    setAnchor (*pose_it, false);
+//    std::cout << "SUCCESS REMOVING ANCHORING" << std::endl;
+//    std::cout << "************************ END OF LOCAL OPTIMIZE ***************" << std::endl;
 }
 
 void Graph::setAnchor (int poseId, bool set)
@@ -219,4 +219,41 @@ int Graph::associateData (int wallId, std::vector<int> ref)
     }
 
     return wallId;
+}
+
+Graph2::Graph2(){}
+
+void Graph2::addVertex (int id)
+{
+
+}
+
+void Graph2::addEdge (int from, int to)
+{
+
+}
+
+void Graph2::removeVertex (int id)
+{
+
+}
+
+void Graph2::getLocalVertices (int id)
+{
+
+}
+
+void Graph2::getAllVertices (std::vector<int>& vertices)
+{
+
+}
+
+void Graph2::localOptimize (int id)
+{
+
+}
+
+void Graph2::globalOptimize ()
+{
+
 }

@@ -24,43 +24,36 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/pose_measurement.h"
+#ifndef G2O_LINE2D_H
+#define G2O_LINE2D_H
 
-using namespace Eigen;
+#include "g2o/types/slam2d/se2.h"
 
-PoseMeasurement::PoseMeasurement() :
-BaseBinaryEdge<3, SE2, Pose, Pose>()
-{
-}
+#include <Eigen/Core>
+#include <Eigen/Geometry>
 
-bool PoseMeasurement::read(std::istream& is)
-{
-    Vector3d p;
-    is >> p[0] >> p[1] >> p[2];
-    _measurement.fromVector(p);
-    _inverseMeasurement = measurement().inverse();
+namespace g2o {
 
-    for (int i = 0; i < 3; ++i)
-        for (int j = i; j < 3; ++j) {
-            is >> information()(i, j);
-            if (i != j)
-                information()(j, i) = information()(i, j);
-        }
-    return true;
-}
+  struct Line2D : public Vector2D{
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+    Line2D() {
+      setZero();
+    }
+    Line2D(const Vector2D& v) {
+      (*this)(0) = v(0);
+      (*this)(1) = v(1);
+    }
+  };
 
-bool PoseMeasurement::write(std::ostream& os) const
-{
-    Vector3d p = measurement().toVector();
-    os << p.x() << " " << p.y() << " " << p.z();
-
-    for (int i = 0; i < 3; ++i)
-        for (int j = i; j < 3; ++j)
-            os << " " << information()(i, j);
-    return os.good();
-}
-
-PoseMeasurement2::PoseMeasurement2() : EdgeSE2()
-{
+  inline Line2D operator * (const SE2 & t, const Line2D& l){
+    Line2D est = l;
+    est[0] += t.rotation().angle();
+    est[0] = normalize_theta(est[0]);
+    Vector2D n(cos(est[0]), sin(est[0]));
+    est[1] += n.dot(t.translation());
+    return est;
+  }
 
 }
+
+#endif

@@ -51,4 +51,20 @@ class Graph
         int associateData (int wallId, std::vector<int> ref);
 };
 
+class Graph2
+{
+    public:
+        Graph2 ();
+        void addVertex (int id);
+        void addEdge (int from, int to);
+        void removeVertex (int id);
+        void getLocalVertices (int id);
+        void getAllVertices (std::vector<int>& vertices);
+
+        void localOptimize (int id);
+        void globalOptimize ();
+
+    private:
+};
+
 #endif

@@ -24,31 +24,28 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#ifndef _WALL_MEASUREMENT_H_
-#define _WALL_MEASUREMENT_H_
-
-#include <memory>
+#ifndef G2O_EDGE_SE2_LINE2D_H
+#define G2O_EDGE_SE2_LINE2D_H
 
 #include "g2o/config.h"
-#include "pose.h"
-#include "wall.h"
+#include "g2o/types/slam2d/vertex_se2.h"
+#include "vertex_line2d.h"
 #include "g2o/core/base_binary_edge.h"
 #include "g2o/stuff/misc.h"
-#include "edge_se2_line2d.h"
+#include "g2o_types_slam2d_addons_api.h"
 
-  class WallMeasurement: public BaseBinaryEdge<2, Line2D, Pose, Wall>
+namespace g2o {
+
+  class G2O_TYPES_SLAM2D_ADDONS_API EdgeSE2Line2D : public BaseBinaryEdge<2, Line2D, VertexSE2, VertexLine2D>
   {
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-      WallMeasurement();
-
-      typedef std::shared_ptr<WallMeasurement> Ptr;
-      typedef std::shared_ptr<const WallMeasurement> ConstPtr;
+      EdgeSE2Line2D();
 
       void computeError()
       {
-        const Pose* v1 = static_cast<const Pose*>(_vertices[0]);
-        const Wall* l2 = static_cast<const Wall*>(_vertices[1]);
+        const VertexSE2* v1 = static_cast<const VertexSE2*>(_vertices[0]);
+        const VertexLine2D* l2 = static_cast<const VertexLine2D*>(_vertices[1]);
         Vector2D prediction=l2->estimate();
         SE2 iT=v1->estimate().inverse();
         prediction[0] += iT.rotation().angle();
@@ -74,8 +71,8 @@
       virtual int measurementDimension() const {return 2;}
 
       virtual bool setMeasurementFromState(){
-        const Pose* v1 = static_cast<const Pose*>(_vertices[0]);
-        const Wall* l2 = static_cast<const Wall*>(_vertices[1]);
+        const VertexSE2* v1 = static_cast<const VertexSE2*>(_vertices[0]);
+        const VertexLine2D* l2 = static_cast<const VertexLine2D*>(_vertices[1]);
         Vector2D prediction=l2->estimate();
         SE2 iT=v1->estimate().inverse();
         prediction[0] += iT.rotation().angle();
@@ -91,9 +88,9 @@
 
       virtual void initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to);
       virtual double initialEstimatePossible(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to) { (void) to; return (from.count(_vertices[0]) == 1 ? 1.0 : -1.0);}
-// #ifndef NUMERIC_JACOBIAN_TWO_D_TYPES 
-//       virtual void linearizeOplus(); 
-// #endif 
+/* #ifndef NUMERIC_JACOBIAN_TWO_D_TYPES */
+/*       virtual void linearizeOplus(); */
+/* #endif */
   };
 
 /*   class G2O_TYPES_SLAM2D_ADDONS_API EdgeSE2Line2DWriteGnuplotAction: public WriteGnuplotAction { */
@@ -112,14 +109,6 @@
 /*   }; */
 /* #endif */
 
-class WallMeasurement2 : public EdgeSE2Line2D
-{
-    public:
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-        WallMeasurement2();
-
-    private:
-
-};
+} // end namespace
 
 #endif

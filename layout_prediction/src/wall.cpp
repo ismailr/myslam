@@ -102,3 +102,5 @@ void Wall::setObserverPose (int poseId)
 {
     _observerPoses.push_back (poseId);
 }
+
+Wall2::Wall2() : VertexLine2D(){}

@@ -52,6 +52,10 @@ class WallDetector2
         void detect(Walls& walls, const PointCloud::Ptr cloud);
 
     private:
+        const int USE_LINE_FITTING = 1;
+        const int USE_PLANE_FITTING = 2;
+        int _method;
+
         void prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud);
         void line_fitting (Walls& walls, PointCloud& _preparedCloud);
         void plane_fitting (Walls& walls, PointCloud& _preparedCloud);

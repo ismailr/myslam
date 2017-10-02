@@ -2,7 +2,9 @@
 #define _CONVERTER_H_
 
 #include <nav_msgs/Odometry.h>
-#include "layout_prediction/se2.h"
+#include "se2.h"
+
+using namespace g2o;
 
 class Converter
 {

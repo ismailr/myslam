@@ -13,8 +13,8 @@
 #include "layout_prediction/graph.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/tracker.h"
-#include "layout_prediction/se2.h"
 #include "layout_prediction/local_mapper.h"
+#include "se2.h"
 
 class WallDetector;
 class Optimizer;

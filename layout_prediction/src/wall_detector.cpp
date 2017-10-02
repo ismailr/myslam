@@ -101,8 +101,9 @@ void WallDetector::detect (Frame::Ptr& framePtr)
 //    _system->visualize (walls);
 
     int frameId = framePtr->getId();
-    if (frameId % 3 == 0)
-        _graph->localOptimize (poseId);
+    if (frameId % 3 == 0) ;
+//        _graph->localOptimize (poseId);
+            
 };
 
 geometry_msgs::PointStamped 
@@ -418,19 +419,48 @@ void WallDetector::localToGlobal (Wall::Ptr wall)
 //    wall->setThetaGlobal (thetaGlobal);
 }
 
-WallDetector2::WallDetector2(){}
+WallDetector2::WallDetector2()
+    :_method(WallDetector2::USE_PLANE_FITTING)
+{
+
+}
 
 void WallDetector2::detect(std::vector<Wall::Ptr>& walls, const PointCloud::Ptr cloud)
 {
     PointCloud _preparedCloud;
     prepare_cloud (_preparedCloud, cloud);
-    line_fitting (walls, _preparedCloud);
-    plane_fitting (walls, _preparedCloud);
+
+    if (_method == WallDetector2::USE_LINE_FITTING)
+        line_fitting (walls, _preparedCloud);
+    else if (_method == WallDetector2::USE_PLANE_FITTING)
+        plane_fitting (walls, _preparedCloud);
 }
 
 void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud)
 {
+    const int CLOUD_DIVISOR = 5;
+    int width = cloud->width;
+    int height = static_cast<int>(cloud->height/CLOUD_DIVISOR);
 
+    if (_method == WallDetector2::USE_LINE_FITTING)
+    {
+        for(int i = 0; i < width; i++)
+            _preparedCloud.push_back(cloud->at(i,height));
+    }
+    else if (_method == WallDetector2::USE_PLANE_FITTING)
+    {
+        const int WIDTH_JUMP = 10;
+        const int HEIGHT_JUMP = 10;
+
+        for(int i = 0; i < width; i++)
+        {
+            for(int j = 0; j < height; j++)
+            {
+                if (i % WIDTH_JUMP == 0 && j % HEIGHT_JUMP == 0)
+                    _preparedCloud.push_back(cloud->at(i,j));
+            }
+        }
+    }
 }
 
 void WallDetector2::line_fitting (Walls& walls, PointCloud& _preparedCloud)

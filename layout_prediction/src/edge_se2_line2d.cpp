@@ -24,18 +24,28 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/wall_measurement.h"
+#include "edge_se2_line2d.h"
 
-#ifdef G2O_HAVE_OPENGL
-#include <GL/gl.h>
+#ifdef WINDOWS
+#include <windows.h>
 #endif
 
-  WallMeasurement::WallMeasurement() :
-    BaseBinaryEdge<2, Line2D, Pose, Wall>()
+#ifdef G2O_HAVE_OPENGL
+#ifdef __APPLE__
+#include <OpenGL/gl.h>
+#else
+#include <GL/gl.h>
+#endif
+#endif
+
+namespace g2o {
+
+  EdgeSE2Line2D::EdgeSE2Line2D() :
+    BaseBinaryEdge<2, Line2D, VertexSE2, VertexLine2D>()
   {
   }
 
-  bool WallMeasurement::read(std::istream& is)
+  bool EdgeSE2Line2D::read(std::istream& is)
   {
     is >> _measurement[0] >> _measurement[1];
     is >> information()(0,0) >> information()(0,1) >> information()(1,1);
@@ -43,19 +53,19 @@
     return true;
   }
 
-  bool WallMeasurement::write(std::ostream& os) const
+  bool EdgeSE2Line2D::write(std::ostream& os) const
   {
     os << measurement()[0] << " " << measurement()[1] << " ";
     os << information()(0,0) << " " << information()(0,1) << " " << information()(1,1);
     return os.good();
   }
 
-  void WallMeasurement::initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to)
+  void EdgeSE2Line2D::initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to)
   {
     assert(from.size() == 1 && from.count(_vertices[0]) == 1 && "Can not initialize VertexSE2 position by VertexLine2D");
 
-    Pose* vi     = static_cast<Pose*>(_vertices[0]);
-    Wall* vj = static_cast<Wall*>(_vertices[1]);
+    VertexSE2* vi     = static_cast<VertexSE2*>(_vertices[0]);
+    VertexLine2D* vj = static_cast<VertexLine2D*>(_vertices[1]);
     if (from.count(vi) > 0 && to == vj) {
       SE2 T=vi->estimate();
       Vector2D est=_measurement;
@@ -148,8 +158,4 @@
 //   }
 // #endif
 
-WallMeasurement2::WallMeasurement2() : EdgeSE2Line2D()
-{
-
-}
-
+} // end namespace

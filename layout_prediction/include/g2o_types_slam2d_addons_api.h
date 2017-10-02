@@ -1,5 +1,5 @@
 // g2o - General Graph Optimization
-// Copyright (C) 2011 R. Kuemmerle, G. Grisetti, W. Burgard
+// Copyright (C) 2011 R. Kuemmerle, G. Grisetti, H. Strasdat, W. Burgard
 // All rights reserved.
 //
 // Redistribution and use in source and binary forms, with or without
@@ -24,43 +24,35 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/pose_measurement.h"
+/***************************************************************************
+ *  Description: import/export macros for creating DLLS with Microsoft
+ *	compiler. Any exported function needs to be declared with the
+ *  appropriate G2O_XXXX_API macro. Also, there must be separate macros
+ *  for each DLL (arrrrrgh!!!)
+ *
+ *  17 Jan 2012
+ *  Email: pupilli@cs.bris.ac.uk
+ ****************************************************************************/
+#ifndef G2O_TYPES_SLAM2D_ADDONS_API_H
+#define G2O_TYPES_SLAM2D_ADDONS_API_H
 
-using namespace Eigen;
+#include "g2o/config.h"
 
-PoseMeasurement::PoseMeasurement() :
-BaseBinaryEdge<3, SE2, Pose, Pose>()
-{
-}
+#ifdef _MSC_VER
+// We are using a Microsoft compiler:
+#ifdef G2O_SHARED_LIBS
+#ifdef types_slam2d_addons_EXPORTS
+#define G2O_TYPES_SLAM2D_ADDONS_API __declspec(dllexport)
+#else
+#define G2O_TYPES_SLAM2D_ADDONS_API __declspec(dllimport)
+#endif
+#else
+#define G2O_TYPES_SLAM2D_ADDONS_API
+#endif
 
-bool PoseMeasurement::read(std::istream& is)
-{
-    Vector3d p;
-    is >> p[0] >> p[1] >> p[2];
-    _measurement.fromVector(p);
-    _inverseMeasurement = measurement().inverse();
+#else
+// Not Microsoft compiler so set empty definition:
+#define G2O_TYPES_SLAM2D_ADDONS_API
+#endif
 
-    for (int i = 0; i < 3; ++i)
-        for (int j = i; j < 3; ++j) {
-            is >> information()(i, j);
-            if (i != j)
-                information()(j, i) = information()(i, j);
-        }
-    return true;
-}
-
-bool PoseMeasurement::write(std::ostream& os) const
-{
-    Vector3d p = measurement().toVector();
-    os << p.x() << " " << p.y() << " " << p.z();
-
-    for (int i = 0; i < 3; ++i)
-        for (int j = i; j < 3; ++j)
-            os << " " << information()(i, j);
-    return os.good();
-}
-
-PoseMeasurement2::PoseMeasurement2() : EdgeSE2()
-{
-
-}
+#endif // G2O_TYPES_SLAM2D_ADDONS_API_H

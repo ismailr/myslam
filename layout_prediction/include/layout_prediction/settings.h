@@ -1,8 +1,9 @@
 #ifndef _SETTINGS_H_
 #define _SETTINGS_H_
 
-struct GlobalSettings {
-    int laserAlt = 0; // row index of a frame taken as laser beam
-} gSettings;
-
+class Settings
+{
+    public:
+        const static int SIZE_OF_LOCAL_MAP = 3;
+};
 #endif

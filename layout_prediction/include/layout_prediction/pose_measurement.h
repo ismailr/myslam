@@ -31,6 +31,7 @@
 
 #include "layout_prediction/pose.h"
 #include "g2o/core/base_binary_edge.h"
+#include "edge_se2.h"
 
 class PoseMeasurement: public BaseBinaryEdge<3, SE2, Pose, Pose>
 {
@@ -59,5 +60,15 @@ class PoseMeasurement: public BaseBinaryEdge<3, SE2, Pose, Pose>
 
     protected:
     SE2 _inverseMeasurement;
+};
+
+class PoseMeasurement2 : public EdgeSE2
+{
+    public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    PoseMeasurement2();
+
+    private:
+
 };
 #endif

@@ -36,7 +36,7 @@
 #include "g2o/stuff/misc.h"
 #include "g2o/types/slam2d/vertex_point_xy.h"
 
-#include "layout_prediction/line_2d.h"
+#include "vertex_line2d.h"
 #include "layout_prediction/pose.h"
 
 using namespace g2o;
@@ -121,5 +121,15 @@ class Wall : public BaseVertex <2, Line2D>
     double _fitness; // fitness of wall as a result of line-fitting process
     std::vector <int> _observerPoses;
     double _rhoGlobal, _thetaGlobal;
+};
+
+class Wall2 : public VertexLine2D
+{
+    public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+    Wall2();
+
+    private:
+
 };
 #endif

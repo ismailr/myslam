@@ -44,3 +44,5 @@ bool Pose::write(std::ostream& os) const
     os << p[0] << " " << p[1] << " " << p[2];
     return os.good();
 }
+
+Pose2::Pose2() : VertexSE2(){}
