@@ -125,11 +125,26 @@ class Wall : public BaseVertex <2, Line2D>
 
 class Wall2 : public VertexLine2D
 {
+    // Constructor
     public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    Wall2();
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+        Wall2();
+        Wall2(double rho, double theta);
+
+    // EndPoints and Inliers
+    public:
+        typedef std::tuple<Eigen::Vector2d, Eigen::Vector2d> EndPoints;
+        typedef std::vector<Eigen::Vector3d> Inliers;
+
+        void setInliers (Inliers inliers) { _inliers = inliers; };
 
     private:
+        EndPoints _endPoints;
+        Inliers _inliers;
+
+    // Fitness
+    private:
+        double _fitness;
 
 };
 #endif

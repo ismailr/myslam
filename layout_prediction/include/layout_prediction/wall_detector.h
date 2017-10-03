@@ -20,8 +20,6 @@
 #include "layout_prediction/graph.h"
 #include "layout_prediction/local_mapper.h"
 
-typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
-typedef std::vector<Wall::Ptr> Walls;
 
 class System;
 class Graph;
@@ -48,6 +46,10 @@ class WallDetector
 class WallDetector2
 {
     public:
+        typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
+        typedef std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> PointCloudCluster;
+        typedef std::vector<Wall2*> Walls;
+
         WallDetector2();
         void detect(Walls& walls, const PointCloud::Ptr cloud);
 
@@ -57,9 +59,10 @@ class WallDetector2
         int _method;
 
         void prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud);
+        void cluster_cloud (PointCloudCluster& cluster, PointCloud& _preparedCloud);
         void line_fitting (Walls& walls, PointCloud& _preparedCloud);
         void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
-        void cluster_cloud (std::vector<pcl::PointIndices>& cluster, PointCloud& _preparedCloud);
+        std::vector<Eigen::Vector3d> extract_inliers (pcl::PointIndices::Ptr indices, PointCloud& _preparedCloud);
 };
 
 #endif

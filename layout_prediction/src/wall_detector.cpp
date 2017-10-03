@@ -425,15 +425,22 @@ WallDetector2::WallDetector2()
 
 }
 
-void WallDetector2::detect(std::vector<Wall::Ptr>& walls, const PointCloud::Ptr cloud)
+void WallDetector2::detect(Walls& walls, const PointCloud::Ptr cloud)
 {
     PointCloud _preparedCloud;
+    PointCloudCluster _pointCloudCluster;
+
     prepare_cloud (_preparedCloud, cloud);
+    cluster_cloud (_pointCloudCluster, _preparedCloud);
 
     if (_method == WallDetector2::USE_LINE_FITTING)
         line_fitting (walls, _preparedCloud);
     else if (_method == WallDetector2::USE_PLANE_FITTING)
-        plane_fitting (walls, _preparedCloud);
+    {
+        for (PointCloudCluster::const_iterator it = _pointCloudCluster.begin();
+                it != _pointCloudCluster.end(); ++it)
+            plane_fitting (walls, **it);
+    }
 }
 
 void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud)
@@ -465,13 +472,67 @@ void WallDetector2::line_fitting (Walls& walls, PointCloud& _preparedCloud)
 
 void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
 {
-    std::vector<pcl::PointIndices> cluster;
-    cluster_cloud (cluster, _preparedCloud);
+    /* SENSOR FRAME OF REF ****** ROBOT FRAME OF REF 
+     *
+     *      -y                      z
+     *      |                       |
+     *      |                       |
+     *      |_______ z              |_______ x
+     *     /                       /
+     *    /                       /
+     *   /                       /
+     *  x                       -y
+     *  
+     *  Transformation from SENSOR TO ROBOT FRAME IS
+     *  -y --> z
+     *   z --> x
+     *   x --> -y
+     *
+     * ************************** */
+    Eigen::Vector3f axis (0.0f,-1.0f,0.0f); // IN SENSOR FRAME
 
+    pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+    pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
+    pcl::SACSegmentation<pcl::PointXYZ> seg;
+    seg.setOptimizeCoefficients (true);
+    seg.setModelType (pcl::SACMODEL_PLANE);
+    seg.setMethodType (pcl::SAC_RANSAC);
+    seg.setDistanceThreshold (0.02);
+    seg.setInputCloud (_preparedCloud.makeShared());
+    seg.setAxis (axis);
+    seg.setEpsAngle (10.0f * (M_PI/180.0f));
+    seg.segment (*inliers, *coefficients);
+
+    // Gradient and intercept 
+    // ax + by + cz + d = 0 // IN SENSOR FRAME
+    // for y = 0
+    // cz = - ax - d
+    // z = -(a/c)x - d/c
+    // m = -(a/c)
+    // c = -(d/c)
+    double gradien = - (coefficients->values[0]/coefficients->values[2]);
+    double intercept = - (coefficients->values[3]/coefficients->values[2]);
+
+    // Rho and theta IN SENSOR FRAME
+    // rho = |intercept|/(gradien^2) + 1)^(0.5)
+    // theta = arctan (- 1/gradien)
+    double rho = std::abs (intercept) /sqrt (pow (gradien, 2) + 1);
+    double theta = atan(-1/gradien) * 180/M_PI;
+
+    // extract inliers
+    std::vector<Eigen::Vector3d> pointInliers;
+    pointInliers = extract_inliers (inliers, _preparedCloud);
+
+    Wall2 *wall (new Wall2(rho, theta));
+    wall->setInliers(pointInliers);
+    walls.push_back (wall);
 }
 
-void WallDetector2::cluster_cloud (std::vector<pcl::PointIndices>& cluster, PointCloud& _preparedCloud)
+void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _preparedCloud)
 {
+    typedef std::vector<pcl::PointIndices> PointIndicesCluster;
+    PointIndicesCluster _pointIndicesCluster;
+
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
     tree->setInputCloud (_preparedCloud.makeShared());
 
@@ -481,5 +542,31 @@ void WallDetector2::cluster_cloud (std::vector<pcl::PointIndices>& cluster, Poin
     ec.setMaxClusterSize (25000);
     ec.setSearchMethod (tree);
     ec.setInputCloud (_preparedCloud.makeShared());
-    ec.extract (cluster);
+    ec.extract (_pointIndicesCluster);
+
+    for (PointIndicesCluster::const_iterator it = _pointIndicesCluster.begin(); 
+            it != _pointIndicesCluster.end(); ++it)
+    {
+        PointCloud::Ptr _cluster (new PointCloud);
+        for (std::vector<int>::const_iterator pit = it->indices.begin();
+                pit != it->indices.end(); ++pit)
+            _cluster->points.push_back (_preparedCloud [*pit]);
+
+        cluster.push_back (_cluster);
+    }
+}
+
+std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::Ptr inliers, PointCloud& _preparedCloud)
+{
+    std::vector<Eigen::Vector3d> _inliers;
+    for (int i = 0; i < inliers->indices.size(); ++i)
+    {
+        double x = _preparedCloud.points [inliers->indices[i]].x;
+        double y = _preparedCloud.points [inliers->indices[i]].y;
+        double z = _preparedCloud.points [inliers->indices[i]].z;
+        Eigen::Vector3d xyz (x, y, z);
+        _inliers.push_back (xyz);
+    }
+
+    return _inliers;
 }
