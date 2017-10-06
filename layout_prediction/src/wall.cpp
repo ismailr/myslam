@@ -30,6 +30,8 @@
 #include <typeinfo>
 #include <algorithm>
 #include <math.h>
+#include <assert.h>
+
 #include "g2o/stuff/macros.h"
 
 #include "layout_prediction/wall.h"
@@ -109,4 +111,64 @@ Wall2::Wall2(double rho, double theta)
 {
     setRho (rho);
     setTheta (theta);
+}
+
+void Wall2::set_inliers (Inliers inliers)
+{
+    _inliers = inliers;
+    calculate_fitness ();
+    calculate_edge_points ();
+}
+
+void Wall2::calculate_fitness ()
+{
+    if (_inliers.empty())
+    {
+        _fitness = 1000;
+        return;
+    }
+
+    /* *************************
+     * Distance from a point to a line y = mx + d
+     * line eq: ax + by + c = 0
+     *          a = m, b = -1, c = d
+     * 
+     *  distance from (x0,y0) to ax + by + c is
+     *
+     *  d = |ax0 + by0 + c|
+     *      ---------------
+     *      sqrt (a^2 + b^2)
+     *
+     *    = |mx0 - y0 + d|
+     *      ---------------
+     *      sqrt (m^2 + 1)
+     *
+     * ************************** */
+
+    double d = 0.0;
+    for (Inliers::const_iterator it = _inliers.begin(); 
+            it != _inliers.end(); it++)
+    {
+        double x0 = (*it)[0];
+        double y0 = (*it)[1];
+        double z0 = (*it)[2];
+
+        _fitness += std::abs (_gradient * x0 - y0 + _intercept)/sqrt (_gradient * _gradient + 1);
+    }
+}
+
+void Wall2::calculate_edge_points ()
+{
+    assert (!_inliers.empty());
+
+    Eigen::Vector3d _p (_inliers.front());
+    Eigen::Vector3d _q (_inliers.back());
+
+    double py = _gradient * _p[0] + _intercept;
+    double qy = _gradient * _q[0] + _intercept;
+
+    Eigen::Vector2d p (_p[0], py);
+    Eigen::Vector2d q (_q[0], qy);
+
+    _endPoints = std::make_tuple (p,q);
 }

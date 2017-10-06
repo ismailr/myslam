@@ -131,20 +131,32 @@ class Wall2 : public VertexLine2D
         Wall2();
         Wall2(double rho, double theta);
 
+    // Gradient, intercept
+    public:
+        void set_gradient_intercept (double gradient, double intercept) { _gradient = gradient, _intercept = intercept; };
+    private:
+        double _gradient;
+        double _intercept;
+
     // EndPoints and Inliers
     public:
         typedef std::tuple<Eigen::Vector2d, Eigen::Vector2d> EndPoints;
         typedef std::vector<Eigen::Vector3d> Inliers;
 
-        void setInliers (Inliers inliers) { _inliers = inliers; };
+        void set_inliers (Inliers inliers); 
 
     private:
         EndPoints _endPoints;
         Inliers _inliers;
 
+        void calculate_edge_points ();
+
     // Fitness
+    public:
+        double get_fitness () { return _fitness; };
     private:
         double _fitness;
+        void calculate_fitness ();
 
 };
 #endif

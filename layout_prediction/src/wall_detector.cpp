@@ -489,7 +489,8 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
      *   x --> -y
      *
      * ************************** */
-    Eigen::Vector3f axis (0.0f,-1.0f,0.0f); // IN SENSOR FRAME
+//    Eigen::Vector3f axis (0.0f,-1.0f,0.0f); // IN SENSOR FRAME
+    Eigen::Vector3f axis (0.0f,0.0f,1.0f); // IN ROBOT FRAME
 
     pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
     pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
@@ -505,26 +506,27 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
 
     // Gradient and intercept 
     // ax + by + cz + d = 0 // IN SENSOR FRAME
-    // for y = 0
-    // cz = - ax - d
-    // z = -(a/c)x - d/c
-    // m = -(a/c)
-    // c = -(d/c)
-    double gradien = - (coefficients->values[0]/coefficients->values[2]);
-    double intercept = - (coefficients->values[3]/coefficients->values[2]);
+    // for z = 0
+    // by = -ax - d
+    // y = -(a/b)x - d/b
+    // m = -(a/b)
+    // c = -(d/b)
+    double gradient = - (coefficients->values[0]/coefficients->values[1]);
+    double intercept = - (coefficients->values[3]/coefficients->values[1]);
 
     // Rho and theta IN SENSOR FRAME
     // rho = |intercept|/(gradien^2) + 1)^(0.5)
     // theta = arctan (- 1/gradien)
-    double rho = std::abs (intercept) /sqrt (pow (gradien, 2) + 1);
-    double theta = atan(-1/gradien) * 180/M_PI;
+    double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
+    double theta = atan(-1/gradient) * 180/M_PI;
 
     // extract inliers
     std::vector<Eigen::Vector3d> pointInliers;
     pointInliers = extract_inliers (inliers, _preparedCloud);
 
     Wall2 *wall (new Wall2(rho, theta));
-    wall->setInliers(pointInliers);
+    wall->set_inliers (pointInliers);
+    wall->set_gradient_intercept (gradient, intercept);
     walls.push_back (wall);
 }
 
