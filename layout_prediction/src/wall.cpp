@@ -105,10 +105,23 @@ void Wall::setObserverPose (int poseId)
     _observerPoses.push_back (poseId);
 }
 
-Wall2::Wall2() : VertexLine2D(){}
-Wall2::Wall2(double rho, double theta)
-    :_fitness (0.0)
+Wall2::Wall2 () : VertexLine2D(){}
+//Wall2::Wall2 (double rho, double theta)
+//    :_fitness (0.0)
+//{
+//    setRho (rho);
+//    setTheta (theta);
+//    _gradient = -1/tan(theta);
+//    _intercept = rho * sin (theta);
+//}
+
+Wall2::Wall2 (double gradient, double intercept)
+    :_gradient (gradient), _intercept (intercept), _fitness (0.0)
 {
+    // rho = |intercept|/(gradien^2) + 1)^(0.5)
+    // theta = arctan (- 1/gradien)
+    double rho = std::abs (_intercept) /sqrt (pow (_gradient, 2) + 1);
+    double theta = atan(-1/_gradient) * 180/M_PI;
     setRho (rho);
     setTheta (theta);
 }

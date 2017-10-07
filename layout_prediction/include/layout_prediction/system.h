@@ -72,4 +72,21 @@ class System
         SE2* estimateFromOdom (const nav_msgs::OdometryConstPtr&); 
 };
 
+class System2
+{
+    public:
+        typedef std::shared_ptr<System> Ptr;
+        typedef std::shared_ptr<const System> ConstPtr;
+
+        System2();
+
+        void readSensorsData (
+                const sensor_msgs::PointCloud2ConstPtr& cloud, 
+                const sensor_msgs::ImageConstPtr& rgb,
+                const sensor_msgs::ImageConstPtr& depth,
+                const nav_msgs::OdometryConstPtr& odom,
+                const nav_msgs::OdometryConstPtr& action);
+
+};
+
 #endif

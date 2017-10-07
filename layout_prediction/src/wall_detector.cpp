@@ -505,7 +505,7 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     seg.segment (*inliers, *coefficients);
 
     // Gradient and intercept 
-    // ax + by + cz + d = 0 // IN SENSOR FRAME
+    // ax + by + cz + d = 0 
     // for z = 0
     // by = -ax - d
     // y = -(a/b)x - d/b
@@ -513,20 +513,13 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     // c = -(d/b)
     double gradient = - (coefficients->values[0]/coefficients->values[1]);
     double intercept = - (coefficients->values[3]/coefficients->values[1]);
-
-    // Rho and theta IN SENSOR FRAME
-    // rho = |intercept|/(gradien^2) + 1)^(0.5)
-    // theta = arctan (- 1/gradien)
-    double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
-    double theta = atan(-1/gradient) * 180/M_PI;
+    Wall2 *wall (new Wall2(gradient, intercept));
 
     // extract inliers
     std::vector<Eigen::Vector3d> pointInliers;
     pointInliers = extract_inliers (inliers, _preparedCloud);
-
-    Wall2 *wall (new Wall2(rho, theta));
     wall->set_inliers (pointInliers);
-    wall->set_gradient_intercept (gradient, intercept);
+
     walls.push_back (wall);
 }
 

@@ -171,3 +171,24 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
     SE2* t = new SE2 (odom_x, odom_y, odom_theta);
     return t;
 }
+
+void System2::readSensorsData (
+        const sensor_msgs::PointCloud2ConstPtr& cloud, 
+        const sensor_msgs::ImageConstPtr& rgb,
+        const sensor_msgs::ImageConstPtr& depth,
+        const nav_msgs::OdometryConstPtr& odom,
+        const nav_msgs::OdometryConstPtr& action)
+{
+    // transform pointcloud data from sensor frame to robot frame
+    pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::fromROSMsg(*cloud, *_cloud);
+	tf::TransformListener listener;
+    pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, listener);
+
+    // Pose2 trackPose (odom, action);
+    // Wall2 detectWall (_cloud);
+    // Graph->addVertex(Pose)
+    // Graph->addVertex(Wall2)
+    // Graph->addWallMeasurement ()
+    // Graph->addPoseMeasurement ()
+}

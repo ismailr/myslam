@@ -129,11 +129,10 @@ class Wall2 : public VertexLine2D
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
         Wall2();
-        Wall2(double rho, double theta);
+//        Wall2(double rho, double theta);
+        Wall2(double gradient, double intercept);
 
     // Gradient, intercept
-    public:
-        void set_gradient_intercept (double gradient, double intercept) { _gradient = gradient, _intercept = intercept; };
     private:
         double _gradient;
         double _intercept;
