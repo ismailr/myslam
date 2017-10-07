@@ -4,8 +4,13 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <ros/ros.h>
+#include <nav_msgs/Odometry.h>
+#include <pr2_mechanism_controllers/BaseOdometryState.h>
+
 #include "layout_prediction/system.h"
 #include "layout_prediction/frame.h"
+#include "layout_prediction/pose.h"
 
 class System;
 class Graph;
@@ -26,5 +31,18 @@ class Tracker
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr _prevCloud; 
 };
+
+class Tracker2
+{
+    public:
+        Tracker2();
+        void setInitialPose (Pose2& pose);
+        void estimateFromOdom (const nav_msgs::OdometryConstPtr& odom, Pose2& pose);
+        void estimateFromModel (const nav_msgs::OdometryconstPtr& action, Pose2& pose);
+
+    private:
+        double _previousTime;
+        double _currentTime;
+}
 
 #endif
