@@ -87,6 +87,14 @@ class System2
                 const nav_msgs::OdometryConstPtr& odom,
                 const nav_msgs::OdometryConstPtr& action);
 
+    private:
+        bool _init;
+        double _prevTime;
+        double _curTime;
+
+        Pose2 _lastPose;
+        Pose2 _curPose;
+
 };
 
 #endif

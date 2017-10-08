@@ -38,11 +38,11 @@ class Tracker2
         Tracker2();
         void setInitialPose (Pose2& pose);
         void estimateFromOdom (const nav_msgs::OdometryConstPtr& odom, Pose2& pose);
-        void estimateFromModel (const nav_msgs::OdometryconstPtr& action, Pose2& pose);
+        void estimateFromModel (const nav_msgs::OdometryConstPtr& action, Pose2& pose);
 
     private:
-        double _previousTime;
-        double _currentTime;
-}
+        Pose2* _lastPose;
+        double _prevTime;
+};
 
 #endif

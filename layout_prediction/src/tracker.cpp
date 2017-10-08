@@ -116,3 +116,55 @@ void Tracker::track (Frame& frame)
 //    /* END OF ICP */
 
 }
+
+Tracker2::Tracker2():_prevTime(0.0){}
+
+void Tracker2::setInitialPose (Pose2& pose)
+{
+    SE2 t (0.0,0.0,0.0);
+    pose.setEstimate (t);
+    _lastPose = &pose;
+    _prevTime = ros::Time::now().toSec();
+}
+
+void Tracker2::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom, Pose2& pose)
+{
+    tf::Quaternion q (
+                odom->pose.pose.orientation.x,
+                odom->pose.pose.orientation.y,
+                odom->pose.pose.orientation.z,
+                odom->pose.pose.orientation.w
+            );
+    tf::Matrix3x3 m (q);
+    double roll, pitch, yaw;
+    m.getRPY (roll, pitch, yaw);
+
+    double odom_x = odom->pose.pose.position.x;
+    double odom_y = odom->pose.pose.position.y;
+    double odom_theta = yaw;
+    SE2 t (odom_x, odom_y, odom_theta);
+    pose.setEstimate (t);
+}
+
+void Tracker2::estimateFromModel (const nav_msgs::OdometryConstPtr& action, Pose2& pose)
+{
+    double curTime = ros::Time::now().toSec();
+    double deltaTime = curTime - _prevTime;
+
+    double vx = action->pose.pose.position.x;
+    double vy = action->pose.pose.position.y;
+    double w  = action->pose.pose.orientation.z;
+    double x0 = _lastPose->estimate()[0];
+    double y0 = _lastPose->estimate()[1];
+    double theta0 = _lastPose->estimate()[2];
+
+    double x = x0 + (vx * cos(theta0) + vy * sin(theta0)) * deltaTime;
+    double y = y0 + (-vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
+    double theta = theta0 + w * deltaTime;
+
+    SE2 t (x, y, theta);
+    pose.setEstimate (t);
+
+    _prevTime = curTime;
+    _lastPose = &pose;
+}

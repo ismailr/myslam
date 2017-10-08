@@ -172,6 +172,9 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
     return t;
 }
 
+System2::System2()
+    :_init(true),_prevTime(0.0),_curTime(0.0){}
+
 void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
@@ -184,6 +187,14 @@ void System2::readSensorsData (
 	pcl::fromROSMsg(*cloud, *_cloud);
 	tf::TransformListener listener;
     pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, listener);
+
+    if (_init)
+    {
+        Tracker2 _tracker;
+        Pose2 pose;
+        _tracker.setInitialPose(pose);
+        _init = false;
+    }
 
     // Pose2 trackPose (odom, action);
     // Wall2 detectWall (_cloud);
