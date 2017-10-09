@@ -14,6 +14,8 @@
 
 class System;
 class Graph;
+class System2;
+class Graph2;
 class Frame;
 class Tracker
 {
@@ -35,14 +37,18 @@ class Tracker
 class Tracker2
 {
     public:
-        Tracker2();
-        void setInitialPose (Pose2& pose);
-        void estimateFromOdom (const nav_msgs::OdometryConstPtr& odom, Pose2& pose);
-        void estimateFromModel (const nav_msgs::OdometryConstPtr& action, Pose2& pose);
+        Tracker2(System2&, Graph2&);
+        typedef nav_msgs::OdometryConstPtr OdomConstPtr;
+        long trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init = false);
 
     private:
+        System2 *_system;
+        Graph2 *_graph;
         Pose2* _lastPose;
         double _prevTime;
+
+        void estimateFromOdom (const OdomConstPtr& odom, Pose2& pose);
+        void estimateFromModel (const OdomConstPtr& action, Pose2& pose);
 };
 
 #endif

@@ -14,11 +14,13 @@
 #include "layout_prediction/frame.h"
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/local_mapper.h"
+#include "layout_prediction/helpers.h"
 #include "se2.h"
 
 class WallDetector;
 class Optimizer;
 class Tracker;
+class Tracker2;
 class Frame;
 class Graph;
 class Pose;
@@ -75,10 +77,8 @@ class System
 class System2
 {
     public:
-        typedef std::shared_ptr<System> Ptr;
-        typedef std::shared_ptr<const System> ConstPtr;
-
         System2();
+        void setTracker (Tracker2&);
 
         void readSensorsData (
                 const sensor_msgs::PointCloud2ConstPtr& cloud, 
@@ -87,13 +87,15 @@ class System2
                 const nav_msgs::OdometryConstPtr& odom,
                 const nav_msgs::OdometryConstPtr& action);
 
+        long requestUniqueId () { return _gen.getUniqueId (); };
+
     private:
         bool _init;
         double _prevTime;
         double _curTime;
 
-        Pose2 _lastPose;
-        Pose2 _curPose;
+        Tracker2 *_tracker;
+        IdGenerator _gen;
 
 };
 

@@ -73,7 +73,10 @@ class Pose2: public VertexSE2
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     Pose2 ();
 
-    private:
+    void setOdometry (SE2& t) { _odom = &t; };
+    SE2& getOdometry () const { return *_odom; };
 
+    private:
+    SE2* _odom;
 };
 #endif

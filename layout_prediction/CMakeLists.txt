@@ -157,7 +157,6 @@ add_executable(layout_prediction
     src/wall_measurement.cpp
     src/types_myslam.cpp
     src/local_mapper.cpp
-    src/converter.cpp
     src/vertex_se2.cpp
     src/vertex_line2d.cpp
     src/edge_se2.cpp

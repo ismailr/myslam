@@ -11,6 +11,7 @@
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/helpers.h"
 
 bool Tracker::init = true;
 
@@ -117,36 +118,21 @@ void Tracker::track (Frame& frame)
 
 }
 
-Tracker2::Tracker2():_prevTime(0.0){}
-
-void Tracker2::setInitialPose (Pose2& pose)
+Tracker2::Tracker2 (System2& system, Graph2& graph) 
+    :_system (&system), _graph (&graph), _prevTime (0.0) 
 {
-    SE2 t (0.0,0.0,0.0);
-    pose.setEstimate (t);
-    _lastPose = &pose;
-    _prevTime = ros::Time::now().toSec();
+    _system->setTracker (*this);
 }
 
-void Tracker2::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom, Pose2& pose)
+void Tracker2::estimateFromOdom (const OdomConstPtr& odom, Pose2& pose)
 {
-    tf::Quaternion q (
-                odom->pose.pose.orientation.x,
-                odom->pose.pose.orientation.y,
-                odom->pose.pose.orientation.z,
-                odom->pose.pose.orientation.w
-            );
-    tf::Matrix3x3 m (q);
-    double roll, pitch, yaw;
-    m.getRPY (roll, pitch, yaw);
-
-    double odom_x = odom->pose.pose.position.x;
-    double odom_y = odom->pose.pose.position.y;
-    double odom_theta = yaw;
-    SE2 t (odom_x, odom_y, odom_theta);
-    pose.setEstimate (t);
+    Converter c;
+    SE2 *t = new SE2();
+    c.odomToSE2 (odom, *t);
+    pose.setEstimate (*t);
 }
 
-void Tracker2::estimateFromModel (const nav_msgs::OdometryConstPtr& action, Pose2& pose)
+void Tracker2::estimateFromModel (const OdomConstPtr& action, Pose2& pose)
 {
     double curTime = ros::Time::now().toSec();
     double deltaTime = curTime - _prevTime;
@@ -162,9 +148,42 @@ void Tracker2::estimateFromModel (const nav_msgs::OdometryConstPtr& action, Pose
     double y = y0 + (-vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
     double theta = theta0 + w * deltaTime;
 
-    SE2 t (x, y, theta);
-    pose.setEstimate (t);
+    SE2 *t = new SE2 (x, y, theta);
+    pose.setEstimate (*t);
+}
 
-    _prevTime = curTime;
-    _lastPose = &pose;
+long Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init) // return pose id 
+{
+    Converter c;
+    SE2* t = new SE2();
+    c.odomToSE2 (odom, *t);
+
+    Pose2 *pose (new Pose2);
+    PoseMeasurement2 *m (new PoseMeasurement2);
+
+    long id = _system->requestUniqueId ();
+    pose->setId (id);
+
+    if (init)
+    {
+        pose->setEstimate (*t);
+        pose->setOdometry (*t);
+        // addVertex (pose);
+        _prevTime = ros::Time::now().toSec();
+        _lastPose = pose;
+        return id;
+    }
+
+    estimateFromModel (action, *pose);
+    m->vertices()[0] = _lastPose;
+    m->vertices()[1] = pose;
+    m->setMeasurement (_lastPose->getOdometry().inverse() * *t); 
+    Eigen::Matrix<double, 3, 3> inf;
+    inf.setIdentity();
+    m->information () = inf;
+
+    // Graph
+    // addVertex (pose)
+    // addEdge (m)
+    return id;
 }

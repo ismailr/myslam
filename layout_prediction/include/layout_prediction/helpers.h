@@ -3,6 +3,11 @@
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
+#include <nav_msgs/Odometry.h>
+
+#include "se2.h"
+
+using namespace g2o;
 
 struct line {
     double m, c, r, theta;
@@ -31,5 +36,23 @@ double calculate_slope (line_segment);
 double calculate_slope (line_segment_stamped);
 line_eq points_to_line_eq (line_segment);
 line_eq points_to_line_eq (line_segment_stamped);
+
+class IdGenerator
+{
+    public:
+        IdGenerator(){};
+        long getUniqueId (){ return _id++; };
+
+
+    private:
+        static long _id;
+};
+
+class Converter
+{
+    public:
+        Converter(){};
+        void odomToSE2 (const nav_msgs::OdometryConstPtr& odom, SE2& t);
+};
 
 #endif

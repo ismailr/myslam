@@ -18,6 +18,7 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/graph.h"
 #include "layout_prediction/tracker.h"
+#include "layout_prediction/helpers.h"
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
@@ -175,6 +176,11 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
 System2::System2()
     :_init(true),_prevTime(0.0),_curTime(0.0){}
 
+void System2::setTracker (Tracker2& tracker)
+{
+    _tracker = &tracker;
+}
+
 void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
@@ -188,18 +194,16 @@ void System2::readSensorsData (
 	tf::TransformListener listener;
     pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, listener);
 
+    int poseId;
+
     if (_init)
     {
-        Tracker2 _tracker;
-        Pose2 pose;
-        _tracker.setInitialPose(pose);
+        poseId = _tracker->trackPose (odom, action, true);
         _init = false;
+    } else {
+        poseId = _tracker->trackPose (odom, action, false);
     }
 
-    // Pose2 trackPose (odom, action);
-    // Wall2 detectWall (_cloud);
-    // Graph->addVertex(Pose)
-    // Graph->addVertex(Wall2)
-    // Graph->addWallMeasurement ()
-    // Graph->addPoseMeasurement ()
+    // detect wall
 }
+

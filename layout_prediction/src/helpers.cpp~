@@ -1,4 +1,13 @@
-#include <layout_prediction/helpers.h>
+
+#include <ros/ros.h>
+#include <tf/transform_listener.h>
+#include <tf/transform_datatypes.h>
+
+#include <Eigen/Core>
+
+#include "layout_prediction/helpers.h"
+
+long IdGenerator::_id = 0;
 
 double calculate_slope (line_segment ls)
 {
@@ -50,12 +59,32 @@ line_eq points_to_line_eq (line_segment ls)
 	return calculated_line;
 }
 
-line points_to_line_eq (line_segment_stamped ls)
+line_eq points_to_line_eq (line_segment_stamped ls)
 {
     line_segment _ls;
     _ls.p = ls.p.point;
     _ls.q = ls.q.point;
 	       
 	return points_to_line_eq (_ls);
+}
+
+void Converter::odomToSE2(const nav_msgs::OdometryConstPtr& odom, SE2& t)
+{
+    tf::Quaternion q (
+                odom->pose.pose.orientation.x,
+                odom->pose.pose.orientation.y,
+                odom->pose.pose.orientation.z,
+                odom->pose.pose.orientation.w
+            );
+    tf::Matrix3x3 m (q);
+    double roll, pitch, yaw;
+    m.getRPY (roll, pitch, yaw);
+
+    double odom_x = odom->pose.pose.position.x;
+    double odom_y = odom->pose.pose.position.y;
+    double odom_theta = yaw;
+    Eigen::Vector3d v (odom_x, odom_y, odom_theta);
+
+    t.fromVector (v); 
 }
 

@@ -161,6 +161,7 @@ add_executable(layout_prediction
     src/vertex_se2.cpp
     src/vertex_line2d.cpp
     src/edge_se2.cpp
+    src/edge_se2_line2d.cpp
 )
 
 ## Add cmake target dependencies of the executable
