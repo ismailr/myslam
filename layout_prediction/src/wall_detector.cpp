@@ -425,7 +425,7 @@ WallDetector2::WallDetector2()
 
 }
 
-void WallDetector2::detect(Walls& walls, const PointCloud::Ptr cloud)
+void WallDetector2::detect(Walls& walls, WallMeasurements& wallMeasurements, Pose2& pose, const PointCloud::Ptr cloud)
 {
     PointCloud _preparedCloud;
     PointCloudCluster _pointCloudCluster;
@@ -439,7 +439,11 @@ void WallDetector2::detect(Walls& walls, const PointCloud::Ptr cloud)
     {
         for (PointCloudCluster::const_iterator it = _pointCloudCluster.begin();
                 it != _pointCloudCluster.end(); ++it)
+        {
             plane_fitting (walls, **it);
+            // localToGlobal (Wall2& wall, Pose2& pose);
+            // set wallmeasurement
+        }
     }
 }
 
@@ -513,7 +517,12 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     // c = -(d/b)
     double gradient = - (coefficients->values[0]/coefficients->values[1]);
     double intercept = - (coefficients->values[3]/coefficients->values[1]);
-    Wall2 *wall (new Wall2(gradient, intercept));
+    double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
+    double theta = atan(-1/gradient) * 180/M_PI;
+    Eigen::Vector2d wParam (rho, theta);
+
+    Wall2 *wall = new Wall2(); 
+    wall->setMeasurement (wParam);
 
     // extract inliers
     std::vector<Eigen::Vector3d> pointInliers;
@@ -564,4 +573,22 @@ std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::
     }
 
     return _inliers;
+}
+
+void WallDetector2::localToGlobal (Pose2& pose)
+{
+//    double rho = _measurement[0];
+//    double theta = _measurement[1];
+//
+//    Eigen::Vector3d v = pose->estimate().toVector();
+//    auto x = v[0];
+//    auto y = v[1];
+//    auto alpha = v[2] * 180/M_PI;
+//
+//    // measurement model
+//    rho = std::abs (rho + x * std::abs (cos (theta - alpha)) + y * std::abs (sin (theta - alpha)));
+//    theta = theta - alpha;
+//
+//    setRho (rho);
+//    setTheta (theta);
 }

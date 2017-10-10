@@ -28,6 +28,7 @@
 #define _MYSLAM_POSE_MEASUREMENT_H
 
 #include <memory>
+#include <math.h>
 
 #include "layout_prediction/pose.h"
 #include "g2o/core/base_binary_edge.h"
@@ -67,6 +68,14 @@ class PoseMeasurement2 : public EdgeSE2
     public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
     PoseMeasurement2();
+
+    void computeError()
+    {
+        const Pose2* v = static_cast<const Pose2*>(_vertices[1]);
+        Eigen::Vector3d prediction = v->estimate().toVector();
+        Eigen::Vector3d measurement = v->getOdometry().toVector();
+        _error = (prediction - measurement);
+    }
 
     private:
 

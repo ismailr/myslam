@@ -39,7 +39,7 @@ class Tracker2
     public:
         Tracker2(System2&, Graph2&);
         typedef nav_msgs::OdometryConstPtr OdomConstPtr;
-        long trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init = false);
+        void trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, Pose2& pose, PoseMeasurement2& poseMasurement, bool init = false);
 
     private:
         System2 *_system;

@@ -18,6 +18,7 @@
 #include "se2.h"
 
 class WallDetector;
+class WallDetector2;
 class Optimizer;
 class Tracker;
 class Tracker2;
@@ -79,6 +80,7 @@ class System2
     public:
         System2();
         void setTracker (Tracker2&);
+        void setWallDetector (WallDetector2& wall_detector);
 
         void readSensorsData (
                 const sensor_msgs::PointCloud2ConstPtr& cloud, 
@@ -95,6 +97,7 @@ class System2
         double _curTime;
 
         Tracker2 *_tracker;
+        WallDetector2 *_wall_detector;
         IdGenerator _gen;
 
 };

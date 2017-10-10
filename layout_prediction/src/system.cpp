@@ -181,6 +181,11 @@ void System2::setTracker (Tracker2& tracker)
     _tracker = &tracker;
 }
 
+void System2::setWallDetector (WallDetector2& wall_detector)
+{
+    _wall_detector = &wall_detector;
+};
+
 void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
@@ -194,16 +199,25 @@ void System2::readSensorsData (
 	tf::TransformListener listener;
     pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, listener);
 
-    int poseId;
+
+    // pose 
+    Pose2* pose (new Pose2);
+    pose->setId (requestUniqueId());
+
+    PoseMeasurement2* poseMeasurement (new PoseMeasurement2);
 
     if (_init)
     {
-        poseId = _tracker->trackPose (odom, action, true);
+        _tracker->trackPose (odom, action, *pose, *poseMeasurement, true);
         _init = false;
     } else {
-        poseId = _tracker->trackPose (odom, action, false);
+        _tracker->trackPose (odom, action, *pose, *poseMeasurement, false);
     }
 
-    // detect wall
+    // wall
+    std::vector<Wall2*> walls;
+    std::vector<WallMeasurement2*> wallsMeasurement;
+
+    _wall_detector->detect (walls, wallsMeasurement, *pose, _cloud);
 }
 

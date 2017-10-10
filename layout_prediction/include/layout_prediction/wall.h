@@ -157,5 +157,11 @@ class Wall2 : public VertexLine2D
         double _fitness;
         void calculate_fitness ();
 
+    // Measurement
+    public:
+        void setMeasurement (Eigen::Vector2d measurement) { _measurement = measurement; };
+        Eigen::Vector2d& getMeasurement () { return _measurement; };
+    private:
+        Eigen::Vector2d _measurement;
 };
 #endif

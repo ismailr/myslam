@@ -185,3 +185,4 @@ void Wall2::calculate_edge_points ()
 
     _endPoints = std::make_tuple (p,q);
 }
+

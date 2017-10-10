@@ -152,38 +152,34 @@ void Tracker2::estimateFromModel (const OdomConstPtr& action, Pose2& pose)
     pose.setEstimate (*t);
 }
 
-long Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init) // return pose id 
+void Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, Pose2& pose, PoseMeasurement2& poseMeasurement, bool init) 
 {
+    double time = ros::Time::now().toSec();
+
     Converter c;
     SE2* t = new SE2();
     c.odomToSE2 (odom, *t);
 
-    Pose2 *pose (new Pose2);
-    PoseMeasurement2 *m (new PoseMeasurement2);
-
-    long id = _system->requestUniqueId ();
-    pose->setId (id);
-
     if (init)
     {
-        pose->setEstimate (*t);
-        pose->setOdometry (*t);
+        pose.setEstimate (*t);
+        pose.setOdometry (*t);
         // addVertex (pose);
-        _prevTime = ros::Time::now().toSec();
-        _lastPose = pose;
-        return id;
+        _prevTime = time;
+        _lastPose = &pose;
+        return;
     }
 
-    estimateFromModel (action, *pose);
-    m->vertices()[0] = _lastPose;
-    m->vertices()[1] = pose;
-    m->setMeasurement (_lastPose->getOdometry().inverse() * *t); 
+    estimateFromModel (action, pose);
+    pose.setOdometry (*t);
+
     Eigen::Matrix<double, 3, 3> inf;
     inf.setIdentity();
-    m->information () = inf;
-
-    // Graph
-    // addVertex (pose)
-    // addEdge (m)
-    return id;
+    poseMeasurement.vertices()[0] = _lastPose;
+    poseMeasurement.vertices()[1] = &pose;
+    poseMeasurement.setMeasurement (_lastPose->getOdometry().inverse() * *t); 
+    poseMeasurement.information () = inf;
+    
+    _prevTime = time;
+    _lastPose = &pose;
 }

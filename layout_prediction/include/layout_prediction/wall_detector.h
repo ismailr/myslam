@@ -49,9 +49,10 @@ class WallDetector2
         typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
         typedef std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> PointCloudCluster;
         typedef std::vector<Wall2*> Walls;
+        typedef std::vector<WallMeasurement2*> WallMeasurements;
 
         WallDetector2();
-        void detect(Walls& walls, const PointCloud::Ptr cloud);
+        void detect(Walls& walls, WallMeasurements& wallMeasurements, Pose2& pose, const PointCloud::Ptr cloud);
 
     private:
         const int USE_LINE_FITTING = 1;
@@ -63,6 +64,7 @@ class WallDetector2
         void line_fitting (Walls& walls, PointCloud& _preparedCloud);
         void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
         std::vector<Eigen::Vector3d> extract_inliers (pcl::PointIndices::Ptr indices, PointCloud& _preparedCloud);
+        void localToGlobal (Pose2& pose);
 };
 
 #endif
