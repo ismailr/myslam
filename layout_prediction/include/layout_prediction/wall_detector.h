@@ -64,7 +64,7 @@ class WallDetector2
         void line_fitting (Walls& walls, PointCloud& _preparedCloud);
         void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
         std::vector<Eigen::Vector3d> extract_inliers (pcl::PointIndices::Ptr indices, PointCloud& _preparedCloud);
-        void localToGlobal (Pose2& pose);
+        void localToGlobal (Wall2& wall, Pose2& pose);
 };
 
 #endif

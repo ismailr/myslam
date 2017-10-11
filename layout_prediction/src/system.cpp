@@ -219,5 +219,6 @@ void System2::readSensorsData (
     std::vector<WallMeasurement2*> wallsMeasurement;
 
     _wall_detector->detect (walls, wallsMeasurement, *pose, _cloud);
+    // asosiasi data
 }
 

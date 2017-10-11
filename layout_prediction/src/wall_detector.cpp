@@ -32,6 +32,7 @@
 #include "layout_prediction/frame.h"
 #include "layout_prediction/graph.h"
 #include "layout_prediction/local_mapper.h"
+#include "layout_prediction/wall_measurement.h"
 
 WallDetector::WallDetector (System& system, Graph& graph)
     :_system (&system), _graph (&graph), _previousFrameProcessed (0) {
@@ -441,8 +442,21 @@ void WallDetector2::detect(Walls& walls, WallMeasurements& wallMeasurements, Pos
                 it != _pointCloudCluster.end(); ++it)
         {
             plane_fitting (walls, **it);
-            // localToGlobal (Wall2& wall, Pose2& pose);
-            // set wallmeasurement
+            for (Walls::const_iterator wit = walls.begin();
+                    wit != walls.end(); wit++)
+            {
+                localToGlobal (**wit, pose);
+                WallMeasurement2 *m = new WallMeasurement2();
+                m->vertices()[0] = &pose;
+                m->vertices()[1] = *wit;
+                Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
+                double measurementData[2] = {wMeasure[0],wMeasure[1]};
+                m->setMeasurementData (measurementData);
+                Eigen::Matrix<double, 2, 2> inf;
+                inf.setIdentity();
+                m->information () = inf;
+                wallMeasurements.push_back (m);
+            }
         }
     }
 }
@@ -575,20 +589,20 @@ std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::
     return _inliers;
 }
 
-void WallDetector2::localToGlobal (Pose2& pose)
+void WallDetector2::localToGlobal (Wall2& wall, Pose2& pose)
 {
-//    double rho = _measurement[0];
-//    double theta = _measurement[1];
-//
-//    Eigen::Vector3d v = pose->estimate().toVector();
-//    auto x = v[0];
-//    auto y = v[1];
-//    auto alpha = v[2] * 180/M_PI;
-//
-//    // measurement model
-//    rho = std::abs (rho + x * std::abs (cos (theta - alpha)) + y * std::abs (sin (theta - alpha)));
-//    theta = theta - alpha;
-//
-//    setRho (rho);
-//    setTheta (theta);
+    double rho = wall.getMeasurement()[0];
+    double theta = wall.getMeasurement()[1];
+
+    Eigen::Vector3d v = pose.estimate().toVector();
+    auto x = v[0];
+    auto y = v[1];
+    auto alpha = v[2] * 180/M_PI;
+
+    // measurement model
+    rho = std::abs (rho + x * cos (theta - alpha) + y * sin (theta - alpha));
+    theta = theta - alpha;
+
+    wall.setRho (rho);
+    wall.setTheta (theta);
 }
