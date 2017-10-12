@@ -201,24 +201,16 @@ void System2::readSensorsData (
 
 
     // pose 
-    Pose2* pose (new Pose2);
-    pose->setId (requestUniqueId());
-
-    PoseMeasurement2* poseMeasurement (new PoseMeasurement2);
+    Pose2::Ptr pose; 
 
     if (_init)
     {
-        _tracker->trackPose (odom, action, *pose, *poseMeasurement, true);
+        pose = _tracker->trackPose (odom, action, true);
         _init = false;
     } else {
-        _tracker->trackPose (odom, action, *pose, *poseMeasurement, false);
+        pose = _tracker->trackPose (odom, action, false);
     }
 
-    // wall
-    std::vector<Wall2*> walls;
-    std::vector<WallMeasurement2*> wallsMeasurement;
-
-    _wall_detector->detect (walls, wallsMeasurement, *pose, _cloud);
-    // asosiasi data
+    _wall_detector->detect (pose, _cloud);
 }
 

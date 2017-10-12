@@ -24,7 +24,9 @@ class Tracker;
 class Tracker2;
 class Frame;
 class Graph;
+class Graph2;
 class Pose;
+class Pose2;
 class System
 {
     public:

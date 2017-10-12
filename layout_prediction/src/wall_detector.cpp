@@ -420,13 +420,16 @@ void WallDetector::localToGlobal (Wall::Ptr wall)
 //    wall->setThetaGlobal (thetaGlobal);
 }
 
-WallDetector2::WallDetector2()
-    :_method(WallDetector2::USE_PLANE_FITTING)
+WallDetector2::WallDetector2(System2& system, Graph2& graph)
+    :_method(WallDetector2::USE_PLANE_FITTING),
+    _system (&system),
+    _graph (&graph)
 {
+    _localMapper = new LocalMapper2 (_graph);
 
 }
 
-void WallDetector2::detect(Walls& walls, WallMeasurements& wallMeasurements, Pose2& pose, const PointCloud::Ptr cloud)
+void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
 {
     PointCloud _preparedCloud;
     PointCloudCluster _pointCloudCluster;
@@ -434,28 +437,30 @@ void WallDetector2::detect(Walls& walls, WallMeasurements& wallMeasurements, Pos
     prepare_cloud (_preparedCloud, cloud);
     cluster_cloud (_pointCloudCluster, _preparedCloud);
 
+    Walls walls;
+
     if (_method == WallDetector2::USE_LINE_FITTING)
         line_fitting (walls, _preparedCloud);
     else if (_method == WallDetector2::USE_PLANE_FITTING)
     {
-        for (PointCloudCluster::const_iterator it = _pointCloudCluster.begin();
+        for (PointCloudCluster::iterator it = _pointCloudCluster.begin();
                 it != _pointCloudCluster.end(); ++it)
         {
             plane_fitting (walls, **it);
-            for (Walls::const_iterator wit = walls.begin();
+            for (Walls::iterator wit = walls.begin();
                     wit != walls.end(); wit++)
             {
-                localToGlobal (**wit, pose);
-                WallMeasurement2 *m = new WallMeasurement2();
-                m->vertices()[0] = &pose;
-                m->vertices()[1] = *wit;
-                Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
-                double measurementData[2] = {wMeasure[0],wMeasure[1]};
-                m->setMeasurementData (measurementData);
-                Eigen::Matrix<double, 2, 2> inf;
-                inf.setIdentity();
-                m->information () = inf;
-                wallMeasurements.push_back (m);
+                localToGlobal (*wit, pose);
+                // data association
+//                WallMeasurement2::Ptr m = _graph->wallmeasurement_alloc();
+//                m->vertices()[0] = pose.get();
+//                m->vertices()[1] = (*wit).get();
+//                Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
+//                double measurementData[2] = {wMeasure[0],wMeasure[1]};
+//                m->setMeasurementData (measurementData);
+//                Eigen::Matrix<double, 2, 2> inf;
+//                inf.setIdentity();
+//                m->information () = inf;
             }
         }
     }
@@ -535,7 +540,7 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     double theta = atan(-1/gradient) * 180/M_PI;
     Eigen::Vector2d wParam (rho, theta);
 
-    Wall2 *wall = new Wall2(); 
+    Wall2::Ptr wall (new Wall2); 
     wall->setMeasurement (wParam);
 
     // extract inliers
@@ -589,12 +594,12 @@ std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::
     return _inliers;
 }
 
-void WallDetector2::localToGlobal (Wall2& wall, Pose2& pose)
+void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
 {
-    double rho = wall.getMeasurement()[0];
-    double theta = wall.getMeasurement()[1];
+    double rho = wall->getMeasurement()[0];
+    double theta = wall->getMeasurement()[1];
 
-    Eigen::Vector3d v = pose.estimate().toVector();
+    Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
     auto y = v[1];
     auto alpha = v[2] * 180/M_PI;
@@ -603,6 +608,33 @@ void WallDetector2::localToGlobal (Wall2& wall, Pose2& pose)
     rho = std::abs (rho + x * cos (theta - alpha) + y * sin (theta - alpha));
     theta = theta - alpha;
 
-    wall.setRho (rho);
-    wall.setTheta (theta);
+    wall->setRho (rho);
+    wall->setTheta (theta);
 }
+
+Wall2::Ptr WallDetector2::dataAssociate (Wall2::Ptr& wall)
+{
+    const float GRID_STEP = 5.0;
+    const float ANGLE_STEP = 30.0;
+
+    std::map<Eigen::Vector2d, Wall2::Ptr> wallDB = _localMapper->getAllWalls();
+    if (wallDB.empty())
+    {
+        _localMapper->addVertex (wall);
+        return wall;
+    }
+
+    double rho_ref = wallDB.begin()->first[0];
+    double theta_ref = wallDB.begin()->first[1];
+
+    double rho = wall->rho();
+    double theta = wall->theta();
+
+//    if (    std::abs (rho - rho_ref) < GRID_STEP &&
+//            std::abs (theta - theta_ref) < ANGLE_STEP)
+//    {
+//        return 
+//
+//    }
+}
+

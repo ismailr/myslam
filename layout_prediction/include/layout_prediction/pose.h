@@ -71,6 +71,9 @@ class Pose2: public VertexSE2
 {
     public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    typedef std::shared_ptr<Pose2> Ptr;
+    typedef std::shared_ptr<const Pose2> ConstPtr;
     Pose2 ();
 
     void setOdometry (SE2& t) { _odom = &t; };

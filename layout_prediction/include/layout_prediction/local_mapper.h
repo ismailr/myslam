@@ -6,6 +6,7 @@
 #include <g2o/core/optimization_algorithm_levenberg.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 
+#include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
 #include "layout_prediction/graph.h"
 
@@ -30,5 +31,27 @@ class LocalMapper
         void occupancyGrid();
 
 };
+
+class LocalMapper2
+{
+    public:
+        LocalMapper2(Graph2& graph);
+
+        void addVertex (Pose2::Ptr& pose);
+        void addVertex (Wall2::Ptr& wall);
+        void addEdge (PoseMeasurement2::Ptr& poseMeasurement);
+        void addEdge (WallMeasurement2::Ptr& wallMeasurement);
+        void localOptimize ();
+
+        std::map<Eigen::Vector2d, Wall2::Ptr> getAllWalls () { return _wallDatabase; }; 
+
+    private:
+        Graph2* _graph;
+        g2o::SparseOptimizer* _optimizer;
+        std::map<Eigen::Vector2d, Wall2::Ptr> _wallDatabase;
+
+        void pushToGraph ();
+        void clear();
+}
 
 #endif

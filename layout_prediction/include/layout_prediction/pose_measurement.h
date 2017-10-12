@@ -67,6 +67,10 @@ class PoseMeasurement2 : public EdgeSE2
 {
     public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    typedef std::shared_ptr<PoseMeasurement2> Ptr;
+    typedef std::shared_ptr<const PoseMeasurement2> ConstPtr;
+
     PoseMeasurement2();
 
     void computeError()

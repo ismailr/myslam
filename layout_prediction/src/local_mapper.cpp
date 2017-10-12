@@ -80,3 +80,9 @@ void LocalMapper::occupancyGrid ()
 //        _walls.push_back (it->second.front());
 //    }
 }
+
+LocalMapper2::LocalMapper2(Graph2& graph)
+    :_graph (&graph)
+{
+
+}

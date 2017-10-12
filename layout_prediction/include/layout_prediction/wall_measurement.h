@@ -115,8 +115,12 @@
 class WallMeasurement2 : public EdgeSE2Line2D
 {
     public:
-        EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-        WallMeasurement2();
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
+    typedef std::shared_ptr<WallMeasurement2> Ptr;
+    typedef std::shared_ptr<const WallMeasurement2> ConstPtr;
+
+    WallMeasurement2();
 
     private:
 

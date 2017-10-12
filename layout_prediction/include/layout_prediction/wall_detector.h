@@ -22,8 +22,11 @@
 
 
 class System;
+class System2;
 class Graph;
+class Graph2;
 class Wall;
+class Wall2;
 class WallDetector
 {
     public:
@@ -48,13 +51,17 @@ class WallDetector2
     public:
         typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
         typedef std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> PointCloudCluster;
-        typedef std::vector<Wall2*> Walls;
-        typedef std::vector<WallMeasurement2*> WallMeasurements;
+        typedef std::vector<Wall2::Ptr> Walls;
+        typedef std::vector<WallMeasurement2::Ptr> WallMeasurements;
 
-        WallDetector2();
-        void detect(Walls& walls, WallMeasurements& wallMeasurements, Pose2& pose, const PointCloud::Ptr cloud);
+        WallDetector2(System2&, Graph2&);
+        void detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud);
 
     private:
+        System2 *_system;
+        Graph2 *_graph;
+        LocalMapper2 *_localMapper;
+
         const int USE_LINE_FITTING = 1;
         const int USE_PLANE_FITTING = 2;
         int _method;
@@ -64,7 +71,8 @@ class WallDetector2
         void line_fitting (Walls& walls, PointCloud& _preparedCloud);
         void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
         std::vector<Eigen::Vector3d> extract_inliers (pcl::PointIndices::Ptr indices, PointCloud& _preparedCloud);
-        void localToGlobal (Wall2& wall, Pose2& pose);
+        void localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose);
+        Wall2::Ptr dataAssociate (Wall2::Ptr& wall);
 };
 
 #endif

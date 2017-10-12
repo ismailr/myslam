@@ -128,6 +128,9 @@ class Wall2 : public VertexLine2D
     // Constructor
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+        typedef std::shared_ptr<Wall2> Ptr;
+        typedef std::shared_ptr<const Wall2> ConstPtr;
         Wall2();
 //        Wall2(double rho, double theta);
         Wall2(double gradient, double intercept);

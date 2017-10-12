@@ -223,37 +223,3 @@ int Graph::associateData (int wallId, std::vector<int> ref)
 
 Graph2::Graph2(){}
 
-void Graph2::addVertex (int id)
-{
-
-}
-
-void Graph2::addEdge (int from, int to)
-{
-
-}
-
-void Graph2::removeVertex (int id)
-{
-
-}
-
-void Graph2::getLocalVertices (int id)
-{
-
-}
-
-void Graph2::getAllVertices (std::vector<int>& vertices)
-{
-
-}
-
-void Graph2::localOptimize (int id)
-{
-
-}
-
-void Graph2::globalOptimize ()
-{
-
-}

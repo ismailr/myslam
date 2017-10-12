@@ -54,17 +54,18 @@ class Graph
 class Graph2
 {
     public:
-        Graph2 ();
-        void addVertex (int id);
-        void addEdge (int from, int to);
-        void removeVertex (int id);
-        void getLocalVertices (int id);
-        void getAllVertices (std::vector<int>& vertices);
+    Graph2 ();
 
-        void localOptimize (int id);
-        void globalOptimize ();
+    Wall2::Ptr wall_alloc() { Wall2::Ptr w (new Wall2); return w; }; 
+    Pose2::Ptr pose_alloc() { Pose2::Ptr p (new Pose2()); return p; };
+
+    typedef WallMeasurement2::Ptr Wm;
+    typedef PoseMeasurement2::Ptr Pm;
+    Wm wallmeasurement_alloc() { Wm wm (new WallMeasurement2); return wm; };
+    Pm posemeasurement_alloc() { Pm pm (new PoseMeasurement2); return pm; };
 
     private:
+        std::map<Eigen::Vector2d, Wall2::Ptr> wallDB;
 };
 
 #endif

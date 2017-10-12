@@ -39,16 +39,16 @@ class Tracker2
     public:
         Tracker2(System2&, Graph2&);
         typedef nav_msgs::OdometryConstPtr OdomConstPtr;
-        void trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, Pose2& pose, PoseMeasurement2& poseMasurement, bool init = false);
+        Pose2::Ptr trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init = false);
 
     private:
         System2 *_system;
         Graph2 *_graph;
-        Pose2* _lastPose;
+        Pose2::Ptr _lastPose;
         double _prevTime;
 
-        void estimateFromOdom (const OdomConstPtr& odom, Pose2& pose);
-        void estimateFromModel (const OdomConstPtr& action, Pose2& pose);
+        void estimateFromOdom (const OdomConstPtr& odom, Pose2::Ptr& pose);
+        void estimateFromModel (const OdomConstPtr& action, Pose2::Ptr& pose);
 };
 
 #endif
