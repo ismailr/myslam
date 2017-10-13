@@ -30,6 +30,12 @@ int main (int argc, char** argv)
     Optimizer optimizer (system, graph);
     Tracker tracker (system, graph);
 
+    Graph2 graph2;
+    LocalMapper2 localMapper2 (graph2);
+    System2 system2 (nh, graph2, localMapper2);
+    WallDetector2 wallDetector2 (system2, graph2, localMapper2);
+    Tracker2 tracker2 (system2, graph2, localMapper2);
+
     // initialize threads
     std::thread wall_detector_thread (&WallDetector::run, wallDetector);
     std::thread optimizer_thread (&Optimizer::run, optimizer);

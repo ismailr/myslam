@@ -420,12 +420,12 @@ void WallDetector::localToGlobal (Wall::Ptr wall)
 //    wall->setThetaGlobal (thetaGlobal);
 }
 
-WallDetector2::WallDetector2(System2& system, Graph2& graph)
+WallDetector2::WallDetector2(System2& system, Graph2& graph, LocalMapper2& localMapper)
     :_method(WallDetector2::USE_PLANE_FITTING),
     _system (&system),
-    _graph (&graph)
+    _graph (&graph),
+    _localMapper (&localMapper)
 {
-    _localMapper = new LocalMapper2 (*_graph);
 
 }
 
@@ -451,7 +451,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
                     wit != walls.end(); wit++)
             {
                 localToGlobal (*wit, pose);
-                Wall2::Ptr w = _localMapper->dataAssociation(*wit); // dataAssociation
+                Wall2::Ptr w = _localMapper->data_association(*wit); 
                 WallMeasurement2::Ptr m = _graph->wallmeasurement_alloc();
                 m->vertices()[0] = pose.get();
                 m->vertices()[1] = w.get();

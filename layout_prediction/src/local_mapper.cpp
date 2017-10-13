@@ -3,6 +3,11 @@
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/wall_measurement.h"
 
+#include <g2o/core/sparse_optimizer.h>
+#include <g2o/core/block_solver.h>
+#include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/solvers/csparse/linear_solver_csparse.h>
+
 int LocalMapper::frame_counter = 0;
 
 LocalMapper::LocalMapper (Graph& graph): _graph (&graph)
@@ -87,15 +92,7 @@ LocalMapper2::LocalMapper2(Graph2& graph)
 
 }
 
-void LocalMapper2::addVertex (Wall2::Ptr& wall)
-{
-    // add to optimizer (wall)
-//    Eigen::Vector2d v (wall->rho(), wall->theta());
-//    _wallDatabase[v] = wall;
-
-}
-
-Wall2::Ptr LocalMapper2::dataAssociation (Wall2::Ptr& wall)
+Wall2::Ptr LocalMapper2::data_association (Wall2::Ptr& wall)
 {
     const float GRID_STEP = 5.0;
     const float ANGLE_STEP = 30.0;
@@ -115,5 +112,18 @@ Wall2::Ptr LocalMapper2::dataAssociation (Wall2::Ptr& wall)
         return wall;
     else if (_wallDatabase.count(v))
         return _wallDatabase[v];
-
 }
+
+void LocalMapper2::local_optimize()
+{
+    g2o::SparseOptimizer *_optimizer;
+    push_to_graph();
+    clear();
+}
+
+void LocalMapper2::add_vertex (Pose2::Ptr& pose){}
+void LocalMapper2::add_vertex (Wall2::Ptr& wall){}
+void LocalMapper2::add_edge (PoseMeasurement2::Ptr& poseMeasurement){}
+void LocalMapper2::add_edge (WallMeasurement2::Ptr& wallMeasurement){}
+void LocalMapper2::push_to_graph (){}
+void LocalMapper2::clear(){}

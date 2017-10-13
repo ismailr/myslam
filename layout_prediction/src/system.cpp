@@ -172,11 +172,12 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
     return t;
 }
 
-System2::System2()
-    :_init(true),_prevTime(0.0),_curTime(0.0)
+int System2::_framecounter = 0;
+System2::System2(ros::NodeHandle nh, Graph2& graph, LocalMapper2& localMapper)
+    :_init(true),_prevTime(0.0),_curTime(0.0),
+    _rosnodehandle (nh), _graph (&graph), _localMapper (&localMapper)
 {
-    _graph = new Graph2();
-    _localMapper = new LocalMapper2 (*_graph);
+    _localMapper->set_system (*this);
 }
 
 void System2::setTracker (Tracker2& tracker)
@@ -184,9 +185,9 @@ void System2::setTracker (Tracker2& tracker)
     _tracker = &tracker;
 }
 
-void System2::setWallDetector (WallDetector2& wall_detector)
+void System2::setWallDetector (WallDetector2& wallDetector)
 {
-    _wall_detector = &wall_detector;
+    _wallDetector = &wallDetector;
 };
 
 void System2::readSensorsData (
@@ -214,6 +215,13 @@ void System2::readSensorsData (
         pose = _tracker->trackPose (odom, action, false);
     }
 
-    _wall_detector->detect (pose, _cloud);
+    _wallDetector->detect (pose, _cloud);
+
+    if (System2::_framecounter % 3 == 0)
+    {
+        _localMapper->local_optimize();
+    }
+
+    System2::_framecounter++;
 }
 

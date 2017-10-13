@@ -79,7 +79,9 @@ class System
 class System2
 {
     public:
-        System2();
+        static int _framecounter;
+
+        System2(ros::NodeHandle nh, Graph2& graph, LocalMapper2& localmapper);
         void setTracker (Tracker2&);
         void setWallDetector (WallDetector2& wall_detector);
 
@@ -97,8 +99,9 @@ class System2
         double _prevTime;
         double _curTime;
 
+        ros::NodeHandle _rosnodehandle;
         Tracker2 *_tracker;
-        WallDetector2 *_wall_detector;
+        WallDetector2 *_wallDetector;
         Graph2 *_graph;
         LocalMapper2 *_localMapper;
         IdGenerator _gen;

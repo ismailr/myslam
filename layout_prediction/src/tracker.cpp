@@ -118,8 +118,8 @@ void Tracker::track (Frame& frame)
 
 }
 
-Tracker2::Tracker2 (System2& system, Graph2& graph) 
-    :_system (&system), _graph (&graph), _prevTime (0.0) 
+Tracker2::Tracker2 (System2& system, Graph2& graph, LocalMapper2& localMapper) 
+    :_system (&system), _graph (&graph), _prevTime (0.0), _localMapper (&localMapper) 
 {
     _system->setTracker (*this);
 }
@@ -161,7 +161,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     c.odomToSE2 (odom, *t);
 
     Pose2::Ptr pose = _graph->pose_alloc();
-    pose->setId (_system->requestUniqueId());
+//    pose->setId (_system->requestUniqueId());
 
     if (init)
     {

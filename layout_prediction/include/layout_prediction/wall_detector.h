@@ -54,7 +54,7 @@ class WallDetector2
         typedef std::vector<Wall2::Ptr> Walls;
         typedef std::vector<WallMeasurement2::Ptr> WallMeasurements;
 
-        WallDetector2(System2&, Graph2&);
+        WallDetector2(System2&, Graph2&, LocalMapper2&);
         void detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud);
 
     private:

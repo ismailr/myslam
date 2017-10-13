@@ -11,6 +11,7 @@
 #include "layout_prediction/graph.h"
 
 
+class System2;
 class LocalMapper
 {
     public:
@@ -37,20 +38,21 @@ class LocalMapper2
     public:
         LocalMapper2(Graph2& graph);
 
-        void addVertex (Pose2::Ptr& pose);
-        void addVertex (Wall2::Ptr& wall);
-        void addEdge (PoseMeasurement2::Ptr& poseMeasurement);
-        void addEdge (WallMeasurement2::Ptr& wallMeasurement);
-        void localOptimize ();
+        void add_vertex (Pose2::Ptr& pose);
+        void add_vertex (Wall2::Ptr& wall);
+        void add_edge (PoseMeasurement2::Ptr& poseMeasurement);
+        void add_edge (WallMeasurement2::Ptr& wallMeasurement);
+        void local_optimize ();
 
-        Wall2::Ptr dataAssociation (Wall2::Ptr& wall);
+        Wall2::Ptr data_association (Wall2::Ptr& wall);
+        void set_system (System2& system) { _system = &system; };
 
     private:
-        Graph2* _graph;
-        g2o::SparseOptimizer* _optimizer;
+        System2 *_system;
+        Graph2 *_graph;
         std::map<std::tuple<double,double>, Wall2::Ptr> _wallDatabase;
 
-        void pushToGraph ();
+        void push_to_graph ();
         void clear();
 };
 

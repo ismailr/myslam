@@ -11,6 +11,7 @@
 #include "layout_prediction/system.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/local_mapper.h"
 
 class System;
 class Graph;
@@ -37,13 +38,14 @@ class Tracker
 class Tracker2
 {
     public:
-        Tracker2(System2&, Graph2&);
+        Tracker2(System2&, Graph2&, LocalMapper2&);
         typedef nav_msgs::OdometryConstPtr OdomConstPtr;
         Pose2::Ptr trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init = false);
 
     private:
         System2 *_system;
         Graph2 *_graph;
+        LocalMapper2 *_localMapper;
         Pose2::Ptr _lastPose;
         double _prevTime;
 
