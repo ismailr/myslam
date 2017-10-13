@@ -56,7 +56,6 @@ class System
         Optimizer *_optimizer;
         Tracker *_tracker;
         Graph *_graph;
-        LocalMapper *_localMapper;
 
         double _previousTime;
         double _currentTime;
@@ -100,8 +99,9 @@ class System2
 
         Tracker2 *_tracker;
         WallDetector2 *_wall_detector;
+        Graph2 *_graph;
+        LocalMapper2 *_localMapper;
         IdGenerator _gen;
-
 };
 
 #endif

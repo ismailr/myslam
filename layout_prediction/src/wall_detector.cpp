@@ -425,7 +425,7 @@ WallDetector2::WallDetector2(System2& system, Graph2& graph)
     _system (&system),
     _graph (&graph)
 {
-    _localMapper = new LocalMapper2 (_graph);
+    _localMapper = new LocalMapper2 (*_graph);
 
 }
 
@@ -451,16 +451,16 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
                     wit != walls.end(); wit++)
             {
                 localToGlobal (*wit, pose);
-                // data association
-//                WallMeasurement2::Ptr m = _graph->wallmeasurement_alloc();
-//                m->vertices()[0] = pose.get();
-//                m->vertices()[1] = (*wit).get();
-//                Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
-//                double measurementData[2] = {wMeasure[0],wMeasure[1]};
-//                m->setMeasurementData (measurementData);
-//                Eigen::Matrix<double, 2, 2> inf;
-//                inf.setIdentity();
-//                m->information () = inf;
+                Wall2::Ptr w = _localMapper->dataAssociation(*wit); // dataAssociation
+                WallMeasurement2::Ptr m = _graph->wallmeasurement_alloc();
+                m->vertices()[0] = pose.get();
+                m->vertices()[1] = w.get();
+                Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
+                double measurementData[2] = {wMeasure[0],wMeasure[1]};
+                m->setMeasurementData (measurementData);
+                Eigen::Matrix<double, 2, 2> inf;
+                inf.setIdentity();
+                m->information () = inf;
             }
         }
     }
@@ -610,31 +610,5 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
 
     wall->setRho (rho);
     wall->setTheta (theta);
-}
-
-Wall2::Ptr WallDetector2::dataAssociate (Wall2::Ptr& wall)
-{
-    const float GRID_STEP = 5.0;
-    const float ANGLE_STEP = 30.0;
-
-    std::map<Eigen::Vector2d, Wall2::Ptr> wallDB = _localMapper->getAllWalls();
-    if (wallDB.empty())
-    {
-        _localMapper->addVertex (wall);
-        return wall;
-    }
-
-    double rho_ref = wallDB.begin()->first[0];
-    double theta_ref = wallDB.begin()->first[1];
-
-    double rho = wall->rho();
-    double theta = wall->theta();
-
-//    if (    std::abs (rho - rho_ref) < GRID_STEP &&
-//            std::abs (theta - theta_ref) < ANGLE_STEP)
-//    {
-//        return 
-//
-//    }
 }
 

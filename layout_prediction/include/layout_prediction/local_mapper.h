@@ -43,15 +43,15 @@ class LocalMapper2
         void addEdge (WallMeasurement2::Ptr& wallMeasurement);
         void localOptimize ();
 
-        std::map<Eigen::Vector2d, Wall2::Ptr> getAllWalls () { return _wallDatabase; }; 
+        Wall2::Ptr dataAssociation (Wall2::Ptr& wall);
 
     private:
         Graph2* _graph;
         g2o::SparseOptimizer* _optimizer;
-        std::map<Eigen::Vector2d, Wall2::Ptr> _wallDatabase;
+        std::map<std::tuple<double,double>, Wall2::Ptr> _wallDatabase;
 
         void pushToGraph ();
         void clear();
-}
+};
 
 #endif

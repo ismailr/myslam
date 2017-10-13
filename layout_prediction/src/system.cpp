@@ -35,7 +35,6 @@ System::System(ros::NodeHandle nh, Graph& graph)
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
 
-    _localMapper = new LocalMapper (graph);
 }
 
 void System::setWallDetector (WallDetector& wall_detector)
@@ -174,7 +173,11 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
 }
 
 System2::System2()
-    :_init(true),_prevTime(0.0),_curTime(0.0){}
+    :_init(true),_prevTime(0.0),_curTime(0.0)
+{
+    _graph = new Graph2();
+    _localMapper = new LocalMapper2 (*_graph);
+}
 
 void System2::setTracker (Tracker2& tracker)
 {

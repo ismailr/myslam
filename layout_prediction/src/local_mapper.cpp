@@ -86,3 +86,34 @@ LocalMapper2::LocalMapper2(Graph2& graph)
 {
 
 }
+
+void LocalMapper2::addVertex (Wall2::Ptr& wall)
+{
+    // add to optimizer (wall)
+//    Eigen::Vector2d v (wall->rho(), wall->theta());
+//    _wallDatabase[v] = wall;
+
+}
+
+Wall2::Ptr LocalMapper2::dataAssociation (Wall2::Ptr& wall)
+{
+    const float GRID_STEP = 5.0;
+    const float ANGLE_STEP = 30.0;
+
+    double rho_ref = std::get<0>(_wallDatabase.begin()->first);
+    double theta_ref = std::get<1>(_wallDatabase.begin()->first);
+
+    double rho = wall->rho();
+    double theta = wall->theta();
+
+    int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
+    int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
+
+    std::tuple<double,double> v = std::make_tuple (rho_index, theta_index);
+
+    if (_wallDatabase.empty() || _wallDatabase.count(v) == 0)
+        return wall;
+    else if (_wallDatabase.count(v))
+        return _wallDatabase[v];
+
+}
