@@ -453,6 +453,8 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             {
                 localToGlobal (*wit, pose);
                 Wall2::Ptr w = _localMapper->data_association(*wit); 
+                pose->insert_detected_wall (w->id());
+
                 WallMeasurement2::Ptr m = _graph->wallmeasurement_alloc();
                 m->vertices()[0] = pose.get();
                 m->vertices()[1] = w.get();

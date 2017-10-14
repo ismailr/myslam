@@ -79,7 +79,11 @@ class Pose2: public VertexSE2
     void setOdometry (SE2& t) { _odom = &t; };
     SE2& getOdometry () const { return *_odom; };
 
+    void insert_detected_wall (int id) { _detectedWalls.push_back (id); };
+    std::vector<int> get_detected_walls () { return _detectedWalls; };
+
     private:
     SE2* _odom;
+    std::vector<int> _detectedWalls;
 };
 #endif

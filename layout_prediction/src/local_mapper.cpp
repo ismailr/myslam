@@ -90,6 +90,7 @@ void LocalMapper::occupancyGrid ()
 //    }
 }
 
+int LocalMapper2::localId = 0;
 LocalMapper2::LocalMapper2(System2& system, Graph2& graph)
     :_graph (&graph), _system (&system)
 {
@@ -132,20 +133,24 @@ void LocalMapper2::local_optimize()
     OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
     _optimizer->setAlgorithm (solver);
+    _optimizer->setVerbose (true);
+    set_fixed_vertices();
     _optimizer->initializeOptimization();
+    _optimizer->optimize (10);
     push_to_graph();
     clear();
 }
 
-void LocalMapper2::add_vertex (Pose2::Ptr& pose, bool fixed)
+void LocalMapper2::add_vertex (Pose2::Ptr& pose)
 {
-    pose->setId (_system->requestUniqueId());
+    pose->setId (LocalMapper2::localId++);
     _optimizer->addVertex (pose.get());
+    _poseDB.push_back (LocalMapper2::localId);
 }
 
-void LocalMapper2::add_vertex (Wall2::Ptr& wall, bool fixed)
+void LocalMapper2::add_vertex (Wall2::Ptr& wall)
 {
-    wall->setId (_system->requestUniqueId());
+    wall->setId (LocalMapper2::localId++);
     _optimizer->addVertex (wall.get());
 }
 
@@ -159,5 +164,35 @@ void LocalMapper2::add_edge (WallMeasurement2::Ptr& wallMeasurement)
     _optimizer->addEdge (wallMeasurement.get());
 }
 
+void LocalMapper2::set_fixed_vertices()
+{
+    Pose2* anchoredPose = dynamic_cast<Pose2*>(_optimizer->vertex (_poseDB.front()));
+    anchoredPose->setFixed (true);
+
+    if (_poseDB.front() != 0)
+    {
+        std::vector<int> walls = anchoredPose->get_detected_walls();
+        for (std::vector<int>::iterator it = walls.begin();
+                it != walls.end(); it++)
+            _optimizer->vertex(*it)->setFixed (true);
+    }
+}
+
 void LocalMapper2::push_to_graph (){}
-void LocalMapper2::clear(){}
+void LocalMapper2::clear()
+{
+    // Reset _poseDB
+    Pose2* pose = dynamic_cast<Pose2*>(_optimizer->vertex (_poseDB.back()));
+    _poseDB.clear();
+    _poseDB.push_back (pose->id());
+
+    // Reset _wallDatabase
+    for (std::map<std::tuple<double,double> >, Wall2::Ptr>::iterator it = _wallDatabase.begin();
+            it != _wallDatabase.end(); it++)
+    {
+
+
+    }
+
+    // Reset _optimizer
+}

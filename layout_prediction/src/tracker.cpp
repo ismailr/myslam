@@ -167,7 +167,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     {
         pose->setEstimate (*t);
         pose->setOdometry (*t);
-        _localMapper->add_vertex (pose, true);
+        _localMapper->add_vertex (pose);
         _prevTime = time;
         _lastPose = pose;
         return pose;
