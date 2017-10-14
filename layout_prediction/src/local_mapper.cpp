@@ -5,8 +5,12 @@
 
 #include <g2o/core/sparse_optimizer.h>
 #include <g2o/core/block_solver.h>
-#include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/factory.h>
+#include <g2o/core/optimization_algorithm_factory.h>
+#include <g2o/core/optimization_algorithm_gauss_newton.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
+
+using namespace g2o;
 
 int LocalMapper::frame_counter = 0;
 
@@ -86,9 +90,10 @@ void LocalMapper::occupancyGrid ()
 //    }
 }
 
-LocalMapper2::LocalMapper2(Graph2& graph)
-    :_graph (&graph)
+LocalMapper2::LocalMapper2(System2& system, Graph2& graph)
+    :_graph (&graph), _system (&system)
 {
+    _system->set_local_mapper (*this);
 
 }
 
@@ -109,21 +114,50 @@ Wall2::Ptr LocalMapper2::data_association (Wall2::Ptr& wall)
     std::tuple<double,double> v = std::make_tuple (rho_index, theta_index);
 
     if (_wallDatabase.empty() || _wallDatabase.count(v) == 0)
+    {
+        _wallDatabase[v] = wall;
+        add_vertex (wall);
         return wall;
+    }
     else if (_wallDatabase.count(v))
         return _wallDatabase[v];
 }
 
 void LocalMapper2::local_optimize()
 {
-    g2o::SparseOptimizer *_optimizer;
+    typedef BlockSolver<BlockSolverTraits<-1,-1> > SlamBlockSolver;
+    typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+    auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+    linearSolver->setBlockOrdering (false);
+    OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
+            g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+    _optimizer->setAlgorithm (solver);
+    _optimizer->initializeOptimization();
     push_to_graph();
     clear();
 }
 
-void LocalMapper2::add_vertex (Pose2::Ptr& pose){}
-void LocalMapper2::add_vertex (Wall2::Ptr& wall){}
-void LocalMapper2::add_edge (PoseMeasurement2::Ptr& poseMeasurement){}
-void LocalMapper2::add_edge (WallMeasurement2::Ptr& wallMeasurement){}
+void LocalMapper2::add_vertex (Pose2::Ptr& pose, bool fixed)
+{
+    pose->setId (_system->requestUniqueId());
+    _optimizer->addVertex (pose.get());
+}
+
+void LocalMapper2::add_vertex (Wall2::Ptr& wall, bool fixed)
+{
+    wall->setId (_system->requestUniqueId());
+    _optimizer->addVertex (wall.get());
+}
+
+void LocalMapper2::add_edge (PoseMeasurement2::Ptr& poseMeasurement)
+{
+    _optimizer->addEdge (poseMeasurement.get());
+}
+
+void LocalMapper2::add_edge (WallMeasurement2::Ptr& wallMeasurement)
+{
+    _optimizer->addEdge (wallMeasurement.get());
+}
+
 void LocalMapper2::push_to_graph (){}
 void LocalMapper2::clear(){}

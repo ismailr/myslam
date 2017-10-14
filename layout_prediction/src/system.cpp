@@ -173,22 +173,11 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
 }
 
 int System2::_framecounter = 0;
-System2::System2(ros::NodeHandle nh, Graph2& graph, LocalMapper2& localMapper)
+System2::System2(ros::NodeHandle nh, Graph2& graph)
     :_init(true),_prevTime(0.0),_curTime(0.0),
-    _rosnodehandle (nh), _graph (&graph), _localMapper (&localMapper)
+    _rosnodehandle (nh), _graph (&graph)
 {
-    _localMapper->set_system (*this);
 }
-
-void System2::setTracker (Tracker2& tracker)
-{
-    _tracker = &tracker;
-}
-
-void System2::setWallDetector (WallDetector2& wallDetector)
-{
-    _wallDetector = &wallDetector;
-};
 
 void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
@@ -203,25 +192,14 @@ void System2::readSensorsData (
 	tf::TransformListener listener;
     pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, listener);
 
-
-    // pose 
-    Pose2::Ptr pose; 
-
-    if (_init)
-    {
-        pose = _tracker->trackPose (odom, action, true);
-        _init = false;
-    } else {
-        pose = _tracker->trackPose (odom, action, false);
-    }
-
+    Pose2::Ptr pose = _tracker->trackPose (odom, action, _init);
     _wallDetector->detect (pose, _cloud);
 
     if (System2::_framecounter % 3 == 0)
-    {
         _localMapper->local_optimize();
-    }
 
     System2::_framecounter++;
+
+    if (_init = true) _init = false;
 }
 

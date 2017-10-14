@@ -13,10 +13,10 @@
 #include "layout_prediction/graph.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/tracker.h"
-#include "layout_prediction/local_mapper.h"
 #include "layout_prediction/helpers.h"
 #include "se2.h"
 
+class LocalMapper2;
 class WallDetector;
 class WallDetector2;
 class Optimizer;
@@ -81,9 +81,10 @@ class System2
     public:
         static int _framecounter;
 
-        System2(ros::NodeHandle nh, Graph2& graph, LocalMapper2& localmapper);
-        void setTracker (Tracker2&);
-        void setWallDetector (WallDetector2& wall_detector);
+        System2(ros::NodeHandle nh, Graph2& graph);
+        void set_tracker (Tracker2& tracker) { _tracker = &tracker; };
+        void set_wall_detector (WallDetector2& wallDetector) { _wallDetector = &wallDetector; };
+        void set_local_mapper (LocalMapper2& localMapper) { _localMapper = &localMapper; };
 
         void readSensorsData (
                 const sensor_msgs::PointCloud2ConstPtr& cloud, 
@@ -100,10 +101,11 @@ class System2
         double _curTime;
 
         ros::NodeHandle _rosnodehandle;
+        Graph2 *_graph;
         Tracker2 *_tracker;
         WallDetector2 *_wallDetector;
-        Graph2 *_graph;
         LocalMapper2 *_localMapper;
+
         IdGenerator _gen;
 };
 

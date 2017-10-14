@@ -426,6 +426,7 @@ WallDetector2::WallDetector2(System2& system, Graph2& graph, LocalMapper2& local
     _graph (&graph),
     _localMapper (&localMapper)
 {
+    _system->set_wall_detector (*this);
 
 }
 
@@ -461,6 +462,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
                 Eigen::Matrix<double, 2, 2> inf;
                 inf.setIdentity();
                 m->information () = inf;
+                _localMapper->add_edge (m);
             }
         }
     }

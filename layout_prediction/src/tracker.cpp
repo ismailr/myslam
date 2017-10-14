@@ -121,7 +121,7 @@ void Tracker::track (Frame& frame)
 Tracker2::Tracker2 (System2& system, Graph2& graph, LocalMapper2& localMapper) 
     :_system (&system), _graph (&graph), _prevTime (0.0), _localMapper (&localMapper) 
 {
-    _system->setTracker (*this);
+    _system->set_tracker (*this);
 }
 
 void Tracker2::estimateFromOdom (const OdomConstPtr& odom, Pose2::Ptr& pose)
@@ -167,7 +167,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     {
         pose->setEstimate (*t);
         pose->setOdometry (*t);
-        // addVertex (pose);
+        _localMapper->add_vertex (pose, true);
         _prevTime = time;
         _lastPose = pose;
         return pose;
@@ -175,7 +175,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 
     estimateFromModel (action, pose);
     pose->setOdometry (*t);
-    // addVertex (pose);
+    _localMapper->add_vertex (pose);
 
     Eigen::Matrix<double, 3, 3> inf;
     inf.setIdentity();
@@ -186,7 +186,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     pm->setMeasurement (_lastPose->getOdometry().inverse() * *t); 
     pm->information () = inf;
 
-    // addEdge (posemeasurement)
+    _localMapper->add_edge (pm);
     
     _prevTime = time;
     _lastPose = pose;

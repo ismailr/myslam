@@ -1,0 +1,8 @@
+<map id="Graphical Class Hierarchy" name="Graphical Class Hierarchy">
+<area shape="rect" id="node2" href="$classg2o_1_1_vertex_line2_d.html" title="g2o::VertexLine2D" alt="" coords="144,5,275,32"/>
+<area shape="rect" id="node4" href="$classg2o_1_1_vertex_s_e2.html" title="2D pose Vertex, (x,y,theta) " alt="" coords="152,56,267,83"/>
+<area shape="rect" id="node6" href="$class_pose.html" title="Pose" alt="" coords="183,107,235,133"/>
+<area shape="rect" id="node7" href="$class_wall.html" title="Wall" alt="" coords="185,157,233,184"/>
+<area shape="rect" id="node3" href="$class_wall2.html" title="Wall2" alt="" coords="325,5,379,32"/>
+<area shape="rect" id="node5" href="$class_pose2.html" title="Pose2" alt="" coords="323,56,381,83"/>
+</map>

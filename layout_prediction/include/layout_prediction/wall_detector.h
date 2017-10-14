@@ -18,9 +18,9 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/frame.h"
 #include "layout_prediction/graph.h"
-#include "layout_prediction/local_mapper.h"
 
 
+class LocalMapper2;
 class System;
 class System2;
 class Graph;

@@ -2,14 +2,11 @@
 #define _LOCAL_MAPPER_H_
 
 #include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/block_solver.h>
-#include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
 
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
 #include "layout_prediction/graph.h"
-
+#include "layout_prediction/system.h"
 
 class System2;
 class LocalMapper
@@ -36,10 +33,10 @@ class LocalMapper
 class LocalMapper2
 {
     public:
-        LocalMapper2(Graph2& graph);
+        LocalMapper2(System2& system, Graph2& graph);
 
-        void add_vertex (Pose2::Ptr& pose);
-        void add_vertex (Wall2::Ptr& wall);
+        void add_vertex (Pose2::Ptr& pose, bool fixed = false);
+        void add_vertex (Wall2::Ptr& wall, bool fixed = false);
         void add_edge (PoseMeasurement2::Ptr& poseMeasurement);
         void add_edge (WallMeasurement2::Ptr& wallMeasurement);
         void local_optimize ();
@@ -50,6 +47,7 @@ class LocalMapper2
     private:
         System2 *_system;
         Graph2 *_graph;
+        g2o::SparseOptimizer *_optimizer;
         std::map<std::tuple<double,double>, Wall2::Ptr> _wallDatabase;
 
         void push_to_graph ();
