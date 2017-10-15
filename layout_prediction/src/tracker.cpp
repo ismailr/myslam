@@ -161,7 +161,6 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     c.odomToSE2 (odom, *t);
 
     Pose2::Ptr pose = _graph->pose_alloc();
-//    pose->setId (_system->requestUniqueId());
 
     if (init)
     {

@@ -172,7 +172,7 @@ SE2* System::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
     return t;
 }
 
-int System2::_framecounter = 0;
+int System2::_framecounter = 1;
 System2::System2(ros::NodeHandle nh, Graph2& graph)
     :_init(true),_prevTime(0.0),_curTime(0.0),
     _rosnodehandle (nh), _graph (&graph)
@@ -196,10 +196,13 @@ void System2::readSensorsData (
     _wallDetector->detect (pose, _cloud);
 
     if (System2::_framecounter % 3 == 0)
+    {
+        std::cout << "READY TO LOCAL OPTIMIZE ... " << std::endl;
         _localMapper->local_optimize();
+    }
 
     System2::_framecounter++;
 
-    if (_init = true) _init = false;
+    if (_init == true) _init = false;
 }
 

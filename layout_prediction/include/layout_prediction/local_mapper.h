@@ -33,7 +33,6 @@ class LocalMapper
 class LocalMapper2
 {
     public:
-        static int localId;
         LocalMapper2(System2& system, Graph2& graph);
 
         void add_vertex (Pose2::Ptr& pose);
@@ -48,8 +47,14 @@ class LocalMapper2
         System2 *_system;
         Graph2 *_graph;
         g2o::SparseOptimizer *_optimizer;
-        std::map<std::tuple<double,double>, Wall2::Ptr> _wallDatabase; // for data association
-        std::vector<int> _poseDB;
+        std::map<std::tuple<int,int>, Wall2::Ptr> _indexedWallDB; // for data association
+        std::vector<Pose2::Ptr> _poseDB; 
+        std::vector<Wall2::Ptr> _wallDB;
+        std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;
+        std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
+
+        const float GRID_STEP = 5.0;
+        const float ANGLE_STEP = 30.0;
 
         void set_fixed_vertices ();
         void push_to_graph ();

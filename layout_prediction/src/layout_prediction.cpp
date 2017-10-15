@@ -24,11 +24,11 @@ int main (int argc, char** argv)
 	ros::NodeHandle nh;
 
     // Define system ...
-    Graph graph;
-    System system (nh, graph);
-    WallDetector wallDetector (system, graph);
-    Optimizer optimizer (system, graph);
-    Tracker tracker (system, graph);
+//    Graph graph;
+//    System system (nh, graph);
+//    WallDetector wallDetector (system, graph);
+//    Optimizer optimizer (system, graph);
+//    Tracker tracker (system, graph);
 
     Graph2 graph2;
     System2 system2 (nh, graph2);
@@ -37,8 +37,8 @@ int main (int argc, char** argv)
     Tracker2 tracker2 (system2, graph2, localMapper2);
 
     // initialize threads
-    std::thread wall_detector_thread (&WallDetector::run, wallDetector);
-    std::thread optimizer_thread (&Optimizer::run, optimizer);
+//    std::thread wall_detector_thread (&WallDetector::run, wallDetector);
+//    std::thread optimizer_thread (&Optimizer::run, optimizer);
 //    std::thread tracker_thread (&Tracker::run, tracker);
 
     // Get sensors data
@@ -60,7 +60,7 @@ int main (int argc, char** argv)
                                                                             odometry_sub, 
                                                                             action_sub);
 
-    sync.registerCallback (boost::bind (&System::readSensorsData, &system, _1, _2, _3, _4, _5));
+    sync.registerCallback (boost::bind (&System2::readSensorsData, &system2, _1, _2, _3, _4, _5));
 
     ros::spin();
 

@@ -57,7 +57,7 @@ class Graph2
     Graph2 ();
 
     Wall2::Ptr wall_alloc() { Wall2::Ptr w (new Wall2); return w; }; 
-    Pose2::Ptr pose_alloc() { Pose2::Ptr p (new Pose2()); return p; };
+    Pose2::Ptr pose_alloc() { Pose2::Ptr p (new Pose2); return p; };
 
     typedef WallMeasurement2::Ptr Wm;
     typedef PoseMeasurement2::Ptr Pm;

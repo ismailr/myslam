@@ -90,42 +90,12 @@ void LocalMapper::occupancyGrid ()
 //    }
 }
 
-int LocalMapper2::localId = 0;
 LocalMapper2::LocalMapper2(System2& system, Graph2& graph)
     :_graph (&graph), _system (&system)
 {
     _system->set_local_mapper (*this);
+    _optimizer = new g2o::SparseOptimizer();
 
-}
-
-Wall2::Ptr LocalMapper2::data_association (Wall2::Ptr& wall)
-{
-    const float GRID_STEP = 5.0;
-    const float ANGLE_STEP = 30.0;
-
-    double rho_ref = std::get<0>(_wallDatabase.begin()->first);
-    double theta_ref = std::get<1>(_wallDatabase.begin()->first);
-
-    double rho = wall->rho();
-    double theta = wall->theta();
-
-    int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
-    int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
-
-    std::tuple<double,double> v = std::make_tuple (rho_index, theta_index);
-
-    if (_wallDatabase.empty() || _wallDatabase.count(v) == 0)
-    {
-        _wallDatabase[v] = wall;
-        add_vertex (wall);
-        return wall;
-    }
-    else if (_wallDatabase.count(v))
-        return _wallDatabase[v];
-}
-
-void LocalMapper2::local_optimize()
-{
     typedef BlockSolver<BlockSolverTraits<-1,-1> > SlamBlockSolver;
     typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
     auto linearSolver = g2o::make_unique<SlamLinearSolver>();
@@ -134,42 +104,102 @@ void LocalMapper2::local_optimize()
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
     _optimizer->setAlgorithm (solver);
     _optimizer->setVerbose (true);
+}
+
+Wall2::Ptr LocalMapper2::data_association (Wall2::Ptr& wall)
+{
+    if (_wallDB.empty())
+    {
+        std::tuple<int,int> v = std::make_tuple (0,0);
+        add_vertex (wall);
+        _indexedWallDB[v] = wall;
+
+        return wall;
+    }
+
+    Wall2::Ptr refWall = _wallDB.front();
+
+    double rho_ref = refWall->rho();
+    double theta_ref = refWall->theta();
+
+    double rho = wall->rho();
+    double theta = wall->theta();
+
+    int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
+    int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
+
+    std::tuple<int,int> v = std::make_tuple (rho_index, theta_index);
+
+    if (_indexedWallDB.count(v) == 0)
+    {
+        add_vertex (wall);
+        _indexedWallDB[v] = wall;
+        return wall;
+    }
+    else if (_indexedWallDB.count(v))
+        return _indexedWallDB[v];
+}
+
+void LocalMapper2::local_optimize()
+{
+    for (std::vector<Pose2::Ptr>::iterator pit = _poseDB.begin();
+            pit != _poseDB.end(); ++pit)
+        _optimizer->addVertex ((*pit).get());
+
+    for (std::vector<Wall2::Ptr>::iterator wit = _wallDB.begin();
+            wit != _wallDB.end(); ++wit)
+        _optimizer->addVertex ((*wit).get());
+
+    for (std::vector<PoseMeasurement2::Ptr>::iterator pmit = _poseMeasurementDB.begin();
+            pmit != _poseMeasurementDB.end(); ++pmit)
+        _optimizer->addEdge ((*pmit).get());
+
+    for (std::vector<WallMeasurement2::Ptr>::iterator wmit = _wallMeasurementDB.begin();
+            wmit != _wallMeasurementDB.end(); ++wmit)
+        _optimizer->addEdge ((*wmit).get());
+
+    std::cout << "SET FIXED VERTICES ... " << std::endl;
     set_fixed_vertices();
-    _optimizer->initializeOptimization();
+    std::cout << "INITIALIZE OPTIMIZATION ... " << std::endl;
+    std::cout << _optimizer->initializeOptimization() << std::endl;
+    std::cout << "DONE INIT ... " << std::endl;
     _optimizer->optimize (10);
+    std::cout << "DONE OPTIMIZATION ... " << std::endl;
     push_to_graph();
     clear();
 }
 
 void LocalMapper2::add_vertex (Pose2::Ptr& pose)
 {
-    pose->setId (LocalMapper2::localId++);
-    _optimizer->addVertex (pose.get());
-    _poseDB.push_back (LocalMapper2::localId);
+    int id = _system->requestUniqueId();
+    std::cout << "REGISTER ID: " << id << " FOR POSE" << std::endl;
+    pose->setId (id);
+    _poseDB.push_back (pose);
 }
 
 void LocalMapper2::add_vertex (Wall2::Ptr& wall)
 {
-    wall->setId (LocalMapper2::localId++);
-    _optimizer->addVertex (wall.get());
+    int id = _system->requestUniqueId();
+    wall->setId (id);
+    _wallDB.push_back (wall);
 }
 
 void LocalMapper2::add_edge (PoseMeasurement2::Ptr& poseMeasurement)
 {
-    _optimizer->addEdge (poseMeasurement.get());
+    _poseMeasurementDB.push_back (poseMeasurement);
 }
 
 void LocalMapper2::add_edge (WallMeasurement2::Ptr& wallMeasurement)
 {
-    _optimizer->addEdge (wallMeasurement.get());
+    _wallMeasurementDB.push_back (wallMeasurement);
 }
 
 void LocalMapper2::set_fixed_vertices()
 {
-    Pose2* anchoredPose = dynamic_cast<Pose2*>(_optimizer->vertex (_poseDB.front()));
+    Pose2::Ptr anchoredPose = _poseDB.front();
     anchoredPose->setFixed (true);
 
-    if (_poseDB.front() != 0)
+    if (_poseDB.front()->id() != 0)
     {
         std::vector<int> walls = anchoredPose->get_detected_walls();
         for (std::vector<int>::iterator it = walls.begin();
@@ -182,17 +212,66 @@ void LocalMapper2::push_to_graph (){}
 void LocalMapper2::clear()
 {
     // Reset _poseDB
-    Pose2* pose = dynamic_cast<Pose2*>(_optimizer->vertex (_poseDB.back()));
+    std::cout << "READY TO CLEAR POSEDB ..." << std::endl;
+    Pose2::Ptr pose = _poseDB.back();
+    std::cout << "FIRST GETTING LAST POSE -> ID: " << pose->id() << std::endl;
     _poseDB.clear();
-    _poseDB.push_back (pose->id());
+    _poseDB.push_back (pose);
+    std::cout << "POSE ID: " << pose->id() << std::endl;
+    std::cout << "DONE CLEAR POSEDB ..." << std::endl;
 
-    // Reset _wallDatabase
-    for (std::map<std::tuple<double,double> >, Wall2::Ptr>::iterator it = _wallDatabase.begin();
-            it != _wallDatabase.end(); it++)
+    // Reset _indexedWallDB
+    std::cout << "READY TO CLEAR INDEXED_WALL_DB ..." << std::endl;
+    _indexedWallDB.clear();
+    std::cout << "DONE CLEAR INDEXED_WALL_DB ..." << std::endl;
+
+    // Reset _wallDB
+    std::cout << "READY TO CLEAR WALL_DB ..." << std::endl;
+    _wallDB.clear();
+    std::cout << "WALL_DB CLEARED..." << std::endl;
+    std::vector<int> walls = pose->get_detected_walls();
+    std::cout << "GET WALLS DETECTED FROM POSE WITH ID " << pose->id() << std::endl;
+    for (std::vector<int>::iterator it = walls.begin();
+            it != walls.end(); ++it)
     {
+        std::cout << "TRYING TO RECOVERED WALL FROM OPTIMIZER " << *it << std::endl;
+        Wall2* w = dynamic_cast<Wall2*>(_optimizer->vertex(*it));
+        std::cout << "DONE" << std::endl;
+        Wall2::Ptr wPtr (w);
+        std::cout << "GET WALL ID " << w->id() << std::endl;
 
+        std::cout << "TRYING TO REFILL WALLDB WITH WALL ID " << w->id() << std::endl;
+        if (_wallDB.empty())
+        {
+            std::tuple<int,int> v = std::make_tuple (0,0);
+            _wallDB.push_back (wPtr);
+            _indexedWallDB[v] = wPtr;
+            continue;
+        }
 
+        Wall2::Ptr refWall = _wallDB.front();
+
+        double rho_ref = refWall->rho();
+        double theta_ref = refWall->theta();
+
+        double rho = wPtr->rho();
+        double theta = wPtr->theta();
+
+        int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
+        int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
+
+        std::tuple<int,int> v = std::make_tuple (rho_index, theta_index);
+
+        if (_indexedWallDB.count(v) == 0)
+        {
+            _wallDB.push_back (wPtr);
+            _indexedWallDB[v] = wPtr;
+        }
+        std::cout << "DONE" << std::endl;
     }
+    std::cout << "DONE CLEAR WALL_DB ..." << std::endl;
 
+    std::cout << "RESET OPTIMIZER  ..." << std::endl;
     // Reset _optimizer
+    _optimizer->clear();
 }
