@@ -452,11 +452,11 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
                 wit != walls.end(); wit++)
         {
             localToGlobal (*wit, pose);
-            Wall2::Ptr w = _localMapper->data_association(*wit); 
+//            Wall2::Ptr w = _localMapper->data_association(*wit); 
+            Wall2::Ptr w = _graph->data_association(*wit); 
             pose->insert_detected_wall (w);
 
-            int wmid = _graph->createWallMeasurement();
-            WallMeasurement2::Ptr wm = _graph->getWallMeasurement (wmid);
+            WallMeasurement2::Ptr wm = _graph->createWallMeasurement();
             wm->vertices()[0] = pose.get();
             wm->vertices()[1] = w.get();
             Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
@@ -465,7 +465,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             Eigen::Matrix<double, 2, 2> inf;
             inf.setIdentity();
             wm->information () = inf;
-            _localMapper->pushWallMeasurement (wm);
+//            _localMapper->pushWallMeasurement (wm);
         }
     }
 }
@@ -544,9 +544,8 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     double theta = atan(-1/gradient) * 180/M_PI;
     Eigen::Vector2d wParam (rho, theta);
 
-//    int wid = _graph->createWall();
-//    Wall2::Ptr wall = _graph->getWall (wid);
-    Wall2::Ptr wall (new Wall2); 
+    Wall2::Ptr wall = _graph->createWall();
+//    Wall2::Ptr wall (new Wall2); 
     wall->setMeasurement (wParam);
 
     // extract inliers

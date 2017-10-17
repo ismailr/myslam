@@ -197,7 +197,8 @@ void System2::readSensorsData (
 
     if (System2::_framecounter % 3 == 0)
     {
-        _localMapper->optimize();
+//        _localMapper->optimize();
+        _graph->optimize();
     }
 
     System2::_framecounter++;

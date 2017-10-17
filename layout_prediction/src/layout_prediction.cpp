@@ -38,7 +38,7 @@ int main (int argc, char** argv)
 
     // initialize threads
 //    std::thread wall_detector_thread (&WallDetector::run, wallDetector);
-    std::thread optimization_thread (&Graph2::optimize, graph2);
+//    std::thread optimization_thread (&Graph2::optimize, graph2);
 //    std::thread tracker_thread (&Tracker::run, tracker);
 
     // Get sensors data

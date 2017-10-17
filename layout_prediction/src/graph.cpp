@@ -222,9 +222,10 @@ int Graph::associateData (int wallId, std::vector<int> ref)
 }
 
 int Graph2::globalId = 0;
-Graph2::Graph2()
+Graph2::Graph2() :
+    _pid(0), _wid(0), _pmid(0), _wmid(0)
 {
-    _optimizer = new g2o::SparseOptimizer;
+    _optimizer = new g2o::SparseOptimizer();
     _vertexSet = new g2o::HyperGraph::VertexSet;
 
     typedef BlockSolver<BlockSolverTraits<-1,-1> > SlamBlockSolver;
@@ -237,63 +238,111 @@ Graph2::Graph2()
     _optimizer->setVerbose (true);
 }
 
-int Graph2::createPose()
+Pose2::Ptr Graph2::createPose()
 {
-    int id = requestId();
     Pose2::Ptr p (new Pose2);
-    p->setId(id);
-    _poseDB[id] = p;
-    _optimizer->addVertex (p.get());
-    if (id == 0) p->setFixed (true);
-    return id;
+    _poseDB.push_back (p);
+    return p;
 }
 
-int Graph2::createWall()
+Wall2::Ptr Graph2::createWall()
 {
-    int id = requestId();
     Wall2::Ptr w (new Wall2);
-    w->setId(id);
-    _wallDB[id] = w;
-    _optimizer->addVertex (w.get());
-    return id;
+    return w;
 }
 
-int Graph2::registerWall(Wall2::Ptr& w)
+void Graph2::registerWall (Wall2::Ptr& wall)
 {
-    int id = requestId();
-    w->setId (id);
-    _wallDB[id] = w;
-    _optimizer->addVertex (w.get());
-    return id;
+    _wallDB.push_back (wall);
 }
 
-int Graph2::createPoseMeasurement()
+PoseMeasurement2::Ptr Graph2::createPoseMeasurement()
 {
-    int id = requestId();
     PoseMeasurement2::Ptr pm (new PoseMeasurement2);
-    pm->setId(id);
-    _poseMeasurementDB[id] = pm;
-    _optimizer->addEdge (pm.get());
-    return id;
+    _poseMeasurementDB.push_back (pm);
+    return pm;
 }
 
-int Graph2::createWallMeasurement()
+WallMeasurement2::Ptr Graph2::createWallMeasurement()
 {
-    int id = requestId();
     WallMeasurement2::Ptr wm (new WallMeasurement2);
-    wm->setId(id);
-    _wallMeasurementDB[id] = wm;
-    _optimizer->addEdge (wm.get());
-    return id;
+    _wallMeasurementDB.push_back (wm);
+    return wm;
 }
 
-int Graph2::data_association (int id, std::vector<int> walls)
+Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
 {
+    if (_wallDB.empty())
+    {
+        std::tuple<int,int> v = std::make_tuple (0,0);
+        registerWall (wall);
+        _grid[v] = wall;
+
+        return wall;
+    }
+
+    Wall2::Ptr refWall = _wallDB.front();
+
+    double rho_ref = refWall->rho();
+    double theta_ref = refWall->theta();
+
+    double rho = wall->rho();
+    double theta = wall->theta();
+
+    int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
+    int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
+
+    std::tuple<int,int> v = std::make_tuple (rho_index, theta_index);
+
+    if (_grid.count(v) == 0)
+    {
+        registerWall (wall);
+        _grid[v] = wall;
+        return wall;
+    }
+    else if (_grid.count(v))
+        return _grid[v];
 }
 
 void Graph2::optimize()
 {
-    while(1)
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
+            it != _poseDB.end(); ++it)
     {
+        int id = requestId();
+        (*it)->setId (id);
+        if (id == 0) (*it)->setFixed (true);
+        _optimizer->addVertex ((*it).get());
+        _pid++;
     }
+
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
+            it != _wallDB.end(); ++it)
+    {
+        int id = requestId();
+        (*it)->setId (id);
+        _optimizer->addVertex ((*it).get());
+        _wid++;
+    }
+
+    for (std::vector<PoseMeasurement2::Ptr>::iterator it = _poseMeasurementDB.begin() + _pmid;
+            it != _poseMeasurementDB.end(); ++it)
+    {
+        int id = requestId();
+        (*it)->setId (id);
+        _optimizer->addEdge ((*it).get());
+        _pmid++;
+    }
+
+    for (std::vector<WallMeasurement2::Ptr>::iterator it = _wallMeasurementDB.begin() + _wmid;
+            it != _wallMeasurementDB.end(); ++it)
+    {
+        int id = requestId();
+        (*it)->setId (id);
+        _optimizer->addEdge ((*it).get());
+        _wmid++;
+    }
+
+    _optimizer->initializeOptimization();
+    _optimizer->optimize (10);
 }

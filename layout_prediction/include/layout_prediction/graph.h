@@ -60,30 +60,34 @@ class Graph2
     Graph2 ();
     int requestId () { return Graph2::globalId++; };
 
-    int createPose();
-    int createWall();
-    int registerWall(Wall2::Ptr& w);
-    int createPoseMeasurement();
-    int createWallMeasurement();
+    Pose2::Ptr createPose();
+    Wall2::Ptr createWall();
+    void registerWall (Wall2::Ptr& wall);
+    PoseMeasurement2::Ptr createPoseMeasurement();
+    WallMeasurement2::Ptr createWallMeasurement();
 
-    Pose2::Ptr getPose(int id) { return _poseDB[id]; };
-    Wall2::Ptr getWall(int id) { return _wallDB[id]; };
-    PoseMeasurement2::Ptr getPoseMeasurement (int id) { return _poseMeasurementDB[id]; };
-    WallMeasurement2::Ptr getWallMeasurement (int id) { return _wallMeasurementDB[id]; };
-
+    Wall2::Ptr data_association (Wall2::Ptr& wall);
     void optimize();
 
     private:
     static int globalId;
+    const float GRID_STEP = 5.0;
+    const float ANGLE_STEP = 30.0;
+
+    int _pid;
+    int _wid;
+    int _pmid;
+    int _wmid;
+
     g2o::SparseOptimizer *_optimizer;
     g2o::HyperGraph::VertexSet *_vertexSet;
 
-    std::map<int, Pose2::Ptr> _poseDB;
-    std::map<int, Wall2::Ptr> _wallDB;
-    std::map<int, PoseMeasurement2::Ptr> _poseMeasurementDB;
-    std::map<int, WallMeasurement2::Ptr> _wallMeasurementDB;
+    std::vector<Pose2::Ptr> _poseDB;
+    std::vector<Wall2::Ptr> _wallDB;
+    std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;
+    std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
 
-    int data_association (int id, std::vector<int> walls);
+    std::map<std::tuple<int,int>, Wall2::Ptr> _grid; // for data association
 };
 
 #endif
