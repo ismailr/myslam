@@ -2,6 +2,7 @@
 #define _LOCAL_MAPPER_H_
 
 #include <g2o/core/sparse_optimizer.h>
+#include <g2o/core/hyper_graph.h>
 
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
@@ -35,19 +36,19 @@ class LocalMapper2
     public:
         LocalMapper2(System2& system, Graph2& graph);
 
-        void add_vertex (Pose2::Ptr& pose);
-        void add_vertex (Wall2::Ptr& wall);
-        void add_edge (PoseMeasurement2::Ptr& poseMeasurement);
-        void add_edge (WallMeasurement2::Ptr& wallMeasurement);
-        void local_optimize ();
+        void pushPose (Pose2::Ptr& p) { _poseDB.push_back (p); };
+        void pushWall (Wall2::Ptr& w) { _wallDB.push_back (w); };
+        void pushPoseMeasurement (PoseMeasurement2::Ptr& pm) { _poseMeasurementDB.push_back (pm); };
+        void pushWallMeasurement (WallMeasurement2::Ptr& wm) { _wallMeasurementDB.push_back (wm); };
+        void optimize ();
 
         Wall2::Ptr data_association (Wall2::Ptr& wall);
 
     private:
         System2 *_system;
         Graph2 *_graph;
-        g2o::SparseOptimizer *_optimizer;
-        std::map<std::tuple<int,int>, Wall2::Ptr> _indexedWallDB; // for data association
+        std::map<std::tuple<int,int>, Wall2::Ptr> _localGrid; // for data association
+
         std::vector<Pose2::Ptr> _poseDB; 
         std::vector<Wall2::Ptr> _wallDB;
         std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;

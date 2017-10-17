@@ -221,5 +221,79 @@ int Graph::associateData (int wallId, std::vector<int> ref)
     return wallId;
 }
 
-Graph2::Graph2(){}
+int Graph2::globalId = 0;
+Graph2::Graph2()
+{
+    _optimizer = new g2o::SparseOptimizer;
+    _vertexSet = new g2o::HyperGraph::VertexSet;
 
+    typedef BlockSolver<BlockSolverTraits<-1,-1> > SlamBlockSolver;
+    typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+    auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+    linearSolver->setBlockOrdering (false);
+    OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
+            g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+    _optimizer->setAlgorithm (solver);
+    _optimizer->setVerbose (true);
+}
+
+int Graph2::createPose()
+{
+    int id = requestId();
+    Pose2::Ptr p (new Pose2);
+    p->setId(id);
+    _poseDB[id] = p;
+    _optimizer->addVertex (p.get());
+    if (id == 0) p->setFixed (true);
+    return id;
+}
+
+int Graph2::createWall()
+{
+    int id = requestId();
+    Wall2::Ptr w (new Wall2);
+    w->setId(id);
+    _wallDB[id] = w;
+    _optimizer->addVertex (w.get());
+    return id;
+}
+
+int Graph2::registerWall(Wall2::Ptr& w)
+{
+    int id = requestId();
+    w->setId (id);
+    _wallDB[id] = w;
+    _optimizer->addVertex (w.get());
+    return id;
+}
+
+int Graph2::createPoseMeasurement()
+{
+    int id = requestId();
+    PoseMeasurement2::Ptr pm (new PoseMeasurement2);
+    pm->setId(id);
+    _poseMeasurementDB[id] = pm;
+    _optimizer->addEdge (pm.get());
+    return id;
+}
+
+int Graph2::createWallMeasurement()
+{
+    int id = requestId();
+    WallMeasurement2::Ptr wm (new WallMeasurement2);
+    wm->setId(id);
+    _wallMeasurementDB[id] = wm;
+    _optimizer->addEdge (wm.get());
+    return id;
+}
+
+int Graph2::data_association (int id, std::vector<int> walls)
+{
+}
+
+void Graph2::optimize()
+{
+    while(1)
+    {
+    }
+}

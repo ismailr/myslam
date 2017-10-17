@@ -37,11 +37,9 @@
 #include "g2o/types/slam2d/vertex_point_xy.h"
 
 #include "vertex_line2d.h"
-#include "layout_prediction/pose.h"
 
 using namespace g2o;
 
-class Pose;
 class Wall : public BaseVertex <2, Line2D>
 {
     public:

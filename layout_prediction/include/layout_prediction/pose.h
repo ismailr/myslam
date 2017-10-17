@@ -34,6 +34,8 @@
 #include "se2.h"
 #include "vertex_se2.h"
 
+#include "layout_prediction/wall.h"
+
 using namespace g2o;
 
 class Pose : public BaseVertex<3, SE2>
@@ -79,11 +81,11 @@ class Pose2: public VertexSE2
     void setOdometry (SE2& t) { _odom = &t; };
     SE2& getOdometry () const { return *_odom; };
 
-    void insert_detected_wall (int id) { _detectedWalls.push_back (id); };
-    std::vector<int> get_detected_walls () { return _detectedWalls; };
+    void insert_detected_wall (Wall2::Ptr& w) { _detectedWalls.push_back (w); };
+    std::vector<Wall2::Ptr> get_detected_walls () { return _detectedWalls; };
 
     private:
     SE2* _odom;
-    std::vector<int> _detectedWalls;
+    std::vector<Wall2::Ptr> _detectedWalls;
 };
 #endif

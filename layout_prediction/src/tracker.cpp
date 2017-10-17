@@ -160,13 +160,14 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     SE2* t = new SE2();
     c.odomToSE2 (odom, *t);
 
-    Pose2::Ptr pose = _graph->pose_alloc();
+    int pid = _graph->createPose();
+    Pose2::Ptr pose = _graph->getPose (pid);
 
     if (init)
     {
         pose->setEstimate (*t);
         pose->setOdometry (*t);
-        _localMapper->add_vertex (pose);
+        _localMapper->pushPose (pose);
         _prevTime = time;
         _lastPose = pose;
         return pose;
@@ -174,18 +175,20 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 
     estimateFromModel (action, pose);
     pose->setOdometry (*t);
-    _localMapper->add_vertex (pose);
+    _localMapper->pushPose (pose);
 
     Eigen::Matrix<double, 3, 3> inf;
     inf.setIdentity();
 
-    PoseMeasurement2::Ptr pm = _graph->posemeasurement_alloc();
+    int pmid = _graph->createPoseMeasurement();
+    PoseMeasurement2::Ptr pm = _graph->getPoseMeasurement(pmid);
+
     pm->vertices()[0] = _lastPose.get();
     pm->vertices()[1] = pose.get();
     pm->setMeasurement (_lastPose->getOdometry().inverse() * *t); 
     pm->information () = inf;
 
-    _localMapper->add_edge (pm);
+    _localMapper->pushPoseMeasurement (pm);
     
     _prevTime = time;
     _lastPose = pose;

@@ -12,6 +12,9 @@
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/wall_measurement.h"
 
+#include <g2o/core/sparse_optimizer.h>
+#include <g2o/core/hyper_graph.h>
+
 class Wall;
 class Pose;
 class Graph
@@ -55,17 +58,32 @@ class Graph2
 {
     public:
     Graph2 ();
+    int requestId () { return Graph2::globalId++; };
 
-    Wall2::Ptr wall_alloc() { Wall2::Ptr w (new Wall2); return w; }; 
-    Pose2::Ptr pose_alloc() { Pose2::Ptr p (new Pose2); return p; };
+    int createPose();
+    int createWall();
+    int registerWall(Wall2::Ptr& w);
+    int createPoseMeasurement();
+    int createWallMeasurement();
 
-    typedef WallMeasurement2::Ptr Wm;
-    typedef PoseMeasurement2::Ptr Pm;
-    Wm wallmeasurement_alloc() { Wm wm (new WallMeasurement2); return wm; };
-    Pm posemeasurement_alloc() { Pm pm (new PoseMeasurement2); return pm; };
+    Pose2::Ptr getPose(int id) { return _poseDB[id]; };
+    Wall2::Ptr getWall(int id) { return _wallDB[id]; };
+    PoseMeasurement2::Ptr getPoseMeasurement (int id) { return _poseMeasurementDB[id]; };
+    WallMeasurement2::Ptr getWallMeasurement (int id) { return _wallMeasurementDB[id]; };
+
+    void optimize();
 
     private:
-        std::map<Eigen::Vector2d, Wall2::Ptr> wallDB;
+    static int globalId;
+    g2o::SparseOptimizer *_optimizer;
+    g2o::HyperGraph::VertexSet *_vertexSet;
+
+    std::map<int, Pose2::Ptr> _poseDB;
+    std::map<int, Wall2::Ptr> _wallDB;
+    std::map<int, PoseMeasurement2::Ptr> _poseMeasurementDB;
+    std::map<int, WallMeasurement2::Ptr> _wallMeasurementDB;
+
+    int data_association (int id, std::vector<int> walls);
 };
 
 #endif

@@ -446,26 +446,26 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
     {
         for (PointCloudCluster::iterator it = _pointCloudCluster.begin();
                 it != _pointCloudCluster.end(); ++it)
-        {
             plane_fitting (walls, **it);
-            for (Walls::iterator wit = walls.begin();
-                    wit != walls.end(); wit++)
-            {
-                localToGlobal (*wit, pose);
-                Wall2::Ptr w = _localMapper->data_association(*wit); 
-                pose->insert_detected_wall (w->id());
 
-                WallMeasurement2::Ptr m = _graph->wallmeasurement_alloc();
-                m->vertices()[0] = pose.get();
-                m->vertices()[1] = w.get();
-                Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
-                double measurementData[2] = {wMeasure[0],wMeasure[1]};
-                m->setMeasurementData (measurementData);
-                Eigen::Matrix<double, 2, 2> inf;
-                inf.setIdentity();
-                m->information () = inf;
-                _localMapper->add_edge (m);
-            }
+        for (Walls::iterator wit = walls.begin();
+                wit != walls.end(); wit++)
+        {
+            localToGlobal (*wit, pose);
+            Wall2::Ptr w = _localMapper->data_association(*wit); 
+            pose->insert_detected_wall (w);
+
+            int wmid = _graph->createWallMeasurement();
+            WallMeasurement2::Ptr wm = _graph->getWallMeasurement (wmid);
+            wm->vertices()[0] = pose.get();
+            wm->vertices()[1] = w.get();
+            Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
+            double measurementData[2] = {wMeasure[0],wMeasure[1]};
+            wm->setMeasurementData (measurementData);
+            Eigen::Matrix<double, 2, 2> inf;
+            inf.setIdentity();
+            wm->information () = inf;
+            _localMapper->pushWallMeasurement (wm);
         }
     }
 }
@@ -544,6 +544,8 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     double theta = atan(-1/gradient) * 180/M_PI;
     Eigen::Vector2d wParam (rho, theta);
 
+//    int wid = _graph->createWall();
+//    Wall2::Ptr wall = _graph->getWall (wid);
     Wall2::Ptr wall (new Wall2); 
     wall->setMeasurement (wParam);
 

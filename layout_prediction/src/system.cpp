@@ -197,8 +197,7 @@ void System2::readSensorsData (
 
     if (System2::_framecounter % 3 == 0)
     {
-        std::cout << "READY TO LOCAL OPTIMIZE ... " << std::endl;
-        _localMapper->local_optimize();
+        _localMapper->optimize();
     }
 
     System2::_framecounter++;
