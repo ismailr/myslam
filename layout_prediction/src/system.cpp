@@ -34,7 +34,6 @@ System::System(ros::NodeHandle nh, Graph& graph)
 	_pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
-
 }
 
 void System::setWallDetector (WallDetector& wall_detector)
@@ -177,6 +176,7 @@ System2::System2(ros::NodeHandle nh, Graph2& graph)
     :_init(true),_prevTime(0.0),_curTime(0.0),
     _rosnodehandle (nh), _graph (&graph)
 {
+    _listener = new tf::TransformListener;
 }
 
 void System2::readSensorsData (
@@ -189,8 +189,13 @@ void System2::readSensorsData (
     // transform pointcloud data from sensor frame to robot frame
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*cloud, *_cloud);
-	tf::TransformListener listener;
-    pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, listener);
+    try {
+        _listener->waitForTransform ("/base_link", "/openni_rgb_optical_frame", ros::Time(0), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
+    } 
+    catch (tf::TransformException &ex) {
+        ROS_ERROR ("%s", ex.what());
+    }
 
     Pose2::Ptr pose = _tracker->trackPose (odom, action, _init);
     _wallDetector->detect (pose, _cloud);

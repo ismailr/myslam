@@ -451,6 +451,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
         for (Walls::iterator wit = walls.begin();
                 wit != walls.end(); wit++)
         {
+            std::cout << "WALL-------> " << (*wit)->rho() << "," << (*wit)->theta() << std::endl;
             localToGlobal (*wit, pose);
 //            Wall2::Ptr w = _localMapper->data_association(*wit); 
             Wall2::Ptr w = _graph->data_association(*wit); 

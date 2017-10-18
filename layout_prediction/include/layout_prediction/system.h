@@ -101,6 +101,7 @@ class System2
         double _curTime;
 
         ros::NodeHandle _rosnodehandle;
+        tf::TransformListener *_listener;
         Graph2 *_graph;
         Tracker2 *_tracker;
         WallDetector2 *_wallDetector;
