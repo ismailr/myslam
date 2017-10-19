@@ -143,6 +143,7 @@ class Wall2 : public VertexLine2D
         typedef std::tuple<Eigen::Vector2d, Eigen::Vector2d> EndPoints;
         typedef std::vector<Eigen::Vector3d> Inliers;
 
+        void set_gradient_intercept(double g, double i) { _gradient=g; _intercept=i; };
         void set_inliers (Inliers inliers); 
         EndPoints getEndPoints() { return _endPoints; };
 

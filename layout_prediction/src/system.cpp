@@ -197,7 +197,7 @@ template <>
 void System2::visualize<Wall2::Ptr> (std::vector<Wall2::Ptr> walls)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_link";
+    marker.header.frame_id = "odom_combined";
 
     marker.id = /*0;*/ marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;

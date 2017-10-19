@@ -143,7 +143,7 @@ void Wall2::calculate_fitness ()
 
     /* *************************
      * Distance from a point to a line y = mx + d
-     * line eq: ax + by + c = 0
+     G* line eq: ax + by + c = 0
      *          a = m, b = -1, c = d
      * 
      *  distance from (x0,y0) to ax + by + c is
@@ -183,6 +183,16 @@ void Wall2::calculate_edge_points ()
     Eigen::Vector2d p (_p[0], py);
     Eigen::Vector2d q (_q[0], qy);
 
+    std::cout << "GRADIENT, INTERCEPT: " << _gradient << " " << _intercept << std::endl;
+    std::cout << "P: " << p.transpose() << std::endl;
+    std::cout << "Q: " << q.transpose() << std::endl;
+
     _endPoints = std::make_tuple (p,q);
 }
 
+//void Wall2::calculate_gradient_intercept()
+//{
+//    _gradient = -1/tan (_estimate[0]);
+//    _intercept = _gradient < 0  ? - _estimate[1] * sqrt(pow(_gradient,2) + 1)
+//                                : _estimate[1] * sqrt(pow(_gradient,2) + 1);
+//}

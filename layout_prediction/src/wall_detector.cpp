@@ -554,6 +554,7 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     Wall2::Ptr wall = _graph->createWall();
 //    Wall2::Ptr wall (new Wall2); 
     wall->setMeasurement (wParam);
+    wall->set_gradient_intercept (gradient, intercept);
 
     // extract inliers
     std::vector<Eigen::Vector3d> pointInliers;
