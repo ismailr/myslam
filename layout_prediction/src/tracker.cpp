@@ -144,12 +144,14 @@ void Tracker2::estimateFromModel (const OdomConstPtr& action, Pose2::Ptr& pose)
     double y0 = _lastPose->estimate()[1];
     double theta0 = _lastPose->estimate()[2];
 
-    double x = x0 + (vx * cos(theta0) + vy * sin(theta0)) * deltaTime;
-    double y = y0 + (-vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
+    double x = x0 + (vx * cos(theta0) - vy * sin(theta0)) * deltaTime;
+    double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
     double theta = theta0 + w * deltaTime;
 
     SE2 *t = new SE2 (x, y, theta);
     pose->setEstimate (*t);
+//    std::cout   << "MODEL: " << t->translation().transpose() 
+//                << " " << t->rotation().angle() << std::endl;
 }
 
 Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init) 
@@ -159,6 +161,8 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     Converter c;
     SE2* t = new SE2();
     c.odomToSE2 (odom, *t);
+//    std::cout   << "ODOM: " << t->translation().transpose() 
+//                << " " << t->rotation().angle() << std::endl;
 
     Pose2::Ptr pose = _graph->createPose();
 
@@ -174,6 +178,8 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 
     estimateFromModel (action, pose);
     pose->setOdometry (*t);
+//    std::cout << "ERROR: " << pose->estimate().toVector().transpose() - t->toVector().transpose() << std::endl; 
+
     _localMapper->pushPose (pose);
 
     Eigen::Matrix<double, 3, 3> inf;

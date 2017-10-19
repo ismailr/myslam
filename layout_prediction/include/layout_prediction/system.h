@@ -95,6 +95,9 @@ class System2
 
         long requestUniqueId () { return _gen.getUniqueId (); };
 
+        template <typename T> void visualize(T&);
+        template <typename T> void visualize (std::vector<T>);
+
     private:
         bool _init;
         double _prevTime;
@@ -108,6 +111,12 @@ class System2
         LocalMapper2 *_localMapper;
 
         IdGenerator _gen;
+
+        // Published by system
+        ros::Publisher _pub_marker;
+        ros::Publisher _pub_cloud;
+        ros::Publisher _pub_depth;
+        ros::Publisher _pub_rgb;
 };
 
 #endif

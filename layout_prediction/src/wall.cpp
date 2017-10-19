@@ -121,7 +121,7 @@ Wall2::Wall2 (double gradient, double intercept)
     // rho = |intercept|/(gradien^2) + 1)^(0.5)
     // theta = arctan (- 1/gradien)
     double rho = std::abs (_intercept) /sqrt (pow (_gradient, 2) + 1);
-    double theta = atan(-1/_gradient) * 180/M_PI;
+    double theta = atan(-1/_gradient);
     setRho (rho);
     setTheta (theta);
 }

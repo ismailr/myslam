@@ -144,6 +144,7 @@ class Wall2 : public VertexLine2D
         typedef std::vector<Eigen::Vector3d> Inliers;
 
         void set_inliers (Inliers inliers); 
+        EndPoints getEndPoints() { return _endPoints; };
 
     private:
         EndPoints _endPoints;
