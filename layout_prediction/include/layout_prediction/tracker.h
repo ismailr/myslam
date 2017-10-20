@@ -49,8 +49,8 @@ class Tracker2
         Pose2::Ptr _lastPose;
         double _prevTime;
 
-        void estimateFromOdom (const OdomConstPtr& odom, Pose2::Ptr& pose);
-        void estimateFromModel (const OdomConstPtr& action, Pose2::Ptr& pose);
+        SE2* estimateFromOdom (const OdomConstPtr& odom);
+        SE2* estimateFromModel (const OdomConstPtr& action);
 };
 
 #endif

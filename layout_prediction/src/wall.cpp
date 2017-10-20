@@ -183,10 +183,6 @@ void Wall2::calculate_edge_points ()
     Eigen::Vector2d p (_p[0], py);
     Eigen::Vector2d q (_q[0], qy);
 
-    std::cout << "GRADIENT, INTERCEPT: " << _gradient << " " << _intercept << std::endl;
-    std::cout << "P: " << p.transpose() << std::endl;
-    std::cout << "Q: " << q.transpose() << std::endl;
-
     _endPoints = std::make_tuple (p,q);
 }
 

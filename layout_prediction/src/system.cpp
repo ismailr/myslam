@@ -250,9 +250,10 @@ void System2::readSensorsData (
     Pose2::Ptr pose = _tracker->trackPose (odom, action, _init);
     _wallDetector->detect (pose, _cloud);
 
+
     if (System2::_framecounter % 3 == 0)
     {
-//        _graph->optimize();
+        _graph->optimize();
     }
 
     System2::_framecounter++;

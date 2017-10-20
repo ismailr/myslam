@@ -78,14 +78,14 @@ class Pose2: public VertexSE2
     typedef std::shared_ptr<const Pose2> ConstPtr;
     Pose2 ();
 
-    void setOdometry (SE2& t) { _odom = &t; };
-    SE2& getOdometry () const { return *_odom; };
+    void setModel (SE2& t) { _model = &t; };
+    SE2* getModel () const { return _model; };
 
     void insert_detected_wall (Wall2::Ptr& w) { _detectedWalls.push_back (w); };
     std::vector<Wall2::Ptr> get_detected_walls () { return _detectedWalls; };
 
     private:
-    SE2* _odom;
+    SE2* _model;
     std::vector<Wall2::Ptr> _detectedWalls;
 };
 #endif

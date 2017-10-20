@@ -76,9 +76,9 @@ class PoseMeasurement2 : public EdgeSE2
     void computeError()
     {
         const Pose2* v = static_cast<const Pose2*>(_vertices[1]);
-        Eigen::Vector3d prediction = v->estimate().toVector();
-        Eigen::Vector3d measurement = v->getOdometry().toVector();
-        _error = (prediction - measurement);
+        Eigen::Vector3d prediction = v->getModel()->toVector();
+        Eigen::Vector3d measurement = v->estimate().toVector();
+        _error = (measurement - prediction);
     }
 
     private:

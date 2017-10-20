@@ -547,9 +547,9 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     double intercept = - (coefficients->values[3]/coefficients->values[1]);
     double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
     double theta = atan(-1/gradient);
-    Eigen::Vector2d wParam (rho, theta);
+    Eigen::Vector2d wParam (theta, rho);
 //    std::cout << "WALL: " << gradient << " " << intercept << std::endl;
-    std::cout << "WALL: " << rho << " " << theta * 180.0/M_PI << std::endl;
+//    std::cout << "WALL: " << rho << " " << theta * 180.0/M_PI << std::endl;
 
     Wall2::Ptr wall = _graph->createWall();
 //    Wall2::Ptr wall (new Wall2); 
@@ -612,7 +612,7 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     double rho = wall->getMeasurement()[0];
     double theta = wall->getMeasurement()[1];
 
-//    std::cout << "LOCAL: " << rho << " " << theta << std::endl;
+    std::cout << "LOCAL: " << rho << " " << theta << std::endl;
 
     Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
@@ -622,7 +622,7 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     // measurement model
     rho = std::abs (rho + x * cos (theta - alpha) + y * sin (theta - alpha));
     theta = theta - alpha;
-//    std::cout << "GLOBAL: " << rho << " " << theta << std::endl;
+    std::cout << "GLOBAL: " << rho << " " << theta << std::endl;
 
     wall->setRho (rho);
     wall->setTheta (theta);

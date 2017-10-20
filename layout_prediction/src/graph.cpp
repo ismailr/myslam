@@ -237,7 +237,7 @@ Graph2::Graph2() :
     OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
     _optimizer->setAlgorithm (solver);
-//    _optimizer->setVerbose (true);
+    _optimizer->setVerbose (false);
 }
 
 Pose2::Ptr Graph2::createPose()
@@ -309,9 +309,8 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
 static int iter = 0;
 void Graph2::optimize()
 {
-    std::cout << "*************************************************" << std::endl;
-    std::cout << "ITERASI: " << iter++ << std::endl;
-    std::cout << "*************************************************" << std::endl;
+    std::ofstream myfile;
+    myfile.open ("/home/ism/tmp/data.txt", std::ios::out|std::ios::app);
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
             it != _poseDB.end(); ++it)
     {
@@ -320,9 +319,6 @@ void Graph2::optimize()
         if (id == 0) (*it)->setFixed (true);
         _optimizer->addVertex ((*it).get());
         _pid++;
-        std::cout << "POSE ID: " << id << std::endl;
-        (*it)->write (std::cout);
-        std::cout << std::endl << std::endl;
     }
 
     for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
@@ -332,39 +328,62 @@ void Graph2::optimize()
         (*it)->setId (id);
         _optimizer->addVertex ((*it).get());
         _wid++;
-        std::cout << "WALL ID: " << id << std::endl;
-        (*it)->write (std::cout);
-        std::cout << std::endl << std::endl;
     }
 
     for (std::vector<PoseMeasurement2::Ptr>::iterator it = _poseMeasurementDB.begin() + _pmid;
             it != _poseMeasurementDB.end(); ++it)
     {
-        int id = requestId();
-        (*it)->setId (id);
+//        int id = requestId();
+//        (*it)->setId (id);
         _optimizer->addEdge ((*it).get());
         _pmid++;
-        std::cout << "POSE MEASUREMENT ID: " << id << std::endl;
-        (*it)->write (std::cout);
-        std::cout << std::endl << std::endl;
     }
 
     for (std::vector<WallMeasurement2::Ptr>::iterator it = _wallMeasurementDB.begin() + _wmid;
             it != _wallMeasurementDB.end(); ++it)
     {
-        int id = requestId();
-        (*it)->setId (id);
+//        int id = requestId();
+//        (*it)->setId (id);
         _optimizer->addEdge ((*it).get());
         _wmid++;
-        std::cout << "WALL MEASUREMENT ID: " << id << std::endl;
-        (*it)->write (std::cout);
-        std::cout << std::endl << std::endl;
     }
 
-    std::cout << "*****************************************" << std::endl;
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
+            it != _poseDB.end(); ++it)
+    {
+        myfile << "POSE " << (*it)->id() << " "; 
+        (*it)->write (myfile);
+        myfile << std::endl;
+    }
 
-    _optimizer->save ("home/ism/before.g2o"); 
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+            it != _wallDB.end(); ++it)
+    {
+        myfile << "WALL " << (*it)->id() << " ";
+        (*it)->write (myfile);
+        myfile << std::endl;
+    }
+
     _optimizer->initializeOptimization();
     _optimizer->optimize (10);
-    _optimizer->save ("home/ism/after.g2o"); 
+
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
+            it != _poseDB.end(); ++it)
+    {
+        myfile << "POSE' " << (*it)->id() << " "; 
+        (*it)->write (myfile);
+        myfile << std::endl;
+    }
+
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+            it != _wallDB.end(); ++it)
+    {
+        myfile << "WALL' " << (*it)->id() << " ";
+        (*it)->write (myfile);
+        myfile << std::endl;
+    }
+
+    myfile << "****************************************************" << std::endl << std::endl;
+
+    myfile.close();
 }

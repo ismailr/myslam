@@ -124,15 +124,15 @@ Tracker2::Tracker2 (System2& system, Graph2& graph, LocalMapper2& localMapper)
     _system->set_tracker (*this);
 }
 
-void Tracker2::estimateFromOdom (const OdomConstPtr& odom, Pose2::Ptr& pose)
+SE2* Tracker2::estimateFromOdom (const OdomConstPtr& odom)
 {
     Converter c;
     SE2 *t = new SE2();
     c.odomToSE2 (odom, *t);
-    pose->setEstimate (*t);
+    return t;
 }
 
-void Tracker2::estimateFromModel (const OdomConstPtr& action, Pose2::Ptr& pose)
+SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
 {
     double curTime = ros::Time::now().toSec();
     double deltaTime = curTime - _prevTime;
@@ -149,7 +149,7 @@ void Tracker2::estimateFromModel (const OdomConstPtr& action, Pose2::Ptr& pose)
     double theta = theta0 + w * deltaTime;
 
     SE2 *t = new SE2 (x, y, theta);
-    pose->setEstimate (*t);
+    return t;
 //    std::cout   << "MODEL: " << t->translation().transpose() 
 //                << " " << t->rotation().angle() << std::endl;
 }
@@ -158,9 +158,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 {
     double time = ros::Time::now().toSec();
 
-    Converter c;
-    SE2* t = new SE2();
-    c.odomToSE2 (odom, *t);
+    SE2* t = estimateFromOdom (odom);
 //    std::cout   << "ODOM: " << t->translation().transpose() 
 //                << " " << t->rotation().angle() << std::endl;
 
@@ -169,18 +167,19 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     if (init)
     {
         pose->setEstimate (*t);
-        pose->setOdometry (*t);
+        pose->setModel (*t);
 //        _localMapper->pushPose (pose);
         _prevTime = time;
         _lastPose = pose;
         return pose;
     }
 
-    estimateFromModel (action, pose);
-    pose->setOdometry (*t);
+    SE2* m = estimateFromModel (action);
+    pose->setEstimate (*t);
+    pose->setModel (*m);
 //    std::cout << "ERROR: " << pose->estimate().toVector().transpose() - t->toVector().transpose() << std::endl; 
 
-    _localMapper->pushPose (pose);
+//    _localMapper->pushPose (pose);
 
     Eigen::Matrix<double, 3, 3> inf;
     inf.setIdentity();
@@ -189,7 +188,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 
     pm->vertices()[0] = _lastPose.get();
     pm->vertices()[1] = pose.get();
-    pm->setMeasurement (_lastPose->getOdometry().inverse() * *t); 
+    pm->setMeasurement (_lastPose->estimate().inverse() * *t); 
     pm->information () = inf;
 
 //    _localMapper->pushPoseMeasurement (pm);
