@@ -10,7 +10,10 @@
 #include <g2o/core/factory.h>
 #include <g2o/core/optimization_algorithm_factory.h>
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
+#include <g2o/core/optimization_algorithm_levenberg.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/solvers/dense/linear_solver_dense.h>
+#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall.h"
@@ -234,7 +237,9 @@ Graph2::Graph2() :
     typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
     auto linearSolver = g2o::make_unique<SlamLinearSolver>();
     linearSolver->setBlockOrdering (false);
-    OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
+//    OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
+//            g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+    OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
     _optimizer->setAlgorithm (solver);
     _optimizer->setVerbose (false);

@@ -163,7 +163,7 @@ class Wall2 : public VertexLine2D
     // Measurement
     public:
         void setMeasurement (Eigen::Vector2d measurement) { _measurement = measurement; };
-        Eigen::Vector2d& getMeasurement () { return _measurement; };
+        Eigen::Vector2d getMeasurement () const { return _measurement; };
     private:
         Eigen::Vector2d _measurement;
 };

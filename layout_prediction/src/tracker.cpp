@@ -177,7 +177,6 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     SE2* m = estimateFromModel (action);
     pose->setEstimate (*t);
     pose->setModel (*m);
-//    std::cout << "ERROR: " << pose->estimate().toVector().transpose() - t->toVector().transpose() << std::endl; 
 
 //    _localMapper->pushPose (pose);
 
@@ -190,6 +189,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     pm->vertices()[1] = pose.get();
     pm->setMeasurement (_lastPose->estimate().inverse() * *t); 
     pm->information () = inf;
+    std::cout << std::endl;
 
 //    _localMapper->pushPoseMeasurement (pm);
     

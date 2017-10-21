@@ -463,6 +463,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             wm->vertices()[0] = pose.get();
             wm->vertices()[1] = w.get();
             Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
+            std::cout << "MEASUREMENT " << wMeasure[0] << " " << wMeasure[1] << std::endl;
             double measurementData[2] = {wMeasure[0],wMeasure[1]};
             wm->setMeasurementData (measurementData);
             Eigen::Matrix<double, 2, 2> inf;
@@ -609,10 +610,10 @@ std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::
 
 void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
 {
-    double rho = wall->getMeasurement()[0];
-    double theta = wall->getMeasurement()[1];
+    double rho = wall->getMeasurement()[1];
+    double theta = wall->getMeasurement()[0];
 
-    std::cout << "LOCAL: " << rho << " " << theta << std::endl;
+//    std::cout << "LOCAL: " << rho << " " << theta << std::endl;
 
     Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
@@ -622,7 +623,7 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     // measurement model
     rho = std::abs (rho + x * cos (theta - alpha) + y * sin (theta - alpha));
     theta = theta - alpha;
-    std::cout << "GLOBAL: " << rho << " " << theta << std::endl;
+//    std::cout << "GLOBAL: " << rho << " " << theta << std::endl;
 
     wall->setRho (rho);
     wall->setTheta (theta);
