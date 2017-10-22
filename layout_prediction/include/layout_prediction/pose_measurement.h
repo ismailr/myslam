@@ -79,9 +79,9 @@ class PoseMeasurement2 : public EdgeSE2
         Eigen::Vector3d prediction = v->getModel()->toVector();
         Eigen::Vector3d measurement = v->estimate().toVector();
         _error = (measurement - prediction);
+        _error[2] = normalize_theta (_error[2]);
     }
 
     private:
-
 };
 #endif

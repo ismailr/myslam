@@ -64,3 +64,4 @@ PoseMeasurement2::PoseMeasurement2() : EdgeSE2()
 {
 
 }
+

@@ -184,6 +184,28 @@ void Wall2::calculate_edge_points ()
     Eigen::Vector2d q (_q[0], qy);
 
     _endPoints = std::make_tuple (p,q);
+    calculate_center_point();
+}
+
+void Wall2::calculate_center_point()
+{
+    Eigen::Vector2d p = std::get<0>(_endPoints);
+    Eigen::Vector2d q = std::get<1>(_endPoints);
+    double cx, cy;
+    double big, small;
+    if (p(0) < q(0))
+    {
+        cx = ((q(0) - p(0))/2) + q(0);
+        cy = ((q(1) - p(1))/2) + q(1);
+    }
+    else 
+    {
+        cx = ((p(0) - q(0))/2) + p(0);
+        cy = ((p(1) - q(1))/2) + p(1);
+    }
+
+    _centerPoint[0] = cx;
+    _centerPoint[1] = cy;
 }
 
 //void Wall2::calculate_gradient_intercept()

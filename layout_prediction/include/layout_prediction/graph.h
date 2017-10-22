@@ -6,6 +6,7 @@
 #include <map>
 #include <tuple>
 #include <set>
+#include <math.h>
 
 #include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
@@ -73,6 +74,7 @@ class Graph2
     static int globalId;
     const float GRID_STEP = 5.0;
     const float ANGLE_STEP = 30.0;
+    const float ANGLE_THRESHOLD = 5.0;
 
     int _pid;
     int _wid;
@@ -88,6 +90,7 @@ class Graph2
     std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
 
     std::map<std::tuple<int,int>, Wall2::Ptr> _grid; // for data association
+    double calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d q);
 };
 
 #endif

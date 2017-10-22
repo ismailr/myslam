@@ -237,11 +237,16 @@ void System2::readSensorsData (
         const nav_msgs::OdometryConstPtr& action)
 {
     // transform pointcloud data from sensor frame to robot frame
+    std::ofstream myfile;
+    myfile.open ("/home/ism/tmp/time.txt", std::ios::out|std::ios::app);
+    myfile << "TIME " << ros::Time::now() << std::endl;
+    myfile.close();
+
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*cloud, *_cloud);
     try {
-        _listener->waitForTransform ("/base_link", "/openni_rgb_optical_frame", ros::Time::now(), ros::Duration(50.0));
-        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/base_laser_link", "/openni_rgb_optical_frame", ros::Time::now(), ros::Duration(50.0));
+        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
@@ -251,10 +256,11 @@ void System2::readSensorsData (
     _wallDetector->detect (pose, _cloud);
 
 
-    if (System2::_framecounter % 3 == 0)
-    {
-        _graph->optimize();
-    }
+//    if (System2::_framecounter % 3 == 0)
+//    if (System2::_framecounter == 100)
+//    {
+//        _graph->optimize();
+//    }
 
     System2::_framecounter++;
 

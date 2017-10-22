@@ -146,12 +146,15 @@ class Wall2 : public VertexLine2D
         void set_gradient_intercept(double g, double i) { _gradient=g; _intercept=i; };
         void set_inliers (Inliers inliers); 
         EndPoints getEndPoints() { return _endPoints; };
+        Eigen::Vector2d get_center_point () { return _centerPoint; };
 
     private:
         EndPoints _endPoints;
+        Eigen::Vector2d _centerPoint;
         Inliers _inliers;
 
         void calculate_edge_points ();
+        void calculate_center_point ();
 
     // Fitness
     public:

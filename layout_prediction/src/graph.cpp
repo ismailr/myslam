@@ -14,6 +14,7 @@
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
+#include <g2o/types/slam2d/parameter_se2_offset.h>
 
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall.h"
@@ -296,6 +297,10 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
     double rho = wall->rho();
     double theta = wall->theta();
 
+    Eigen::Vector2d p = refWall->get_center_point();
+    Eigen::Vector2d q = wall->get_center_point();
+    double d = calculate_euclidean_distance (p,q);
+
     int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
     int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
 
@@ -307,13 +312,25 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
         _grid[v] = wall;
         return wall;
     }
-    else if (_grid.count(v))
+    else if (_grid.count(v) && d < ANGLE_THRESHOLD)
+    {
+        registerWall (wall);
+        _grid[v] = wall;
+        return wall;
+    }
+    else 
         return _grid[v];
 }
 
 static int iter = 0;
 void Graph2::optimize()
 {
+//    SE2 o (29.745491, 129.72481321, 0.3098093);
+//    ParameterSE2Offset *offset = new ParameterSE2Offset;
+//    offset->setOffset (o);
+//    offset->setId (0);
+//    _optimizer->addParameter (offset);
+
     std::ofstream myfile;
     myfile.open ("/home/ism/tmp/data.txt", std::ios::out|std::ios::app);
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
@@ -340,6 +357,7 @@ void Graph2::optimize()
     {
 //        int id = requestId();
 //        (*it)->setId (id);
+//        (*it)->setParameterId (0, offset->id());
         _optimizer->addEdge ((*it).get());
         _pmid++;
     }
@@ -392,3 +410,10 @@ void Graph2::optimize()
 
     myfile.close();
 }
+
+double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d q)
+{
+    double d = sqrt ((p(0) - q(0)) * (p(0) - q(0)) + (p(1) - q(1)) * (p(1) - q(1)));
+    return d;
+}
+

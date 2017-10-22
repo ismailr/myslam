@@ -63,6 +63,7 @@ int main (int argc, char** argv)
     sync.registerCallback (boost::bind (&System2::readSensorsData, &system2, _1, _2, _3, _4, _5));
 
     ros::spin();
+    graph2.optimize();
 
 	return 0;
 }
