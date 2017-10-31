@@ -237,20 +237,28 @@ void System2::readSensorsData (
         const nav_msgs::OdometryConstPtr& action)
 {
     // transform pointcloud data from sensor frame to robot frame
-    std::ofstream myfile;
-    myfile.open ("/home/ism/tmp/time.txt", std::ios::out|std::ios::app);
-    myfile << "TIME " << ros::Time::now() << std::endl;
-    myfile.close();
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/tmp/time.txt", std::ios::out|std::ios::app);
+//    myfile << "TIME " << ros::Time::now() << std::endl;
+//    myfile.close();
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*cloud, *_cloud);
+
     try {
-        _listener->waitForTransform ("/base_laser_link", "/openni_rgb_optical_frame", ros::Time::now(), ros::Duration(50.0));
-        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_link", ros::Time::now(), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
     }
+
+    Eigen::Affine3f t = Eigen::Affine3f::Identity();
+    t.translation() << 0.0, 0.0, 0.0;
+    t.rotate (Eigen::AngleAxisf (M_PI/2, Eigen::Vector3f::UnitZ()));
+    pcl::transformPointCloud (*_cloud, *_cloud, t);
+
+//    visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr>(_cloud);
 
     Pose2::Ptr pose = _tracker->trackPose (odom, action, _init);
     _wallDetector->detect (pose, _cloud);

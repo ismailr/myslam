@@ -1,4 +1,5 @@
 #include <iostream>
+#include <fstream>
 
 #include <pcl/ModelCoefficients.h>
 #include <pcl/common/distances.h>
@@ -147,7 +148,11 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
     double x = x0 + (vx * cos(theta0) - vy * sin(theta0)) * deltaTime;
     double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
     double theta = theta0 + w * deltaTime;
-    theta = normalize_theta (theta);
+
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
+//    myfile << x << "\t" << y << std::endl;
+//    myfile.close();
 
     SE2 *t = new SE2 (x, y, theta);
     return t;
@@ -169,7 +174,6 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     {
         pose->setEstimate (*t);
         pose->setModel (*t);
-//        _localMapper->pushPose (pose);
         _prevTime = time;
         _lastPose = pose;
         return pose;
@@ -179,8 +183,6 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     pose->setEstimate (*t);
     pose->setModel (*m);
 
-//    _localMapper->pushPose (pose);
-
     Eigen::Matrix<double, 3, 3> inf;
     inf.setIdentity();
 
@@ -188,11 +190,24 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 
     pm->vertices()[0] = _lastPose.get();
     pm->vertices()[1] = pose.get();
-    pm->setMeasurement (_lastPose->estimate().inverse() * *t); 
+    pm->setMeasurement (_lastPose->estimate().inverse() * *t);
     pm->information () = inf;
-    std::cout << std::endl;
+    
+//    double x_m = pose->estimate().translation()[0] - _lastPose->estimate().translation()[0];
+//    double y_m = pose->estimate().translation()[1] - _lastPose->estimate().translation()[1];
+//    double t_m = pose->estimate().rotation().angle() - _lastPose->estimate().rotation().angle();
+//    t_m = normalize_theta (t_m);
+//
+//    SE2 xyt_m (x_m, y_m, t_m);
+//    pm->setMeasurement (xyt_m);
+//    pm->information () = inf;
 
-//    _localMapper->pushPoseMeasurement (pm);
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/tmp/pose_measurement.dat",std::ios::out|std::ios::app);
+//    myfile  << _lastPose->estimate().toVector().transpose() << " "
+//            << pose->estimate().toVector().transpose() << " "
+//            << xyt_m.toVector().transpose() << std::endl;
+//    myfile.close();
     
     _prevTime = time;
     _lastPose = pose;

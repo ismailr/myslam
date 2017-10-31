@@ -35,7 +35,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Camera
 Visualization Manager:
   Class: ""
   Displays:
@@ -60,14 +60,14 @@ Visualization Manager:
     - Alpha: 1
       Autocompute Intensity Bounds: true
       Autocompute Value Bounds:
-        Max Value: 3.28086
-        Min Value: 1.79646
+        Max Value: 4.71948
+        Min Value: -0.0346529
         Value: true
       Axis: Z
       Channel Name: intensity
       Class: rviz/PointCloud2
       Color: 255; 255; 255
-      Color Transformer: AxisColor
+      Color Transformer: FlatColor
       Decay Time: 0
       Enabled: true
       Invert Rainbow: false
@@ -81,7 +81,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Points
+      Style: Flat Squares
       Topic: /filtered_cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -167,10 +167,10 @@ Visualization Manager:
       Focal Shape Size: 0.05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 1.0498
+      Pitch: 0.8198
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 4.47038
+      Yaw: 5.01038
     Saved: ~
 Window Geometry:
   Camera:

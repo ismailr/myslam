@@ -73,8 +73,8 @@ class Graph2
     private:
     static int globalId;
     const float GRID_STEP = 5.0;
-    const float ANGLE_STEP = 30.0;
-    const float ANGLE_THRESHOLD = 5.0;
+    const float ANGLE_STEP = 30.0 * M_PI/180.0;
+    const float CENTER_THRESHOLD = 5.0;
 
     int _pid;
     int _wid;

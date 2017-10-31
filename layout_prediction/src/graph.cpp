@@ -297,9 +297,6 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
     double rho = wall->rho();
     double theta = wall->theta();
 
-    Eigen::Vector2d p = refWall->get_center_point();
-    Eigen::Vector2d q = wall->get_center_point();
-    double d = calculate_euclidean_distance (p,q);
 
     int rho_index = round (std::abs (rho - rho_ref)/GRID_STEP);
     int theta_index = round (std::abs (theta - theta_ref)/ANGLE_STEP);
@@ -312,14 +309,20 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
         _grid[v] = wall;
         return wall;
     }
-    else if (_grid.count(v) && d < ANGLE_THRESHOLD)
+    else if (_grid.count(v))
     {
-        registerWall (wall);
-        _grid[v] = wall;
-        return wall;
+        Eigen::Vector2d p = _grid[v]->get_center_point();
+        Eigen::Vector2d q = wall->get_center_point();
+        double d = calculate_euclidean_distance (p,q);
+
+        if (d > CENTER_THRESHOLD)
+        {
+            registerWall (wall);
+            _grid[v] = wall;
+            return wall;
+        } 
+        else return _grid[v];
     }
-    else 
-        return _grid[v];
 }
 
 static int iter = 0;
@@ -331,8 +334,6 @@ void Graph2::optimize()
 //    offset->setId (0);
 //    _optimizer->addParameter (offset);
 
-    std::ofstream myfile;
-    myfile.open ("/home/ism/tmp/data.txt", std::ios::out|std::ios::app);
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
             it != _poseDB.end(); ++it)
     {
@@ -355,9 +356,6 @@ void Graph2::optimize()
     for (std::vector<PoseMeasurement2::Ptr>::iterator it = _poseMeasurementDB.begin() + _pmid;
             it != _poseMeasurementDB.end(); ++it)
     {
-//        int id = requestId();
-//        (*it)->setId (id);
-//        (*it)->setParameterId (0, offset->id());
         _optimizer->addEdge ((*it).get());
         _pmid++;
     }
@@ -365,50 +363,53 @@ void Graph2::optimize()
     for (std::vector<WallMeasurement2::Ptr>::iterator it = _wallMeasurementDB.begin() + _wmid;
             it != _wallMeasurementDB.end(); ++it)
     {
-//        int id = requestId();
-//        (*it)->setId (id);
         _optimizer->addEdge ((*it).get());
         _wmid++;
     }
 
-    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
-            it != _poseDB.end(); ++it)
-    {
-        myfile << "POSE " << (*it)->id() << " "; 
-        (*it)->write (myfile);
-        myfile << std::endl;
-    }
 
-    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
-            it != _wallDB.end(); ++it)
-    {
-        myfile << "WALL " << (*it)->id() << " ";
-        (*it)->write (myfile);
-        myfile << std::endl;
-    }
+//    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
+//            it != _poseDB.end(); ++it)
+//    {
+//        myfile << "POSE " << (*it)->id() << " "; 
+//        (*it)->write (myfile);
+//        myfile << std::endl;
+//    }
+//
+//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+//            it != _wallDB.end(); ++it)
+//    {
+//        myfile << "WALL " << (*it)->id() << " ";
+//        (*it)->write (myfile);
+//        myfile << std::endl;
+//    }
 
     _optimizer->initializeOptimization();
     _optimizer->optimize (10);
 
+    std::ofstream posefile;
+    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out|std::ios::app);
+
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
             it != _poseDB.end(); ++it)
     {
-        myfile << "POSE' " << (*it)->id() << " "; 
-        (*it)->write (myfile);
-        myfile << std::endl;
+        posefile << (*it)->estimate().toVector()(0) << " ";
+        posefile << (*it)->estimate().toVector()(1) << std::endl; 
     }
+
+    posefile.close();
+
+    std::ofstream wallfile;
+    wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out|std::ios::app);
 
     for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
             it != _wallDB.end(); ++it)
     {
-        myfile << "WALL' " << (*it)->id() << " ";
-        (*it)->write (myfile);
-        myfile << std::endl;
+        (*it)->write (wallfile);
+        wallfile << std::endl;
     }
 
-    myfile << "****************************************************" << std::endl << std::endl;
-
-    myfile.close();
+    wallfile.close();
 }
 
 double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d q)

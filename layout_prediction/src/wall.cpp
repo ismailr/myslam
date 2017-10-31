@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <math.h>
 #include <assert.h>
+#include <fstream>
 
 #include "g2o/stuff/macros.h"
 
@@ -182,6 +183,12 @@ void Wall2::calculate_edge_points ()
 
     Eigen::Vector2d p (_p[0], py);
     Eigen::Vector2d q (_q[0], qy);
+
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/tmp/wall.dat",std::ios::out|std::ios::app);
+//    myfile << p.transpose() << std::endl;
+//    myfile << q.transpose() << std::endl;
+//    myfile.close();
 
     _endPoints = std::make_tuple (p,q);
     calculate_center_point();
