@@ -540,7 +540,18 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     double gradient = - (coefficients->values[0]/coefficients->values[1]);
     double intercept = - (coefficients->values[3]/coefficients->values[1]);
     double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
-    double theta = atan(-1/gradient);
+    double theta;
+    if (gradient < 0 && intercept < 0)
+        theta = atan(-1/gradient) + M_PI;
+    else if (gradient > 0 && intercept >= 0)
+        theta = atan (-1/gradient) + M_PI;
+    else if (gradient == 0 && intercept < 0)
+        theta = -M_PI/2;
+    else if (gradient == 0 && intercept >= 0)
+        theta = M_PI/2;
+    else
+        theta = atan (-1/gradient);
+
     Eigen::Vector2d wParam (theta, rho);
 
     std::ofstream gcfile;
@@ -622,7 +633,7 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     auto x = v[0];
     auto y = v[1];
     auto alpha = v[2];
-    auto angle = alpha + theta;
+    auto angle = normalize_theta (alpha + theta);
 
     // measurement model
     rho = std::abs (rho + x * cos (angle) + y * sin (angle));

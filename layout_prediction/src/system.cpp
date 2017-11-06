@@ -263,10 +263,10 @@ void System2::readSensorsData (
         ROS_ERROR ("%s", ex.what());
     }
 //
-    Eigen::Affine3f t = Eigen::Affine3f::Identity();
-    t.translation() << 0.0, 0.0, 0.0;
-    t.rotate (Eigen::AngleAxisf (M_PI/2, Eigen::Vector3f::UnitZ()));
-    pcl::transformPointCloud (*_cloud, *_cloud, t);
+//    Eigen::Affine3f t = Eigen::Affine3f::Identity();
+//    t.translation() << 0.0, 0.0, 0.0;
+//    t.rotate (Eigen::AngleAxisf (M_PI/2, Eigen::Vector3f::UnitZ()));
+//    pcl::transformPointCloud (*_cloud, *_cloud, t);
 
     visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr>(_cloud);
 
