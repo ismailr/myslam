@@ -6,6 +6,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
 #include <nav_msgs/Odometry.h>
+#include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
 
@@ -181,6 +182,7 @@ System2::System2(ros::NodeHandle nh, Graph2& graph)
 	_pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
+	_pub_odom = _rosnodehandle.advertise<nav_msgs::Odometry> ("odom",1);
 }
 
 template <typename T> void System2::visualize(T& type)
@@ -194,10 +196,18 @@ template <> void System2::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::P
 }
 
 template <>
+void System2::visualize<nav_msgs::OdometryConstPtr> (nav_msgs::OdometryConstPtr& odom)
+{
+//    nav_msgs::Odometry _odom;
+//    _odom = *odom;
+    _pub_odom.publish (*odom);
+}
+
+template <>
 void System2::visualize<Wall2::Ptr> (std::vector<Wall2::Ptr> walls)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "odom_combined";
+    marker.header.frame_id = "base_laser_link";
 
     marker.id = /*0;*/ marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
@@ -246,19 +256,19 @@ void System2::readSensorsData (
 	pcl::fromROSMsg(*cloud, *_cloud);
 
     try {
-        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_link", ros::Time::now(), ros::Duration(10.0));
-        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_laser_link", ros::Time::now(), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
     }
-
+//
     Eigen::Affine3f t = Eigen::Affine3f::Identity();
     t.translation() << 0.0, 0.0, 0.0;
     t.rotate (Eigen::AngleAxisf (M_PI/2, Eigen::Vector3f::UnitZ()));
     pcl::transformPointCloud (*_cloud, *_cloud, t);
 
-//    visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr>(_cloud);
+    visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr>(_cloud);
 
     Pose2::Ptr pose = _tracker->trackPose (odom, action, _init);
     _wallDetector->detect (pose, _cloud);

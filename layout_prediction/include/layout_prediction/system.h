@@ -117,6 +117,7 @@ class System2
         ros::Publisher _pub_cloud;
         ros::Publisher _pub_depth;
         ros::Publisher _pub_rgb;
+        ros::Publisher _pub_odom;
 };
 
 #endif

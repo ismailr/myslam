@@ -437,10 +437,6 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
     prepare_cloud (_preparedCloud, cloud);
     cluster_cloud (_pointCloudCluster, _preparedCloud);
 
-//    PointCloud::Ptr p = _preparedCloud.makeShared();
-//    p->header.frame_id = cloud->header.frame_id;
-//    _system->visualize<PointCloud::Ptr> (p);
-
     Walls walls;
 
     if (_method == WallDetector2::USE_LINE_FITTING)
@@ -546,11 +542,13 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
     double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
     double theta = atan(-1/gradient);
     Eigen::Vector2d wParam (theta, rho);
-//    std::cout << "WALL: " << gradient << " " << intercept << std::endl;
-//    std::cout << "WALL: " << rho << " " << theta * 180.0/M_PI << std::endl;
+
+    std::ofstream gcfile;
+    gcfile.open ("/home/ism/tmp/gc.dat", std::ios::out | std::ios::app);
+    gcfile << gradient << " " << intercept << std::endl;
+    gcfile.close();
 
     Wall2::Ptr wall = _graph->createWall();
-//    Wall2::Ptr wall (new Wall2); 
     wall->setMeasurement (wParam);
     wall->set_gradient_intercept (gradient, intercept);
 
@@ -593,7 +591,7 @@ void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _prep
 std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::Ptr inliers, PointCloud& _preparedCloud)
 {
     std::ofstream myfile;
-    myfile.open ("/home/ism/tmp/inliers.dat", std::ios::out | std::ios::app );
+//    myfile.open ("/home/ism/tmp/inliers.dat", std::ios::out | std::ios::app );
     std::vector<Eigen::Vector3d> _inliers;
     for (int i = 0; i < inliers->indices.size(); ++i)
     {
@@ -602,10 +600,10 @@ std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::
         double z = _preparedCloud.points [inliers->indices[i]].z;
         Eigen::Vector3d xyz (x, y, z);
         _inliers.push_back (xyz);
-        myfile << x << "\t" << y << "\t" << z << std::endl;
+//        myfile << x << "\t" << y << "\t" << z << std::endl;
     }
-    myfile << std::endl;
-    myfile.close();
+//    myfile << std::endl;
+//    myfile.close();
 
     return _inliers;
 }
@@ -615,7 +613,10 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     double rho = wall->getMeasurement()[1];
     double theta = wall->getMeasurement()[0];
 
-//    std::cout << "LOCAL: " << rho << " " << theta << std::endl;
+    std::ofstream rtlocalfile;
+    rtlocalfile.open ("/home/ism/tmp/rtlocal.dat", std::ios::out | std::ios::app);
+    rtlocalfile << rho << " " << theta << std::endl;
+    rtlocalfile.close();
 
     Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
@@ -626,7 +627,16 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     // measurement model
     rho = std::abs (rho + x * cos (angle) + y * sin (angle));
     theta = angle;
-//    std::cout << "GLOBAL: " << rho << " " << theta << std::endl;
+
+    std::ofstream posefile;
+    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out | std::ios::app);
+    posefile << x << " " << y << " " << alpha << std::endl;
+    posefile.close();
+
+    std::ofstream rtglobalfile;
+    rtglobalfile.open ("/home/ism/tmp/rtglobal.dat", std::ios::out | std::ios::app);
+    rtglobalfile << rho << " " << theta << std::endl;
+    rtglobalfile.close();
 
     wall->setRho (rho);
     wall->setTheta (theta);

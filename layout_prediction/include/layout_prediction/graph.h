@@ -12,6 +12,7 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/wall_measurement.h"
+#include "layout_prediction/angle_measurement.h"
 
 #include <g2o/core/sparse_optimizer.h>
 #include <g2o/core/hyper_graph.h>
@@ -66,15 +67,17 @@ class Graph2
     void registerWall (Wall2::Ptr& wall);
     PoseMeasurement2::Ptr createPoseMeasurement();
     WallMeasurement2::Ptr createWallMeasurement();
+    AngleMeasurement::Ptr createAngleMeasurement();
 
     Wall2::Ptr data_association (Wall2::Ptr& wall);
     void optimize();
+    void localOptimize();
 
     private:
     static int globalId;
-    const float GRID_STEP = 5.0;
-    const float ANGLE_STEP = 30.0 * M_PI/180.0;
-    const float CENTER_THRESHOLD = 5.0;
+    const float GRID_STEP = 3.0;
+    const float ANGLE_STEP = 10.0 * M_PI/180.0;
+    const float CENTER_THRESHOLD = 3.0;
 
     int _pid;
     int _wid;
@@ -88,6 +91,7 @@ class Graph2
     std::vector<Wall2::Ptr> _wallDB;
     std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;
     std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
+    std::vector<AngleMeasurement::Ptr> _angleMeasurementDB;
 
     std::map<std::tuple<int,int>, Wall2::Ptr> _grid; // for data association
     double calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d q);

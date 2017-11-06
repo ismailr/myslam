@@ -133,6 +133,8 @@ class Wall2 : public VertexLine2D
 //        Wall2(double rho, double theta);
         Wall2(double gradient, double intercept);
 
+        void updateData ();
+
     // Gradient, intercept
     private:
         double _gradient;

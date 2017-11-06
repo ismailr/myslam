@@ -130,6 +130,15 @@ SE2* Tracker2::estimateFromOdom (const OdomConstPtr& odom)
     Converter c;
     SE2 *t = new SE2();
     c.odomToSE2 (odom, *t);
+
+    // base_link to base_laser_link
+    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+    *t = (*t) * (*offset);
+
+//    std::ofstream odomfile;
+//    odomfile.open ("/home/ism/tmp/odom.dat", std::ios::out | std::ios::app);
+//    odomfile << t->translation().transpose() << " " << t->rotation().angle() << std::endl;
+//    odomfile.close();
     return t;
 }
 
@@ -149,15 +158,17 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
     double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
     double theta = theta0 + w * deltaTime;
 
-//    std::ofstream myfile;
-//    myfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
-//    myfile << x << "\t" << y << std::endl;
-//    myfile.close();
 
     SE2 *t = new SE2 (x, y, theta);
+//    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+//    *t = (*t) * (*offset);
+
+//    std::ofstream actionfile;
+//    actionfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
+//    actionfile << t->translation().transpose() << " " << t->rotation().angle() << std::endl;
+//    actionfile.close();
+
     return t;
-//    std::cout   << "MODEL: " << t->translation().transpose() 
-//                << " " << t->rotation().angle() << std::endl;
 }
 
 Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init) 
@@ -165,9 +176,6 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     double time = ros::Time::now().toSec();
 
     SE2* t = estimateFromOdom (odom);
-//    std::cout   << "ODOM: " << t->translation().transpose() 
-//                << " " << t->rotation().angle() << std::endl;
-
     Pose2::Ptr pose = _graph->createPose();
 
     if (init)

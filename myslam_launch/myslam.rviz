@@ -102,7 +102,7 @@ Visualization Manager:
         Grid: false
         Map: false
         Marker: false
-        PointCloud2: true
+        PointCloud2: false
         Value: true
       Zoom Factor: 1
     - Class: rviz/Axes
@@ -110,14 +110,14 @@ Visualization Manager:
       Length: 1
       Name: Axes
       Radius: 0.1
-      Reference Frame: base_link
+      Reference Frame: base_laser_link
       Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /line_strip
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 0.3
@@ -167,10 +167,10 @@ Visualization Manager:
       Focal Shape Size: 0.05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.8198
+      Pitch: 1.5698
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.01038
+      Yaw: 4.85038
     Saved: ~
 Window Geometry:
   Camera:

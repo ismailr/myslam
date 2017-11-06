@@ -178,17 +178,20 @@ void Wall2::calculate_edge_points ()
     Eigen::Vector3d _p (_inliers.front());
     Eigen::Vector3d _q (_inliers.back());
 
-    double py = _gradient * _p[0] + _intercept;
-    double qy = _gradient * _q[0] + _intercept;
+//    double py = _gradient * _p[0] + _intercept;
+//    double qy = _gradient * _q[0] + _intercept;
 
-    Eigen::Vector2d p (_p[0], py);
-    Eigen::Vector2d q (_q[0], qy);
+//    Eigen::Vector2d p (_p[0], py);
+//    Eigen::Vector2d q (_q[0], qy);
 
-//    std::ofstream myfile;
-//    myfile.open ("/home/ism/tmp/wall.dat",std::ios::out|std::ios::app);
-//    myfile << p.transpose() << std::endl;
-//    myfile << q.transpose() << std::endl;
-//    myfile.close();
+//    std::ofstream wallfile;
+//    wallfile.open ("/home/ism/tmp/wall.dat",std::ios::out|std::ios::app);
+//    wallfile << p.transpose() << std::endl;
+//    wallfile << q.transpose() << std::endl;
+//    wallfile.close();
+//
+    Eigen::Vector2d p (_p[0], _p[1]);
+    Eigen::Vector2d q (_q[0], _q[1]);
 
     _endPoints = std::make_tuple (p,q);
     calculate_center_point();
@@ -221,3 +224,12 @@ void Wall2::calculate_center_point()
 //    _intercept = _gradient < 0  ? - _estimate[1] * sqrt(pow(_gradient,2) + 1)
 //                                : _estimate[1] * sqrt(pow(_gradient,2) + 1);
 //}
+
+void Wall2::updateData()
+{
+    // update  gradient and intercept
+    _gradient = -1/tan(_estimate[0]);
+    _intercept = _estimate[1]/sin(_estimate[0]);
+
+
+}

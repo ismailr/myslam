@@ -138,8 +138,10 @@ class WallMeasurement2 : public EdgeSE2Line2D
         auto y = v[1];
         auto alpha = v[2];
 
-        double rho_m = std::abs (rho + x * cos (theta + alpha) + y * sin (theta + alpha));
-        double theta_m = normalize_theta (theta + alpha);
+        double angle = theta + alpha;
+
+        double rho_m = std::abs (rho + x * cos (angle) + y * sin (angle));
+        double theta_m = angle;
 
         Eigen::Vector2d measurement (theta_m, rho_m);
         _error = prediction - measurement;

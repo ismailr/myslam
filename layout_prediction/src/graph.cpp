@@ -15,6 +15,8 @@
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 #include <g2o/types/slam2d/parameter_se2_offset.h>
+#include <g2o/examples/interactive_slam/g2o_incremental/graph_optimizer_sparse_incremental.h>
+#include <g2o/examples/interactive_slam/g2o_interactive/g2o_slam_interface.h>
 
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall.h"
@@ -278,6 +280,13 @@ WallMeasurement2::Ptr Graph2::createWallMeasurement()
     return wm;
 }
 
+AngleMeasurement::Ptr Graph2::createAngleMeasurement()
+{
+    AngleMeasurement::Ptr am (new AngleMeasurement);
+    _angleMeasurementDB.push_back (am);
+    return am;
+}
+
 Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
 {
     if (_wallDB.empty())
@@ -349,8 +358,21 @@ void Graph2::optimize()
     {
         int id = requestId();
         (*it)->setId (id);
+//        if (it == _wallDB.begin() + 3) (*it)->setFixed (true);
         _optimizer->addVertex ((*it).get());
         _wid++;
+
+//        if (it !=_wallDB.begin())
+//        {
+//            AngleMeasurement::Ptr am = createAngleMeasurement();
+//            am->vertices()[0] = (*(it - 1)).get();
+//            am->vertices()[1] = (*it).get();
+//            _optimizer->addEdge (am.get());
+//            Eigen::Matrix<double, 2, 2> inf;
+//            inf.setIdentity();
+//            am->information () = inf;
+//        }
+
     }
 
     for (std::vector<PoseMeasurement2::Ptr>::iterator it = _poseMeasurementDB.begin() + _pmid;
@@ -388,28 +410,29 @@ void Graph2::optimize()
     _optimizer->optimize (10);
 
     std::ofstream posefile;
-    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out|std::ios::app);
+    posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out|std::ios::app);
 
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
             it != _poseDB.end(); ++it)
     {
         posefile << (*it)->estimate().toVector()(0) << " ";
-        posefile << (*it)->estimate().toVector()(1) << std::endl; 
+        posefile << (*it)->estimate().toVector()(1) << " ";
+        posefile << (*it)->estimate().toVector()(2) << std::endl; 
     }
 
     posefile.close();
-
-    std::ofstream wallfile;
-    wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out|std::ios::app);
-
-    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
-            it != _wallDB.end(); ++it)
-    {
-        (*it)->write (wallfile);
-        wallfile << std::endl;
-    }
-
-    wallfile.close();
+//
+//    std::ofstream wallfile;
+//    wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out|std::ios::app);
+//
+//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+//            it != _wallDB.end(); ++it)
+//    {
+//        (*it)->write (wallfile);
+//        wallfile << std::endl;
+//    }
+//
+//    wallfile.close();
 }
 
 double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d q)
@@ -418,3 +441,7 @@ double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d 
     return d;
 }
 
+void Graph2::localOptimize()
+{
+
+}
