@@ -437,35 +437,35 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
     prepare_cloud (_preparedCloud, cloud);
     cluster_cloud (_pointCloudCluster, _preparedCloud);
 
-    Walls walls;
-
     if (_method == WallDetector2::USE_LINE_FITTING)
-        line_fitting (walls, _preparedCloud);
+    {
+        Eigen::Vector2d localMeasurement = line_fitting (_preparedCloud);
+    }
     else if (_method == WallDetector2::USE_PLANE_FITTING)
     {
         for (PointCloudCluster::iterator it = _pointCloudCluster.begin();
                 it != _pointCloudCluster.end(); ++it)
-            plane_fitting (walls, **it);
-
-        for (Walls::iterator wit = walls.begin();
-                wit != walls.end(); wit++)
         {
-            localToGlobal (*wit, pose);
-            Wall2::Ptr w = _graph->data_association(*wit); 
+            Eigen::Vector2d localMeasurement = plane_fitting (**it);
+            Eigen::Vector2d globalMeasurement = inverse_measurement (localMeasurement, pose); 
+            Wall2::Ptr w = _graph->createWall();
+            w->setRho(globalMeasurement[1]);
+            w->setTheta(globalMeasurement[0]);
+
+            w = _graph->data_association(w); 
             pose->insert_detected_wall (w);
 
             WallMeasurement2::Ptr wm = _graph->createWallMeasurement();
             wm->vertices()[0] = pose.get();
             wm->vertices()[1] = w.get();
-            Eigen::Vector2d wMeasure = (*wit)->getMeasurement();
-            double measurementData[2] = {wMeasure[0],wMeasure[1]};
+            double measurementData[2] = {localMeasurement[0],localMeasurement[1]};
             wm->setMeasurementData (measurementData);
             Eigen::Matrix<double, 2, 2> inf;
             inf.setIdentity();
             wm->information () = inf;
         }
 
-        _system->visualize<Wall2::Ptr> (walls);
+//        _system->visualize<Wall2::Ptr> (walls);
     }
 }
 
@@ -491,12 +491,13 @@ void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud:
     }
 }
 
-void WallDetector2::line_fitting (Walls& walls, PointCloud& _preparedCloud)
+Eigen::Vector2d WallDetector2::line_fitting (PointCloud& _preparedCloud)
 {
-
+    Eigen::Vector2d param (0,0);
+    return param;
 }
 
-void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
+Eigen::Vector2d WallDetector2::plane_fitting (PointCloud& _preparedCloud)
 {
     /* SENSOR FRAME OF REF ****** ROBOT FRAME OF REF 
      *
@@ -553,22 +554,25 @@ void WallDetector2::plane_fitting (Walls& walls, PointCloud& _preparedCloud)
         theta = atan (-1/gradient);
 
     Eigen::Vector2d wParam (theta, rho);
+    return wParam;
 
-    std::ofstream gcfile;
-    gcfile.open ("/home/ism/tmp/gc.dat", std::ios::out | std::ios::app);
-    gcfile << gradient << " " << intercept << std::endl;
-    gcfile.close();
+//    std::ofstream gcfile;
+//    gcfile.open ("/home/ism/tmp/gc.dat", std::ios::out | std::ios::app);
+//    gcfile << gradient << " " << intercept << std::endl;
+//    gcfile.close();
 
-    Wall2::Ptr wall = _graph->createWall();
-    wall->setMeasurement (wParam);
-    wall->set_gradient_intercept (gradient, intercept);
+//    Wall2::Ptr wall = _graph->createWall();
+    // local to global
+    // data association
+//    wall->setMeasurement (wParam);
+//    wall->set_gradient_intercept (gradient, intercept);
 
     // extract inliers
-    std::vector<Eigen::Vector3d> pointInliers;
-    pointInliers = extract_inliers (inliers, _preparedCloud);
-    wall->set_inliers (pointInliers);
+//    std::vector<Eigen::Vector3d> pointInliers;
+//    pointInliers = extract_inliers (inliers, _preparedCloud);
+//    wall->set_inliers (pointInliers);
 
-    walls.push_back (wall);
+//    walls.push_back (wall);
 }
 
 void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _preparedCloud)
@@ -624,10 +628,10 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     double rho = wall->getMeasurement()[1];
     double theta = wall->getMeasurement()[0];
 
-    std::ofstream rtlocalfile;
-    rtlocalfile.open ("/home/ism/tmp/rtlocal.dat", std::ios::out | std::ios::app);
-    rtlocalfile << rho << " " << theta << std::endl;
-    rtlocalfile.close();
+//    std::ofstream rtlocalfile;
+//    rtlocalfile.open ("/home/ism/tmp/rtlocal.dat", std::ios::out | std::ios::app);
+//    rtlocalfile << rho << " " << theta << std::endl;
+//    rtlocalfile.close();
 
     Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
@@ -639,17 +643,50 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
     rho = std::abs (rho + x * cos (angle) + y * sin (angle));
     theta = angle;
 
-    std::ofstream posefile;
-    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out | std::ios::app);
-    posefile << x << " " << y << " " << alpha << std::endl;
-    posefile.close();
-
-    std::ofstream rtglobalfile;
-    rtglobalfile.open ("/home/ism/tmp/rtglobal.dat", std::ios::out | std::ios::app);
-    rtglobalfile << rho << " " << theta << std::endl;
-    rtglobalfile.close();
+//    std::ofstream posefile;
+//    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out | std::ios::app);
+//    posefile << x << " " << y << " " << alpha << std::endl;
+//    posefile.close();
+//
+//    std::ofstream rtglobalfile;
+//    rtglobalfile.open ("/home/ism/tmp/rtglobal.dat", std::ios::out | std::ios::app);
+//    rtglobalfile << rho << " " << theta << std::endl;
+//    rtglobalfile.close();
 
     wall->setRho (rho);
     wall->setTheta (theta);
 }
 
+Eigen::Vector2d WallDetector2::inverse_measurement (Eigen::Vector2d& localMeasurement, Pose2::Ptr& pose)
+{
+//    std::ofstream rtlocalfile;
+//    rtlocalfile.open ("/home/ism/tmp/rtlocal.dat", std::ios::out | std::ios::app);
+//    rtlocalfile << rho << " " << theta << std::endl;
+//    rtlocalfile.close();
+
+    double rho = localMeasurement[1];
+    double theta = localMeasurement[0];
+
+    Eigen::Vector3d v = pose->estimate().toVector();
+    auto x = v[0];
+    auto y = v[1];
+    auto alpha = v[2];
+    auto angle = normalize_theta (alpha + theta);
+
+    // inverse measurement model
+    rho = std::abs (rho + x * cos (angle) + y * sin (angle));
+    theta = angle;
+
+//    std::ofstream posefile;
+//    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out | std::ios::app);
+//    posefile << x << " " << y << " " << alpha << std::endl;
+//    posefile.close();
+//
+//    std::ofstream rtglobalfile;
+//    rtglobalfile.open ("/home/ism/tmp/rtglobal.dat", std::ios::out | std::ios::app);
+//    rtglobalfile << rho << " " << theta << std::endl;
+//    rtglobalfile.close();
+
+    Eigen::Vector2d param (theta, rho);
+    return param;
+}

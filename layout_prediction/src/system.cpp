@@ -207,9 +207,9 @@ template <>
 void System2::visualize<Wall2::Ptr> (std::vector<Wall2::Ptr> walls)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_laser_link";
+    marker.header.frame_id = "odom_combined";
 
-    marker.id = /*0;*/ marker_id++;
+    marker.id = 0; //marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;
@@ -256,8 +256,8 @@ void System2::readSensorsData (
 	pcl::fromROSMsg(*cloud, *_cloud);
 
     try {
-        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_laser_link", ros::Time::now(), ros::Duration(10.0));
-        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_link", ros::Time::now(), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
@@ -275,7 +275,7 @@ void System2::readSensorsData (
 
 
 //    if (System2::_framecounter % 3 == 0)
-//    if (System2::_framecounter == 100)
+//    if (System2::_framecounter == 50)
 //    {
 //        _graph->optimize();
 //    }
@@ -283,5 +283,6 @@ void System2::readSensorsData (
     System2::_framecounter++;
 
     if (_init == true) _init = false;
+    visualize<Wall2::Ptr> (_graph->getWallDB());
 }
 

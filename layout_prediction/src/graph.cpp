@@ -330,7 +330,10 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
             _grid[v] = wall;
             return wall;
         } 
-        else return _grid[v];
+        else
+        {
+            return _grid[v];
+        }
     }
 }
 

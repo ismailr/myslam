@@ -73,6 +73,8 @@ class Graph2
     void optimize();
     void localOptimize();
 
+    std::vector<Wall2::Ptr> getWallDB() { return _wallDB; };
+
     private:
     static int globalId;
     const float GRID_STEP = 3.0;

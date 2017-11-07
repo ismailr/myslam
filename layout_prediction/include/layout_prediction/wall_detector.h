@@ -68,10 +68,11 @@ class WallDetector2
 
         void prepare_cloud (PointCloud& _preparedCloud, const PointCloud::Ptr cloud);
         void cluster_cloud (PointCloudCluster& cluster, PointCloud& _preparedCloud);
-        void line_fitting (Walls& walls, PointCloud& _preparedCloud);
-        void plane_fitting (Walls& walls, PointCloud& _preparedCloud);
+        Eigen::Vector2d line_fitting (PointCloud& _preparedCloud);
+        Eigen::Vector2d plane_fitting (PointCloud& _preparedCloud);
         std::vector<Eigen::Vector3d> extract_inliers (pcl::PointIndices::Ptr indices, PointCloud& _preparedCloud);
         void localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose);
+        Eigen::Vector2d inverse_measurement (Eigen::Vector2d& wParam, Pose2::Ptr& pose);
 };
 
 #endif
