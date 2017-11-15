@@ -182,6 +182,8 @@ target_link_libraries(layout_prediction
     ${G2O_OPENGL_HELPER}
     ${OPENGL_gl_LIBRARY}
     ${GLUT_LIBRARIES}
+    "/usr/local/lib/libg2o_incremental.so"
+    "/usr/local/lib/libg2o_interactive.so"
 )
 
 add_definitions(-std=c++11)

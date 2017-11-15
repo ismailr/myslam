@@ -28,6 +28,7 @@
 #define _WALL_MEASUREMENT_H_
 
 #include <memory>
+#include <fstream>
 
 #include "g2o/config.h"
 #include "pose.h"
@@ -122,31 +123,37 @@ class WallMeasurement2 : public EdgeSE2Line2D
 
     WallMeasurement2();
 
-    void computeError()
-    {
-        const Pose2* pose = static_cast<const Pose2*>(_vertices[0]);
-        const Wall2* wall = static_cast<const Wall2*>(_vertices[1]);
-
-        Eigen::Vector2d prediction = wall->estimate();
-        Eigen::Vector2d measurement = _measurement;
-
-        double rho = measurement[1];
-        double theta = measurement[0];
-
-        Eigen::Vector3d v = pose->estimate().toVector();
-        auto x = v[0];
-        auto y = v[1];
-        auto alpha = v[2];
-
-//        double angle = normalize_theta (theta + alpha);
+//    void computeError()
+//    {
+//        const Pose2* pose = static_cast<const Pose2*>(_vertices[0]);
+//        const Wall2* wall = static_cast<const Wall2*>(_vertices[1]);
 //
-//        double rho_m = std::abs (rho + x * cos (angle) + y * sin (angle));
-//        double theta_m = angle;
+//        double rho_measurement = _measurement[1];
+//        double theta_measurement = _measurement[0];
 //
-//        Eigen::Vector2d measurement (theta_m, rho_m);
-//        _error = prediction - measurement;
+//        Eigen::Vector3d v = pose->estimate().toVector();
+//        auto x = v[0];
+//        auto y = v[1];
+//        auto alpha = v[2];
+//
+//        double rho_prediction = wall->estimate()[1] - (x * cos(alpha)) - (y * sin(alpha));
+//        double theta_prediction = wall->estimate()[0] - alpha;
+//
+//        Eigen::Vector2d prediction (theta_prediction, rho_prediction);
+//        _error = prediction - _measurement;
 //        _error[0] = normalize_theta (_error[0]);
-    }
+
+//        std::ofstream pfile;
+//        pfile.open ("/home/ism/tmp/wall_prediction.dat",std::ios::out|std::ios::app);
+//        pfile << rho_prediction << " " << theta_prediction << std::endl;
+//        pfile.close();
+//
+//        std::ofstream mfile;
+//        mfile.open ("/home/ism/tmp/wall_measurement.dat",std::ios::out|std::ios::app);
+//        mfile << rho_measurement << " " << theta_measurement << std::endl;
+//        mfile.close();
+//    }
+    
 
     private:
 

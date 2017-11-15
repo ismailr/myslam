@@ -132,13 +132,9 @@ SE2* Tracker2::estimateFromOdom (const OdomConstPtr& odom)
     c.odomToSE2 (odom, *t);
 
     // base_link to base_laser_link
-//    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-//    *t = (*t) * (*offset);
+    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+    *t = (*t) * (*offset);
 
-//    std::ofstream odomfile;
-//    odomfile.open ("/home/ism/tmp/odom.dat", std::ios::out | std::ios::app);
-//    odomfile << t->translation().transpose() << " " << t->rotation().angle() << std::endl;
-//    odomfile.close();
     return t;
 }
 
@@ -156,17 +152,17 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
 
     double x = x0 + (vx * cos(theta0) - vy * sin(theta0)) * deltaTime;
     double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
-    double theta = theta0 +  w * deltaTime;
+    double theta = normalize_theta (theta0 +  w * deltaTime);
 
 
     SE2 *t = new SE2 (x, y, theta);
 //    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
 //    *t = (*t) * (*offset);
 
-    std::ofstream actionfile;
-    actionfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
-    actionfile << t->translation().transpose() << " " << t->rotation().angle() << std::endl;
-    actionfile.close();
+//    std::ofstream actionfile;
+//    actionfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
+//    actionfile << t->translation().transpose() << " " << t->rotation().angle() << std::endl;
+//    actionfile.close();
 
     return t;
 }
@@ -178,12 +174,21 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     SE2* t = estimateFromOdom (odom);
     Pose2::Ptr pose = _graph->createPose();
 
+//    std::ofstream poseb4optfile;
+
     if (init)
     {
         pose->setEstimate (*t);
         pose->setModel (*t);
         _prevTime = time;
         _lastPose = pose;
+
+//        poseb4optfile.open ("/home/ism/tmp/pose_b4_opt.dat",std::ios::out|std::ios::app);
+//        poseb4optfile    << pose->estimate().toVector()[0] << " " 
+//                    << pose->estimate().toVector()[1] << " "
+//                    << pose->estimate().toVector()[2] << std::endl;
+//        poseb4optfile.close();
+
         return pose;
     }
 
@@ -201,21 +206,11 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     pm->setMeasurement (_lastPose->estimate().inverse() * *t);
     pm->information () = inf;
     
-//    double x_m = pose->estimate().translation()[0] - _lastPose->estimate().translation()[0];
-//    double y_m = pose->estimate().translation()[1] - _lastPose->estimate().translation()[1];
-//    double t_m = pose->estimate().rotation().angle() - _lastPose->estimate().rotation().angle();
-//    t_m = normalize_theta (t_m);
-//
-//    SE2 xyt_m (x_m, y_m, t_m);
-//    pm->setMeasurement (xyt_m);
-//    pm->information () = inf;
-
-//    std::ofstream myfile;
-//    myfile.open ("/home/ism/tmp/pose_measurement.dat",std::ios::out|std::ios::app);
-//    myfile  << _lastPose->estimate().toVector().transpose() << " "
-//            << pose->estimate().toVector().transpose() << " "
-//            << xyt_m.toVector().transpose() << std::endl;
-//    myfile.close();
+//    poseb4optfile.open ("/home/ism/tmp/pose_b4_opt.dat",std::ios::out|std::ios::app);
+//    poseb4optfile    << pose->estimate().toVector()[0] << " " 
+//                << pose->estimate().toVector()[1] << " "
+//                << pose->estimate().toVector()[2] << std::endl;
+//    poseb4optfile.close();
     
     _prevTime = time;
     _lastPose = pose;

@@ -256,8 +256,8 @@ void System2::readSensorsData (
 	pcl::fromROSMsg(*cloud, *_cloud);
 
     try {
-        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_link", ros::Time::now(), ros::Duration(10.0));
-        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_laser_link", ros::Time::now(), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
@@ -274,11 +274,11 @@ void System2::readSensorsData (
     _wallDetector->detect (pose, _cloud);
 
 
-//    if (System2::_framecounter % 3 == 0)
+    if (System2::_framecounter % 10 == 0)
 //    if (System2::_framecounter == 50)
-//    {
-//        _graph->optimize();
-//    }
+    {
+        _graph->optimize();
+    }
 
     System2::_framecounter++;
 

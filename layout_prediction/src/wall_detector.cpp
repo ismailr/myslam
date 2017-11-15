@@ -421,7 +421,7 @@ void WallDetector::localToGlobal (Wall::Ptr wall)
 }
 
 WallDetector2::WallDetector2(System2& system, Graph2& graph, LocalMapper2& localMapper)
-    :_method(WallDetector2::USE_PLANE_FITTING),
+    :_method(WallDetector2::USE_LINE_FITTING),
     _system (&system),
     _graph (&graph),
     _localMapper (&localMapper)
@@ -432,17 +432,43 @@ WallDetector2::WallDetector2(System2& system, Graph2& graph, LocalMapper2& local
 void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
 {
     PointCloud _preparedCloud;
-    PointCloudCluster _pointCloudCluster;
-
     prepare_cloud (_preparedCloud, cloud);
+
+    PointCloudCluster _pointCloudCluster;
     cluster_cloud (_pointCloudCluster, _preparedCloud);
 
     if (_method == WallDetector2::USE_LINE_FITTING)
     {
-        Eigen::Vector2d localMeasurement = line_fitting (_preparedCloud);
+        for (PointCloudCluster::iterator it = _pointCloudCluster.begin();
+                it != _pointCloudCluster.end(); ++it)
+        {
+            std::vector<Eigen::Vector2d> localMeasurement;
+            line_fitting (localMeasurement, _preparedCloud);
+
+            for (int i = 0; i < localMeasurement.size(); i++)
+            {
+                Eigen::Vector2d globalMeasurement = inverse_measurement (localMeasurement[i], pose); 
+                Wall2::Ptr w = _graph->createWall();
+                w->setRho(globalMeasurement[1]);
+                w->setTheta(globalMeasurement[0]);
+
+                w = _graph->data_association(w); 
+                pose->insert_detected_wall (w);
+
+                WallMeasurement2::Ptr wm = _graph->createWallMeasurement();
+                wm->vertices()[0] = pose.get();
+                wm->vertices()[1] = w.get();
+                double measurementData[2] = {localMeasurement[i][0],localMeasurement[i][1]};
+                wm->setMeasurementData (measurementData);
+                Eigen::Matrix<double, 2, 2> inf;
+                inf.setIdentity();
+                wm->information () = inf;
+            }
+        }
     }
     else if (_method == WallDetector2::USE_PLANE_FITTING)
     {
+
         for (PointCloudCluster::iterator it = _pointCloudCluster.begin();
                 it != _pointCloudCluster.end(); ++it)
         {
@@ -491,10 +517,74 @@ void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud:
     }
 }
 
-Eigen::Vector2d WallDetector2::line_fitting (PointCloud& _preparedCloud)
+void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointCloud& _preparedCloud)
 {
-    Eigen::Vector2d param (0,0);
-    return param;
+//    while(true)
+//    {
+        pcl::ModelCoefficients coefficients;
+        pcl::PointIndices inliers;
+
+        pcl::SACSegmentation<pcl::PointXYZ> seg;
+        seg.setOptimizeCoefficients(true);
+        seg.setModelType(pcl::SACMODEL_LINE);
+        seg.setMethodType(pcl::SAC_RANSAC);
+        seg.setDistanceThreshold(0.1);
+
+        seg.setInputCloud(_preparedCloud.makeShared());
+        seg.segment(inliers, coefficients);
+
+        if(inliers.indices.size() == 0)
+        {
+            PCL_ERROR("No inliers.");
+//            break;
+        }
+
+        if(inliers.indices.size() > 30)
+        {
+            double m;
+            coefficients.values[3] == 0 ? m = 0.0 : m = coefficients.values[4]/coefficients.values[3];
+            double c = coefficients.values[1]- (m * coefficients.values[0]);
+
+            double x = - (m * c)/(m * m + 1);
+            double y = c/(m * m + 1);
+
+            double rho = std::abs (c) /sqrt (m * m + 1);
+//            double theta = atan2 (y,x); 
+            double theta;
+
+            if (m < 0 && c < 0)
+                theta = atan(-1/m) + M_PI;
+            else if (m > 0 && c >= 0)
+                theta = atan (-1/m) + M_PI;
+            else if (m == 0 && c < 0)
+                theta = -M_PI/2;
+            else if (m == 0 && c >= 0)
+                theta = M_PI/2;
+            else
+                theta = atan (-1/m);
+
+            Eigen::Vector2d param (theta,rho);
+            lines.push_back (param);
+
+//            std::ofstream gcfile;
+//            gcfile.open ("/home/ism/tmp/gc_line.dat", std::ios::out | std::ios::app);
+//            gcfile << m << " " << c << std::endl;
+//            gcfile.close();
+
+        //    std::ofstream coeffile;
+        //    coeffile.open ("/home/ism/tmp/coeff.dat", std::ios::out | std::ios::app);
+        //    coeffile  << coefficients.values[0] << " "
+        //            << coefficients.values[1] << " "
+        //            << coefficients.values[2] << " "
+        //            << coefficients.values[3] << " "
+        //            << coefficients.values[4] << " "
+        //            << coefficients.values[5] << std::endl;
+        //    coeffile.close();
+        }
+//
+//        pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = _preparedCloud.begin();
+//        _preparedCloud.erase(cloud_iter, cloud_iter + inliers.indices.back());
+//    }
 }
 
 Eigen::Vector2d WallDetector2::plane_fitting (PointCloud& _preparedCloud)
@@ -542,6 +632,15 @@ Eigen::Vector2d WallDetector2::plane_fitting (PointCloud& _preparedCloud)
     double intercept = - (coefficients->values[3]/coefficients->values[1]);
     double rho = std::abs (intercept) /sqrt (pow (gradient, 2) + 1);
     double theta;
+
+    std::ofstream gcfile;
+    gcfile.open ("/home/ism/tmp/coeff.dat", std::ios::out | std::ios::app);
+    gcfile  << coefficients->values[0] << " "
+            << coefficients->values[1] << " "
+            << coefficients->values[2] << " "
+            << coefficients->values[3] << std::endl;
+    gcfile.close();
+
     if (gradient < 0 && intercept < 0)
         theta = atan(-1/gradient) + M_PI;
     else if (gradient > 0 && intercept >= 0)
@@ -553,13 +652,14 @@ Eigen::Vector2d WallDetector2::plane_fitting (PointCloud& _preparedCloud)
     else
         theta = atan (-1/gradient);
 
-    Eigen::Vector2d wParam (theta, rho);
-    return wParam;
-
 //    std::ofstream gcfile;
 //    gcfile.open ("/home/ism/tmp/gc.dat", std::ios::out | std::ios::app);
 //    gcfile << gradient << " " << intercept << std::endl;
 //    gcfile.close();
+
+    Eigen::Vector2d wParam (theta, rho);
+    return wParam;
+
 
 //    Wall2::Ptr wall = _graph->createWall();
     // local to global
@@ -580,16 +680,70 @@ void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _prep
     typedef std::vector<pcl::PointIndices> PointIndicesCluster;
     PointIndicesCluster _pointIndicesCluster;
 
-    pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-    tree->setInputCloud (_preparedCloud.makeShared());
+    if (_method == WallDetector2::USE_LINE_FITTING)
+    {
+        // NaN-based clustering
+        std::vector<int> in;
+        for(size_t i = 0; i < _preparedCloud.width; ++i)
+        {
+            if(pcl::isFinite(_preparedCloud.points[i]))
+            {
+                in.push_back(i);
+                continue;
+            }
 
-    pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-    ec.setClusterTolerance (1);
-    ec.setMinClusterSize (100);
-    ec.setMaxClusterSize (25000);
-    ec.setSearchMethod (tree);
-    ec.setInputCloud (_preparedCloud.makeShared());
-    ec.extract (_pointIndicesCluster);
+            if(in.size() > 0)
+            {
+                pcl::PointIndices r;
+                r.indices.resize(in.size());
+                for(size_t j = 0; j < in.size(); ++j)
+                    r.indices[j] = in[j];
+                _pointIndicesCluster.push_back(r);
+            }
+
+            in.clear();
+        }
+
+        // Concat clusters 
+        if(!_pointIndicesCluster.empty())
+        {
+            for(size_t i = 0; i < _pointIndicesCluster.size()-1 ; ++i)
+            {
+                // calculate distance between consecutive clusters
+                if(!_pointIndicesCluster[i].indices.empty())
+                {
+                    float dist = pcl::euclideanDistance(
+                            _preparedCloud.points[_pointIndicesCluster[i].indices.back()],
+                            _preparedCloud.points[_pointIndicesCluster[i+1].indices[0]]);
+                    if(dist < 10)
+                    {
+                        _pointIndicesCluster[i].indices.reserve(
+                                _pointIndicesCluster[i].indices.size() +
+                                _pointIndicesCluster[i+1].indices.size()); 
+                        _pointIndicesCluster[i].indices.insert(
+                                _pointIndicesCluster[i].indices.end(),
+                                _pointIndicesCluster[i+1].indices.begin(), 
+                                _pointIndicesCluster[i+1].indices.end());
+                        _pointIndicesCluster.erase(_pointIndicesCluster.begin() + i);
+                    }
+                }
+            }
+        }
+    }
+    else if (_method == WallDetector2::USE_PLANE_FITTING)
+    {
+        pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+        tree->setInputCloud (_preparedCloud.makeShared());
+
+        pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+        ec.setClusterTolerance (1);
+        ec.setMinClusterSize (100);
+        ec.setMaxClusterSize (25000);
+        ec.setSearchMethod (tree);
+        ec.setInputCloud (_preparedCloud.makeShared());
+        ec.extract (_pointIndicesCluster);
+
+    }
 
     for (PointIndicesCluster::const_iterator it = _pointIndicesCluster.begin(); 
             it != _pointIndicesCluster.end(); ++it)
@@ -605,7 +759,7 @@ void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _prep
 
 std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::Ptr inliers, PointCloud& _preparedCloud)
 {
-    std::ofstream myfile;
+//    std::ofstream myfile;
 //    myfile.open ("/home/ism/tmp/inliers.dat", std::ios::out | std::ios::app );
     std::vector<Eigen::Vector3d> _inliers;
     for (int i = 0; i < inliers->indices.size(); ++i)
@@ -659,11 +813,6 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
 
 Eigen::Vector2d WallDetector2::inverse_measurement (Eigen::Vector2d& localMeasurement, Pose2::Ptr& pose)
 {
-//    std::ofstream rtlocalfile;
-//    rtlocalfile.open ("/home/ism/tmp/rtlocal.dat", std::ios::out | std::ios::app);
-//    rtlocalfile << rho << " " << theta << std::endl;
-//    rtlocalfile.close();
-
     double rho = localMeasurement[1];
     double theta = localMeasurement[0];
 
@@ -677,15 +826,12 @@ Eigen::Vector2d WallDetector2::inverse_measurement (Eigen::Vector2d& localMeasur
     rho = std::abs (rho + x * cos (angle) + y * sin (angle));
     theta = angle;
 
-//    std::ofstream posefile;
-//    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out | std::ios::app);
-//    posefile << x << " " << y << " " << alpha << std::endl;
-//    posefile.close();
-//
-//    std::ofstream rtglobalfile;
-//    rtglobalfile.open ("/home/ism/tmp/rtglobal.dat", std::ios::out | std::ios::app);
-//    rtglobalfile << rho << " " << theta << std::endl;
-//    rtglobalfile.close();
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/tmp/data.dat", std::ios::out | std::ios::app);
+//    myfile  << localMeasurement[1] << " " << localMeasurement[0] << " "
+//            << x << " " << y << " " << alpha << " "
+//            << rho << " " << theta << std::endl;
+//    myfile.close();
 
     Eigen::Vector2d param (theta, rho);
     return param;

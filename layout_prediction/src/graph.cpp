@@ -15,8 +15,6 @@
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 #include <g2o/types/slam2d/parameter_se2_offset.h>
-#include <g2o/examples/interactive_slam/g2o_incremental/graph_optimizer_sparse_incremental.h>
-#include <g2o/examples/interactive_slam/g2o_interactive/g2o_slam_interface.h>
 
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall.h"
@@ -246,6 +244,12 @@ Graph2::Graph2() :
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
     _optimizer->setAlgorithm (solver);
     _optimizer->setVerbose (false);
+
+    _incOptimizer = new g2o::SparseOptimizerIncremental;
+
+    _slamInterface = new g2o::G2oSlamInterface (_incOptimizer);
+    _slamInterface->setUpdateGraphEachN (10);
+    _slamInterface->setBatchSolveEachN (100);
 }
 
 Pose2::Ptr Graph2::createPose()
@@ -255,9 +259,24 @@ Pose2::Ptr Graph2::createPose()
     return p;
 }
 
+Pose2::Ptr Graph2::createPoseWithId()
+{
+    Pose2::Ptr p (new Pose2);
+    p->setId (requestId());
+    _poseDB.push_back (p);
+    return p;
+}
+
 Wall2::Ptr Graph2::createWall()
 {
     Wall2::Ptr w (new Wall2);
+    return w;
+}
+
+Wall2::Ptr Graph2::createWallWithId()
+{
+    Wall2::Ptr w (new Wall2);
+    w->setId (requestId());
     return w;
 }
 
@@ -318,23 +337,25 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
         _grid[v] = wall;
         return wall;
     }
-    else if (_grid.count(v))
-    {
-        Eigen::Vector2d p = _grid[v]->get_center_point();
-        Eigen::Vector2d q = wall->get_center_point();
-        double d = calculate_euclidean_distance (p,q);
-
-        if (d > CENTER_THRESHOLD)
-        {
-            registerWall (wall);
-            _grid[v] = wall;
-            return wall;
-        } 
-        else
-        {
-            return _grid[v];
-        }
-    }
+    else
+        return _grid[v];
+//    else if (_grid.count(v))
+//    {
+//        Eigen::Vector2d p = _grid[v]->get_center_point();
+//        Eigen::Vector2d q = wall->get_center_point();
+//        double d = calculate_euclidean_distance (p,q);
+//
+//        if (d > CENTER_THRESHOLD)
+//        {
+//            registerWall (wall);
+//            _grid[v] = wall;
+//            return wall;
+//        } 
+//        else
+//        {
+//            return _grid[v];
+//        }
+//    }
 }
 
 static int iter = 0;
@@ -346,14 +367,19 @@ void Graph2::optimize()
 //    offset->setId (0);
 //    _optimizer->addParameter (offset);
 
+    g2o::HyperGraph::VertexSet vertexSet;
+    g2o::HyperGraph::EdgeSet edgeSet;
+
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
             it != _poseDB.end(); ++it)
     {
         int id = requestId();
         (*it)->setId (id);
         if (id == 0) (*it)->setFixed (true);
+//        vertexSet.insert ((*it).get());
+//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _optimizer->addVertex ((*it).get());
-        _pid++;
+//        _pid++;
     }
 
     for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
@@ -362,8 +388,10 @@ void Graph2::optimize()
         int id = requestId();
         (*it)->setId (id);
 //        if (it == _wallDB.begin() + 3) (*it)->setFixed (true);
+//        vertexSet.insert ((*it).get());
+//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _optimizer->addVertex ((*it).get());
-        _wid++;
+//        _wid++;
 
 //        if (it !=_wallDB.begin())
 //        {
@@ -392,6 +420,29 @@ void Graph2::optimize()
         _wmid++;
     }
 
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
+            it != _poseDB.end(); ++it)
+    {
+        vertexSet.insert ((*it).get());
+        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+        if (it == _poseDB.begin() + _pid)
+        {
+            (*it)->setFixed (true);
+//            g2o::HyperGraph::EdgeSet e = (*it)->edges();
+//            for (g2o::HyperGraph::EdgeSet::iterator eit = e.begin(); eit != e.end(); eit++)
+//                (*eit)->setFixed(true);
+        }
+        _pid++;
+    }
+
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
+            it != _wallDB.end(); ++it)
+    {
+        vertexSet.insert ((*it).get());
+        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+        _wid++;
+    }
+
 
 //    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
 //            it != _poseDB.end(); ++it)
@@ -409,11 +460,21 @@ void Graph2::optimize()
 //        myfile << std::endl;
 //    }
 
-    _optimizer->initializeOptimization();
+    if (iter == 0)
+    {
+        _optimizer->initializeOptimization();
+        iter++;
+    }
+    else
+    {
+        _optimizer->updateInitialization (vertexSet, edgeSet);
+    }
     _optimizer->optimize (10);
+    vertexSet.clear();
+    edgeSet.clear();
 
     std::ofstream posefile;
-    posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out|std::ios::app);
+    posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out/*|std::ios::app*/);
 
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
             it != _poseDB.end(); ++it)
@@ -422,18 +483,15 @@ void Graph2::optimize()
         posefile << (*it)->estimate().toVector()(1) << " ";
         posefile << (*it)->estimate().toVector()(2) << std::endl; 
     }
-
-    posefile.close();
+//
+//    posefile.close();
 //
 //    std::ofstream wallfile;
 //    wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out|std::ios::app);
 //
 //    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
 //            it != _wallDB.end(); ++it)
-//    {
-//        (*it)->write (wallfile);
-//        wallfile << std::endl;
-//    }
+//        wallfile << (*it)->rho() << " " << (*it)->theta() << std::endl;
 //
 //    wallfile.close();
 }
@@ -446,5 +504,14 @@ double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d 
 
 void Graph2::localOptimize()
 {
+    typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+    typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
 
+    g2o::SparseOptimizer o;
+    auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+    linearSolver->setBlockOrdering (false);
+    OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
+            g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+    o.setAlgorithm (solver);
+    o.setVerbose (false);
 }

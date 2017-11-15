@@ -16,6 +16,9 @@
 
 #include <g2o/core/sparse_optimizer.h>
 #include <g2o/core/hyper_graph.h>
+#include <g2o/examples/interactive_slam/g2o_incremental/graph_optimizer_sparse_incremental.h>
+#include <g2o/examples/interactive_slam/g2o_interactive/g2o_slam_interface.h>
+#include <slam_parser/interface/parser_interface.h>
 
 class Wall;
 class Pose;
@@ -64,6 +67,8 @@ class Graph2
 
     Pose2::Ptr createPose();
     Wall2::Ptr createWall();
+    Pose2::Ptr createPoseWithId();
+    Wall2::Ptr createWallWithId();
     void registerWall (Wall2::Ptr& wall);
     PoseMeasurement2::Ptr createPoseMeasurement();
     WallMeasurement2::Ptr createWallMeasurement();
@@ -78,7 +83,7 @@ class Graph2
     private:
     static int globalId;
     const float GRID_STEP = 3.0;
-    const float ANGLE_STEP = 10.0 * M_PI/180.0;
+    const float ANGLE_STEP = 30.0 * M_PI/180.0;
     const float CENTER_THRESHOLD = 3.0;
 
     int _pid;
@@ -88,6 +93,9 @@ class Graph2
 
     g2o::SparseOptimizer *_optimizer;
     g2o::HyperGraph::VertexSet *_vertexSet;
+
+    g2o::SparseOptimizerIncremental *_incOptimizer;
+    g2o::G2oSlamInterface *_slamInterface;
 
     std::vector<Pose2::Ptr> _poseDB;
     std::vector<Wall2::Ptr> _wallDB;
