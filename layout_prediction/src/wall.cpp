@@ -106,7 +106,10 @@ void Wall::setObserverPose (int poseId)
     _observerPoses.push_back (poseId);
 }
 
-Wall2::Wall2 () : VertexLine2D(){}
+Wall2::Wall2 () : VertexLine2D()
+{
+    nodetype = "WALL2";
+}
 //Wall2::Wall2 (double rho, double theta)
 //    :_fitness (0.0)
 //{

@@ -179,6 +179,8 @@ System2::System2(ros::NodeHandle nh, Graph2& graph)
 {
     _listener = new tf::TransformListener;
     _pub_marker = _rosnodehandle.advertise<visualization_msgs::Marker> ("line_strip",1);
+    _pub_marker2 = _rosnodehandle.advertise<visualization_msgs::Marker> ("gradient",1);
+    _pub_marker3 = _rosnodehandle.advertise<visualization_msgs::Marker> ("localine",1);
 	_pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
@@ -239,6 +241,100 @@ void System2::visualize<Wall2::Ptr> (std::vector<Wall2::Ptr> walls)
     _pub_marker.publish(marker);
 }
 
+template <>
+void System2::visualize<Wall2::Ptr> (Wall2::Ptr& w)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "odom_combined";
+
+    marker.id = 0; //marker_id++;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.1;
+    marker.color.a = 1.0;
+
+    geometry_msgs::Point p;
+    geometry_msgs::Point q;
+
+    double rho = w->rho();
+    double theta = w->theta();
+
+    p.x = 0.0; p.y = 0.0;
+    q.x = rho * cos (theta);
+    q.y = rho * sin (theta);
+
+    marker.color.r = p.x;
+    marker.color.g = p.y;
+    marker.color.b = 1.0;
+
+    marker.points.push_back(p);
+    marker.points.push_back(q);
+
+    marker.lifetime = ros::Duration();
+    _pub_marker.publish(marker);
+}
+
+void System2::visualize_grad (double m, double c)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_laser_link";
+
+    marker.id = 0; //marker_id++;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.1;
+    marker.color.a = 1.0;
+
+    geometry_msgs::Point p;
+    geometry_msgs::Point q;
+
+    p.x = 0.0; p.y = c;
+    m == 0.0 ? q.x = 0.0 : q.x = -c/m; 
+    q.y = 0.0;
+
+    marker.color.r = p.x;
+    marker.color.g = p.y;
+    marker.color.b = 1.0;
+
+    marker.points.push_back(p);
+    marker.points.push_back(q);
+
+    marker.lifetime = ros::Duration();
+    _pub_marker2.publish(marker);
+}
+
+void System2::visualize_rho (double rho, double theta)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "base_laser_link";
+
+    marker.id = 0; //marker_id++;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.1;
+    marker.color.a = 1.0;
+
+    geometry_msgs::Point p;
+    geometry_msgs::Point q;
+
+    p.x = 0.0; p.y = 0.0;
+    q.x = rho * cos (theta);
+    q.y = rho * sin (theta);
+
+    marker.color.r = p.x;
+    marker.color.g = p.y;
+    marker.color.b = 1.0;
+
+    marker.points.push_back(p);
+    marker.points.push_back(q);
+
+    marker.lifetime = ros::Duration();
+    _pub_marker3.publish(marker);
+}
+
 void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
@@ -274,7 +370,7 @@ void System2::readSensorsData (
     _wallDetector->detect (pose, _cloud);
 
 
-    if (System2::_framecounter % 10 == 0)
+    if (System2::_framecounter % 3 == 0)
 //    if (System2::_framecounter == 50)
     {
         _graph->optimize();
@@ -283,6 +379,5 @@ void System2::readSensorsData (
     System2::_framecounter++;
 
     if (_init == true) _init = false;
-    visualize<Wall2::Ptr> (_graph->getWallDB());
 }
 

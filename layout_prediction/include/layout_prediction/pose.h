@@ -28,6 +28,7 @@
 #define _POSE_H_
 
 #include <memory>
+#include <string>
 
 #include "g2o/core/base_vertex.h"
 #include "g2o/core/hyper_graph_action.h"
@@ -73,6 +74,8 @@ class Pose2: public VertexSE2
 {
     public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    std::string nodetype;
 
     typedef std::shared_ptr<Pose2> Ptr;
     typedef std::shared_ptr<const Pose2> ConstPtr;

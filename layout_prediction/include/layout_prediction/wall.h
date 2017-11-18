@@ -30,6 +30,8 @@
 #ifndef _WALL_H_
 #define _WALL_H_
 
+#include <string>
+
 #include "g2o/config.h"
 #include "g2o/core/base_vertex.h"
 #include "g2o/core/hyper_graph_action.h"
@@ -126,6 +128,8 @@ class Wall2 : public VertexLine2D
     // Constructor
     public:
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+        std::string nodetype; 
 
         typedef std::shared_ptr<Wall2> Ptr;
         typedef std::shared_ptr<const Wall2> ConstPtr;

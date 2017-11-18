@@ -448,6 +448,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             for (int i = 0; i < localMeasurement.size(); i++)
             {
                 Eigen::Vector2d globalMeasurement = inverse_measurement (localMeasurement[i], pose); 
+
                 Wall2::Ptr w = _graph->createWall();
                 w->setRho(globalMeasurement[1]);
                 w->setTheta(globalMeasurement[0]);
@@ -463,6 +464,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
                 Eigen::Matrix<double, 2, 2> inf;
                 inf.setIdentity();
                 wm->information () = inf;
+                _system->visualize<Wall2::Ptr> (w);
             }
         }
     }
@@ -491,7 +493,6 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             wm->information () = inf;
         }
 
-//        _system->visualize<Wall2::Ptr> (walls);
     }
 }
 
@@ -549,19 +550,22 @@ void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointClou
             double y = c/(m * m + 1);
 
             double rho = std::abs (c) /sqrt (m * m + 1);
-//            double theta = atan2 (y,x); 
-            double theta;
+            double theta = atan2 (y,x); 
+//            double theta;
+//
+//            if (m < 0 && c < 0)
+//                theta = atan(-1/m) + M_PI;
+//            else if (m > 0 && c >= 0)
+//                theta = atan (-1/m) + M_PI;
+//            else if (m == 0 && c < 0)
+//                theta = -M_PI/2;
+//            else if (m == 0 && c >= 0)
+//                theta = M_PI/2;
+//            else
+//                theta = atan (-1/m);
 
-            if (m < 0 && c < 0)
-                theta = atan(-1/m) + M_PI;
-            else if (m > 0 && c >= 0)
-                theta = atan (-1/m) + M_PI;
-            else if (m == 0 && c < 0)
-                theta = -M_PI/2;
-            else if (m == 0 && c >= 0)
-                theta = M_PI/2;
-            else
-                theta = atan (-1/m);
+            _system->visualize_grad (m, c);
+            _system->visualize_rho (rho, theta);
 
             Eigen::Vector2d param (theta,rho);
             lines.push_back (param);

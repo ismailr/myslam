@@ -45,4 +45,7 @@ bool Pose::write(std::ostream& os) const
     return os.good();
 }
 
-Pose2::Pose2() : VertexSE2(){}
+Pose2::Pose2() : VertexSE2()
+{
+    nodetype = "POSE2";
+}

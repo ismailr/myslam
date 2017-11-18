@@ -97,6 +97,8 @@ class System2
 
         template <typename T> void visualize(T&);
         template <typename T> void visualize (std::vector<T>);
+        void visualize_grad (double m, double c);
+        void visualize_rho (double rho, double theta);
 
     private:
         bool _init;
@@ -114,6 +116,8 @@ class System2
 
         // Published by system
         ros::Publisher _pub_marker;
+        ros::Publisher _pub_marker2;
+        ros::Publisher _pub_marker3;
         ros::Publisher _pub_cloud;
         ros::Publisher _pub_depth;
         ros::Publisher _pub_rgb;
