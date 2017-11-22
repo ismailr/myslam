@@ -90,8 +90,8 @@ class System2
                 const sensor_msgs::PointCloud2ConstPtr& cloud, 
                 const sensor_msgs::ImageConstPtr& rgb,
                 const sensor_msgs::ImageConstPtr& depth,
-                const nav_msgs::OdometryConstPtr& odom,
-                const nav_msgs::OdometryConstPtr& action);
+                const nav_msgs::OdometryConstPtr& odom//,
+/*                const nav_msgs::OdometryConstPtr& action*/);
 
         long requestUniqueId () { return _gen.getUniqueId (); };
 

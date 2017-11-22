@@ -14,6 +14,8 @@ Panels:
         - /Marker1
         - /Map1/Position1
         - /Map1/Orientation1
+        - /Marker2
+        - /Marker3
       Splitter Ratio: 0.5
     Tree Height: 299
   - Class: rviz/Selection
@@ -55,7 +57,7 @@ Visualization Manager:
         Z: 0
       Plane: XY
       Plane Cell Count: 10
-      Reference Frame: odom_combined
+      Reference Frame: <Fixed Frame>
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
@@ -101,7 +103,7 @@ Visualization Manager:
         Axes: true
         Grid: false
         Map: false
-        Marker: false
+        Marker: true
         PointCloud2: false
         Value: true
       Zoom Factor: 1
@@ -110,14 +112,14 @@ Visualization Manager:
       Length: 1
       Name: Axes
       Radius: 0.1
-      Reference Frame: base_laser_link
+      Reference Frame: base_link
       Value: true
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /line_strip
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.3
@@ -128,6 +130,22 @@ Visualization Manager:
       Name: Map
       Topic: /map
       Unreliable: false
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /gradient
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /localine
+      Name: Marker
+      Namespaces:
+        {}
+      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:

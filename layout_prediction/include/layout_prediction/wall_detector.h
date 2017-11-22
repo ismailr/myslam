@@ -73,6 +73,7 @@ class WallDetector2
         std::vector<Eigen::Vector3d> extract_inliers (pcl::PointIndices::Ptr indices, PointCloud& _preparedCloud);
         void localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose);
         Eigen::Vector2d inverse_measurement (Eigen::Vector2d& wParam, Pose2::Ptr& pose);
+        Eigen::Vector2d inverse_measurement_from_points (std::vector<Eigen::Vector2d> points, Pose2::Ptr& pose);
 };
 
 #endif

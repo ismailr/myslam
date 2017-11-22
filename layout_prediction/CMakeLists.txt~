@@ -164,6 +164,7 @@ add_executable(layout_prediction
     src/g2o/edge_se2.cpp
     src/g2o/edge_se2_line2d.cpp
     src/g2o/edge_line2d.cpp
+    src/simulator.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -180,9 +181,10 @@ target_link_libraries(layout_prediction
     ${G2O_TYPES_SLAM3D}
     ${G2O_TYPES_SLAM2D}
     ${G2O_OPENGL_HELPER}
-    ${g2o_incremental_library}
     ${OPENGL_gl_LIBRARY}
     ${GLUT_LIBRARIES}
+    "/usr/local/lib/libg2o_incremental.so"
+    "/usr/local/lib/libg2o_interactive.so"
 )
 
 add_definitions(-std=c++11)

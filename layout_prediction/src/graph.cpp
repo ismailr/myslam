@@ -421,29 +421,32 @@ void Graph2::optimize()
     }
 
 
-    if (_pid > 0)
-    {
-        std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid - 1;
-        vertexSet.insert ((*it).get());
-        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
-        for (g2o::HyperGraph::EdgeSet::iterator eit = edgeSet.begin(); eit != edgeSet.end(); eit++)
-        {
-            Wall2* from = dynamic_cast<Wall2*>((*eit)->vertices()[0]);
-            Wall2* to = dynamic_cast<Wall2*>((*eit)->vertices()[1]);
-            if (from && from->nodetype == "WALL2")
-            {
-                from->setFixed (true);
-            }
-            if (to && to->nodetype == "WALL2")
-            {
-                to->setFixed (true);
-            }
-        }
-    }
+//    if (_pid > 0)
+//    {
+//        std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
+//        vertexSet.insert ((*it).get());
+//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+//        for (g2o::HyperGraph::EdgeSet::iterator eit = edgeSet.begin(); eit != edgeSet.end(); eit++)
+//        {
+//            Wall2* from = dynamic_cast<Wall2*>((*eit)->vertices()[0]);
+//            Wall2* to = dynamic_cast<Wall2*>((*eit)->vertices()[1]);
+//            if (from && from->nodetype == "WALL2")
+//            {
+//                from->setFixed (true);
+//            }
+//            if (to && to->nodetype == "WALL2")
+//            {
+//                to->setFixed (true);
+//            }
+//        }
+//        
+//    }
 
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
             it != _poseDB.end(); ++it)
     {
+        if (it == _poseDB.begin() + _pid)
+            (*it)->setFixed (true);
         vertexSet.insert ((*it).get());
         edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _pid++;

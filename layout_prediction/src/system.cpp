@@ -264,9 +264,9 @@ void System2::visualize<Wall2::Ptr> (Wall2::Ptr& w)
     q.x = rho * cos (theta);
     q.y = rho * sin (theta);
 
-    marker.color.r = p.x;
-    marker.color.g = p.y;
-    marker.color.b = 1.0;
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
 
     marker.points.push_back(p);
     marker.points.push_back(q);
@@ -278,7 +278,7 @@ void System2::visualize<Wall2::Ptr> (Wall2::Ptr& w)
 void System2::visualize_grad (double m, double c)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_laser_link";
+    marker.header.frame_id = "base_link";
 
     marker.id = 0; //marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
@@ -294,8 +294,8 @@ void System2::visualize_grad (double m, double c)
     m == 0.0 ? q.x = 0.0 : q.x = -c/m; 
     q.y = 0.0;
 
-    marker.color.r = p.x;
-    marker.color.g = p.y;
+    marker.color.r = 0.0;
+    marker.color.g = 0.0;
     marker.color.b = 1.0;
 
     marker.points.push_back(p);
@@ -308,7 +308,7 @@ void System2::visualize_grad (double m, double c)
 void System2::visualize_rho (double rho, double theta)
 {
     visualization_msgs::Marker marker;
-    marker.header.frame_id = "base_laser_link";
+    marker.header.frame_id = "base_link";
 
     marker.id = 0; //marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
@@ -324,9 +324,9 @@ void System2::visualize_rho (double rho, double theta)
     q.x = rho * cos (theta);
     q.y = rho * sin (theta);
 
-    marker.color.r = p.x;
-    marker.color.g = p.y;
-    marker.color.b = 1.0;
+    marker.color.r = 1.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.0;
 
     marker.points.push_back(p);
     marker.points.push_back(q);
@@ -339,8 +339,8 @@ void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
         const sensor_msgs::ImageConstPtr& depth,
-        const nav_msgs::OdometryConstPtr& odom,
-        const nav_msgs::OdometryConstPtr& action)
+        const nav_msgs::OdometryConstPtr& odom//,
+/*        const nav_msgs::OdometryConstPtr& action*/)
 {
     // transform pointcloud data from sensor frame to robot frame
 //    std::ofstream myfile;
@@ -352,8 +352,8 @@ void System2::readSensorsData (
 	pcl::fromROSMsg(*cloud, *_cloud);
 
     try {
-        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_laser_link", ros::Time::now(), ros::Duration(10.0));
-        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_link", ros::Time::now(), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
@@ -366,7 +366,7 @@ void System2::readSensorsData (
 
     visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr>(_cloud);
 
-    Pose2::Ptr pose = _tracker->trackPose (odom, action, _init);
+    Pose2::Ptr pose = _tracker->trackPose (odom, odom/*action*/, _init);
     _wallDetector->detect (pose, _cloud);
 
 
@@ -374,6 +374,9 @@ void System2::readSensorsData (
 //    if (System2::_framecounter == 50)
     {
         _graph->optimize();
+        std::vector<Wall2::Ptr> w = _graph->getWallDB();
+        for (int i = 0; i < w.size(); i++)
+            visualize<Wall2::Ptr>(w[i]);
     }
 
     System2::_framecounter++;

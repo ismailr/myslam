@@ -14,6 +14,7 @@
 #include "layout_prediction/system.h"
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/tracker.h"
+#include "layout_prediction/simulator.h"
 
 
 int main (int argc, char** argv)
@@ -35,6 +36,7 @@ int main (int argc, char** argv)
     LocalMapper2 localMapper2 (system2, graph2);
     WallDetector2 wallDetector2 (system2, graph2, localMapper2);
     Tracker2 tracker2 (system2, graph2, localMapper2);
+    Simulator simulator;
 
     // initialize threads
 //    std::thread wall_detector_thread (&WallDetector::run, wallDetector);
@@ -52,18 +54,31 @@ int main (int argc, char** argv)
         <   sensor_msgs::PointCloud2, 
             sensor_msgs::Image, 
             sensor_msgs::Image, 
-            nav_msgs::Odometry, 
+//            nav_msgs::Odometry, 
             nav_msgs::Odometry> MySyncPolicy;
     message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (10),    cloud_sub, 
                                                                             rgb_sub, 
                                                                             depth_sub, 
-                                                                            odometry_sub, 
-                                                                            action_sub);
+                                                                            odometry_sub//, 
+                                                                            /*action_sub*/);
 
-    sync.registerCallback (boost::bind (&System2::readSensorsData, &system2, _1, _2, _3, _4, _5));
+    sync.registerCallback (boost::bind (&System2::readSensorsData, &system2, _1, _2, _3, _4/*, _5*/));
 
-    ros::spin();
-//    graph2.optimize();
+//    ros::spin();
+//    graph2.optimize();    
+    ros::Rate rate(30.0);
+    while (ros::ok())
+    {
+        simulator.getNextState();
+        std::vector<Simulator::Dinding*> localMeasurements = simulator.robot->sensedData;
+        SE2 *pose = simulator.robot->simPose;
+
+        for (int i = 0; i < localMeasurements.size(); i++)
+            std::cout << localMeasurements[i]->id << " ";
+        std::cout << std::endl;
+
+        rate.sleep();
+    }
 
 	return 0;
 }

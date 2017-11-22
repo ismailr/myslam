@@ -132,8 +132,8 @@ SE2* Tracker2::estimateFromOdom (const OdomConstPtr& odom)
     c.odomToSE2 (odom, *t);
 
     // base_link to base_laser_link
-    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-    *t = (*t) * (*offset);
+//    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+//    *t = (*t) * (*offset);
 
     return t;
 }
@@ -152,7 +152,7 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
 
     double x = x0 + (vx * cos(theta0) - vy * sin(theta0)) * deltaTime;
     double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
-    double theta = normalize_theta (theta0 +  w * deltaTime);
+    double theta = theta0 +  w * deltaTime;
 
 
     SE2 *t = new SE2 (x, y, theta);
