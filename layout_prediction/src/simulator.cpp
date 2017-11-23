@@ -69,6 +69,10 @@ void Simulator::Robot::move()
 
 void Simulator::Robot::sense()
 {
+
+    double rnoise = gaussian_generator<double>(0.0, 0.5);
+    double tnoise = gaussian_generator<double>(0.0, 0.1 * M_PI/180);
+
     double x = simPose->translation().x();
     double y = simPose->translation().y();
     double phi = simPose->rotation().angle();
@@ -78,8 +82,8 @@ void Simulator::Robot::sense()
     // sensor model
     for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
     {
-        double rho = (*it).rho - x*cosphi - y*sinphi;
-        double theta = (*it).theta - phi;
+        double rho = (*it).rho - x*cosphi - y*sinphi + rnoise;
+        double theta = (*it).theta - phi + tnoise;
 
         if (abs(theta) <= FOV && rho <= RANGE)
             sensedData.push_back (&(*it));

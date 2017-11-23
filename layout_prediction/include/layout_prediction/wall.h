@@ -130,6 +130,7 @@ class Wall2 : public VertexLine2D
         EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
         std::string nodetype; 
+        int simId;
 
         typedef std::shared_ptr<Wall2> Ptr;
         typedef std::shared_ptr<const Wall2> ConstPtr;
