@@ -243,7 +243,7 @@ Graph2::Graph2() :
     OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
     _optimizer->setAlgorithm (solver);
-    _optimizer->setVerbose (false);
+    _optimizer->setVerbose (true);
 
     _incOptimizer = new g2o::SparseOptimizerIncremental;
 
@@ -367,19 +367,19 @@ void Graph2::optimize()
 //    offset->setId (0);
 //    _optimizer->addParameter (offset);
 
-    g2o::HyperGraph::VertexSet vertexSet;
-    g2o::HyperGraph::EdgeSet edgeSet;
+//    g2o::HyperGraph::VertexSet vertexSet;
+//    g2o::HyperGraph::EdgeSet edgeSet;
 
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
             it != _poseDB.end(); ++it)
     {
         int id = requestId();
         (*it)->setId (id);
-        if (id == 0) (*it)->setFixed (true);
+        if (it == _poseDB.begin()) (*it)->setFixed (true);
 //        vertexSet.insert ((*it).get());
 //        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _optimizer->addVertex ((*it).get());
-//        _pid++;
+        _pid++;
     }
 
     for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
@@ -391,7 +391,7 @@ void Graph2::optimize()
 //        vertexSet.insert ((*it).get());
 //        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _optimizer->addVertex ((*it).get());
-//        _wid++;
+        _wid++;
 
 //        if (it !=_wallDB.begin())
 //        {
@@ -442,23 +442,23 @@ void Graph2::optimize()
 //        
 //    }
 
-    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
-            it != _poseDB.end(); ++it)
-    {
-        if (it == _poseDB.begin() + _pid)
-            (*it)->setFixed (true);
-        vertexSet.insert ((*it).get());
-        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
-        _pid++;
-    }
-
-    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
-            it != _wallDB.end(); ++it)
-    {
-        vertexSet.insert ((*it).get());
-        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
-        _wid++;
-    }
+//    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
+//            it != _poseDB.end(); ++it)
+//    {
+//        if (it == _poseDB.begin() + _pid)
+//            (*it)->setFixed (true);
+//        vertexSet.insert ((*it).get());
+//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+//        _pid++;
+//    }
+//
+//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
+//            it != _wallDB.end(); ++it)
+//    {
+//        vertexSet.insert ((*it).get());
+//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+//        _wid++;
+//    }
 
 
 //    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
@@ -468,27 +468,41 @@ void Graph2::optimize()
 //        (*it)->write (myfile);
 //        myfile << std::endl;
 //    }
-//
-//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
-//            it != _wallDB.end(); ++it)
-//    {
-//        myfile << "WALL " << (*it)->id() << " ";
-//        (*it)->write (myfile);
-//        myfile << std::endl;
-//    }
 
-    if (iter == 0)
+    std::ofstream myfile;
+    myfile.open ("/home/ism/tmp/wall.dat", std::ios::out | std::ios::app);
+    myfile << "BEFORE" << std::endl;
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+            it != _wallDB.end(); ++it)
     {
+        myfile << "WALL " << (*it)->id() << " ";
+        (*it)->write (myfile);
+        myfile << std::endl;
+    }
+
+//    if (iter == 0)
+//    {
         _optimizer->initializeOptimization();
-        iter++;
-    }
-    else
+
+//        iter++;
+//    }
+//    else
+//    {
+//        _optimizer->updateInitialization (vertexSet, edgeSet);
+//    }
+    _optimizer->optimize (100);
+//    vertexSet.clear();
+//    edgeSet.clear();
+
+    myfile << "AFTER" << std::endl;
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+            it != _wallDB.end(); ++it)
     {
-        _optimizer->updateInitialization (vertexSet, edgeSet);
+        myfile << "WALL " << (*it)->id() << " ";
+        (*it)->write (myfile);
+        myfile << std::endl;
     }
-    _optimizer->optimize (10);
-    vertexSet.clear();
-    edgeSet.clear();
+    myfile.close();
 
     std::ofstream posefile;
     posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out/*|std::ios::app*/);
@@ -500,17 +514,8 @@ void Graph2::optimize()
         posefile << (*it)->estimate().toVector()(1) << " ";
         posefile << (*it)->estimate().toVector()(2) << std::endl; 
     }
-//
-//    posefile.close();
-//
-//    std::ofstream wallfile;
-//    wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out|std::ios::app);
-//
-//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
-//            it != _wallDB.end(); ++it)
-//        wallfile << (*it)->rho() << " " << (*it)->theta() << std::endl;
-//
-//    wallfile.close();
+    posefile.close();
+    
 }
 
 double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d q)

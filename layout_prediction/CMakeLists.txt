@@ -162,9 +162,12 @@ add_executable(layout_prediction
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
+    src/g2o/vertex_point_xy.cpp
     src/g2o/edge_se2.cpp
     src/g2o/edge_se2_line2d.cpp
+    src/g2o/edge_se2_pointxy.cpp
     src/g2o/edge_line2d.cpp
+    src/g2o/parameter_se2_offset.cpp
 )
 
 ## Add cmake target dependencies of the executable

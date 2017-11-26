@@ -33,8 +33,8 @@ void Simulator::Robot::move()
 {
     sensedData.clear();
 
-    const double xdis = 0.5;
-    const double ydis = 0.5;
+    const double xdis = 5.0;
+    const double ydis = 5.0;
     const double pdis = 1.0 * M_PI/180;
 
     double xmov = uniform_generator<double> (-xdis, xdis);
@@ -71,7 +71,7 @@ void Simulator::Robot::sense()
 {
 
     double rnoise = gaussian_generator<double>(0.0, 0.5);
-    double tnoise = gaussian_generator<double>(0.0, 0.1 * M_PI/180);
+    double tnoise = gaussian_generator<double>(0.0, 5.0 * M_PI/180);
 
     double x = simPose->translation().x();
     double y = simPose->translation().y();

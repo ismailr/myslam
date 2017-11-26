@@ -71,11 +71,11 @@ int main (int argc, char** argv)
 
 //    ros::spin();
 //    graph2.optimize();    
-    ros::Rate rate(30.0);
-    bool init = true;
-    Pose2::Ptr lastPose;
-    int frame = 0;
-
+//    ros::Rate rate(30.0);
+//    bool init = true;
+//    Pose2::Ptr lastPose; 
+//    int frame = 0;
+//
     Eigen::Matrix<double, 3, 3> pose_cov;
     Eigen::Matrix<double, 2, 2> wall_cov;
 
@@ -91,82 +91,153 @@ int main (int argc, char** argv)
 
     wall_cov << rcov, 0,
                 0, tcov;
+//
+//    while (ros::ok())
+//    {
+//        if (init)
+//        {
+//            SE2 *pose = simulator.robot->simPose;
+//            SE2 *truth = simulator.robot->truePose;
+//
+//            lastPose = graph2.createPose();
+//            lastPose->setEstimate (*pose);  
+//            init = false;
+//            std::ofstream truthfile;
+//            truthfile.open ("/home/ism/tmp/truth.dat", std::ios::out | std::ios::app);
+//            truthfile << truth->toVector().transpose() << std::endl;
+//            truthfile.close();
+//            continue;
+//        }
+//
+//        simulator.getNextState();
+//        std::vector<Simulator::Dinding*> localMeasurements = simulator.robot->sensedData;
+//        SE2 *pose = simulator.robot->simPose;
+//        SE2 *truth = simulator.robot->truePose;
+//
+//        if (localMeasurements.empty())
+//            continue;
+//
+//        std::ofstream truthfile;
+//        truthfile.open ("/home/ism/tmp/truth.dat", std::ios::out | std::ios::app);
+//        truthfile << truth->toVector().transpose() << std::endl;
+//        truthfile.close();
+//
+//        Pose2::Ptr currentPose = graph2.createPose ();
+//        currentPose->setEstimate (*pose);
+//
+//        PoseMeasurement2::Ptr pm = graph2.createPoseMeasurement();
+//
+//        pm->vertices()[0] = lastPose.get();
+//        pm->vertices()[1] = currentPose.get();
+//        pm->setMeasurement (lastPose->estimate().inverse() * *pose);
+//        pm->information () = pose_cov.inverse();
+//
+//        lastPose = currentPose;
+//
+//        std::vector<Wall2::Ptr> walls = graph2.getWallDB();
+//
+//        for (int i = 0; i < localMeasurements.size(); i++)
+//        {
+//            Wall2::Ptr w;
+//            bool found = false;
+//
+//            std::cout << "OBSERVED: WALL WITH ID(s): " << localMeasurements[i]->id << std::endl; 
+//
+//            for (int j = 0; j < walls.size(); j++)
+//            {
+//                if (walls[j]->simId == localMeasurements[i]->id)
+//                {
+//                    std::cout << "WALL IS FOUND IN DATABASE: " << walls[j]->simId << std::endl;
+//                    found = true;
+//                    w = walls[j];
+//                    break;
+//                }
+//            }
+//
+//            if (!found)
+//            {
+//                double rho = localMeasurements[i]->rho;
+//                double theta = localMeasurements[i]->theta;
+//
+//                std::vector<Eigen::Vector2d> points;
+//                points.push_back (localMeasurements[i]->p);
+//                points.push_back (localMeasurements[i]->q);
+//                
+//                Eigen::Vector2d global = calc_global (points, currentPose);
+//
+//                w = graph2.createWall();
+//                w->setRho(global[1]);
+//                w->setTheta(global[0]);
+//                w->simId = localMeasurements[i]->id;
+//                graph2.registerWall(w);
+//            }
+//            
+//            WallMeasurement2::Ptr wm = graph2.createWallMeasurement();
+//            wm->vertices()[0] = currentPose.get();
+//            wm->vertices()[1] = w.get();
+//            double measurementData[2] = {localMeasurements[i]->theta, localMeasurements[i]->rho};
+//            wm->setMeasurementData (measurementData);
+//            wm->information () = wall_cov.inverse();
+//        }
+//
+//
+////        if (frame % 3 == 0)
+////        {
+////            graph2.optimize();
+////        }
+//
+//        frame++;
+//        rate.sleep();
+//
+//        if (frame == 100)
+//            break;
+//    }
 
-    while (ros::ok())
-    {
-        simulator.getNextState();
-        std::vector<Simulator::Dinding*> localMeasurements = simulator.robot->sensedData;
-        SE2 *pose = simulator.robot->simPose;
+    Pose2::Ptr p1 = graph2.createPose();
+    Pose2::Ptr p2 = graph2.createPose();
+    SE2 e1 (3.7, -5.2, 100*M_PI/180.0);
+    SE2 e2 (5.1, 1.9, -40*M_PI/180.0);
+    p1->setEstimate(e1);
+    p2->setEstimate(e2);
 
-        if (init)
-        {
-            lastPose->setEstimate (*pose);  
-            init = false;
-            continue;
-        }
+    Wall2::Ptr w = graph2.createWall();
+    w->setRho (2.71); //2.68
+    w->setTheta (2.57); //2.68
+    graph2.registerWall(w);
 
-        Pose2::Ptr currentPose = graph2.createPose ();
-        currentPose->setEstimate (*pose);
+    double rho1, theta1, rho2, theta2;
+    rho1 = std::abs (w->rho() - p1->estimate().translation().x()*cos(w->theta()) - p1->estimate().translation().y()*sin(w->theta()));
+    rho2 = std::abs (w->rho() - p2->estimate().translation().x()*cos(w->theta()) - p2->estimate().translation().y()*sin(w->theta()));
+    theta1 = w->theta() - p1->estimate().rotation().angle();
+    theta2 = w->theta() - p2->estimate().rotation().angle();
 
-        PoseMeasurement2::Ptr pm = graph2.createPoseMeasurement();
+    PoseMeasurement2::Ptr pm = graph2.createPoseMeasurement();
+    pm->vertices()[0] = p1.get();
+    pm->vertices()[1] = p2.get();
+    pm->setMeasurement (p1->estimate().inverse() * p2->estimate());
+    Eigen::Matrix<double, 3, 3> inf;
+    inf.setIdentity();
+    pm->information () = pose_cov.inverse();
 
-        pm->vertices()[0] = lastPose.get();
-        pm->vertices()[1] = currentPose.get();
-        pm->setMeasurement (lastPose->estimate().inverse() * *pose);
-        pm->information () = pose_cov.inverse();
+    Eigen::Matrix<double, 2, 2> inf2;
+    inf2.setIdentity();
+    WallMeasurement2::Ptr wm1 = graph2.createWallMeasurement();
+    wm1->vertices()[0] = p1.get();
+    wm1->vertices()[1] = w.get();
+    double data1[2] = {theta1, rho1};
+    wm1->setMeasurementData (data1);
+    wm1->information () = wall_cov.inverse();
 
-        std::vector<Wall2::Ptr> walls = graph2.getWallDB();
+    Eigen::Matrix<double, 2, 2> inf3;
+    inf3.setIdentity();
+    WallMeasurement2::Ptr wm2 = graph2.createWallMeasurement();
+    wm2->vertices()[0] = p2.get();
+    wm2->vertices()[1] = w.get();
+    double data2[2] = {theta2, rho2};
+    wm2->setMeasurementData (data2);
+    wm2->information () = wall_cov.inverse();
 
-        for (int i = 0; i < localMeasurements.size(); i++)
-        {
-            Wall2::Ptr w;
-            bool found = false;
-
-            for (int j = 0; j < walls.size(); j++)
-            {
-                if (walls[j]->simId == localMeasurements[i]->id)
-                {
-                    found = true;
-                    w = walls[j];
-                    break;
-                }
-            }
-
-            if (!found)
-            {
-                double rho = localMeasurements[i]->rho;
-                double theta = localMeasurements[i]->theta;
-
-                std::vector<Eigen::Vector2d> points;
-                points.push_back (localMeasurements[i]->p);
-                points.push_back (localMeasurements[i]->q);
-                
-                Eigen::Vector2d global = calc_global (points, currentPose);
-
-                w = graph2.createWall();
-                w->setRho(global[1]);
-                w->setTheta(global[0]);
-                w->simId = localMeasurements[i]->id;
-                graph2.registerWall(w);
-            }
-
-            WallMeasurement2::Ptr wm = graph2.createWallMeasurement();
-            wm->vertices()[0] = currentPose.get();
-            wm->vertices()[1] = w.get();
-            double measurementData[2] = {localMeasurements[i]->theta, localMeasurements[i]->rho};
-            wm->setMeasurementData (measurementData);
-            wm->information () = wall_cov.inverse();
-        }
-
-
-        if (frame % 3 == 0)
-        {
-            graph2.optimize();
-        }
-
-        frame++;
-        rate.sleep();
-    }
+    graph2.optimize();
 
 	return 0;
 }

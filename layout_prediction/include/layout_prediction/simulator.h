@@ -32,9 +32,9 @@ class Simulator
 
         private:
             Simulator* _sim;
-            const double xNoise = 0.05, yNoise = 0.05;
-            const double pNoise  = 0.1 * M_PI/180.0;
-            const double RANGE = 10.0;
+            const double xNoise = 0.5, yNoise = 0.5;
+            const double pNoise  = 5.0 * M_PI/180.0;
+            const double RANGE = 20.0;
             const double FOV = M_PI/2;
     };
 
