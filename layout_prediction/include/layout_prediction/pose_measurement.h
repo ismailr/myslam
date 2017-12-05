@@ -78,21 +78,19 @@ class PoseMeasurement2 : public EdgeSE2
 //    {
 //        const Pose2* v1 = static_cast<const Pose2*>(_vertices[0]);
 //        const Pose2* v2 = static_cast<const Pose2*>(_vertices[1]);
-//        Eigen::Vector3d prediction = ((*(v1->getModel())).inverse() * *(v2->getModel())).toVector();
+//        Eigen::Vector3d prediction = (v1->estimate().inverse() * *(v2->getModel())).toVector();
 //        Eigen::Vector3d measurement = _measurement.toVector();
 //        _error = (measurement - prediction);
 //        _error[2] = normalize_theta (_error[2]);
-//
-//        std::ofstream pfile;
-//        pfile.open ("/home/ism/tmp/pose_prediction.dat",std::ios::out|std::ios::app);
-//        pfile << prediction[0] << " " << prediction[1] << " " << prediction[2] << std::endl;
-//        pfile.close();
-//
-//        std::ofstream mfile;
-//        mfile.open ("/home/ism/tmp/pose_measurement.dat",std::ios::out|std::ios::app);
-//        mfile << _measurement[0] << " " << _measurement[1] << " " << _measurement[2] << std::endl;
-//        mfile.close();
 //    }
+//
+    void computeError()
+    {
+        const Pose* v1 = static_cast<const Pose*>(_vertices[0]);
+        const Pose* v2 = static_cast<const Pose*>(_vertices[1]);
+        SE2 delta = _inverseMeasurement * (v1->estimate().inverse()*v2->estimate());
+        _error = delta.toVector();
+    }
 
     private:
 };

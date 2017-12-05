@@ -67,11 +67,15 @@ class Graph2
 
     Pose2::Ptr createPose();
     Wall2::Ptr createWall();
+    Wall3::Ptr createWall3();
     Pose2::Ptr createPoseWithId();
     Wall2::Ptr createWallWithId();
     void registerWall (Wall2::Ptr& wall);
+    void registerWallWithId (Wall2::Ptr& wall);
+    void registerWall3 (Wall3::Ptr& wall);
     PoseMeasurement2::Ptr createPoseMeasurement();
     WallMeasurement2::Ptr createWallMeasurement();
+    WallMeasurement3::Ptr createWallMeasurement3();
     AngleMeasurement::Ptr createAngleMeasurement();
 
     Wall2::Ptr data_association (Wall2::Ptr& wall);
@@ -79,11 +83,12 @@ class Graph2
     void localOptimize();
 
     std::vector<Wall2::Ptr> getWallDB() { return _wallDB; };
+    std::vector<Wall3::Ptr> getWallDB3() { return _wallDB3; };
 
     private:
     static int globalId;
     const float GRID_STEP = 3.0;
-    const float ANGLE_STEP = 30.0 * M_PI/180.0;
+    const float ANGLE_STEP = 5.0 * M_PI/180.0;
     const float CENTER_THRESHOLD = 3.0;
 
     int _pid;
@@ -99,8 +104,10 @@ class Graph2
 
     std::vector<Pose2::Ptr> _poseDB;
     std::vector<Wall2::Ptr> _wallDB;
+    std::vector<Wall3::Ptr> _wallDB3;
     std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;
     std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
+    std::vector<WallMeasurement3::Ptr> _wallMeasurementDB3;
     std::vector<AngleMeasurement::Ptr> _angleMeasurementDB;
 
     std::map<std::tuple<int,int>, Wall2::Ptr> _grid; // for data association

@@ -40,7 +40,8 @@ class Tracker2
     public:
         Tracker2(System2&, Graph2&, LocalMapper2&);
         typedef nav_msgs::OdometryConstPtr OdomConstPtr;
-        Pose2::Ptr trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init = false);
+        typedef geometry_msgs::PoseWithCovarianceStampedConstPtr OdomCombinedConstPtr;
+        Pose2::Ptr trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, const OdomCombinedConstPtr& odomcombined, bool init = false);
 
     private:
         System2 *_system;
@@ -50,6 +51,7 @@ class Tracker2
         double _prevTime;
 
         SE2* estimateFromOdom (const OdomConstPtr& odom);
+        SE2* estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombine);
         SE2* estimateFromModel (const OdomConstPtr& action);
 };
 

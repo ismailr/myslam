@@ -1,4 +1,5 @@
 #include <thread>
+#include <random>
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
@@ -7,6 +8,7 @@
 #include <message_filters/time_synchronizer.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <pcl_ros/point_cloud.h>
 
 #include "layout_prediction/settings.h"
@@ -20,7 +22,42 @@
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/wall_measurement.h"
 
+#include <g2o/core/sparse_optimizer.h>
+#include <g2o/core/block_solver.h>
+#include <g2o/core/factory.h>
+#include <g2o/core/optimization_algorithm_factory.h>
+#include <g2o/core/optimization_algorithm_gauss_newton.h>
+#include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/solvers/csparse/linear_solver_csparse.h>
+#include <g2o/solvers/dense/linear_solver_dense.h>
+#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
+#include <g2o/types/slam2d/parameter_se2_offset.h>
+#include <g2o/types/slam2d/vertex_se2.h>
+#include <g2o/types/slam2d/edge_se2.h>
+#include <g2o/types/slam2d/vertex_point_xy.h>
+#include <g2o/types/slam2d/edge_se2_pointxy.h>
+
+using namespace std;
+using namespace g2o;
+using namespace Eigen;
+
 Eigen::Vector2d calc_global (std::vector<Eigen::Vector2d> points, Pose2::Ptr& pose);
+
+template<typename T> T gaussian_generator (T mean, T dev)
+{
+    random_device rd;
+    mt19937 mt(rd());
+    normal_distribution<double> dist(mean, dev);
+    return dist(mt);
+}
+
+template<typename T> T uniform_generator (T min, T max)
+{
+    random_device rd;
+    mt19937 mt(rd());
+    uniform_real_distribution<double> dist(min, max);
+    return dist(mt);
+}
 
 int main (int argc, char** argv)
 {
@@ -54,43 +91,47 @@ int main (int argc, char** argv)
     message_filters::Subscriber<sensor_msgs::Image> depth_sub (nh, "depth", 1);
     message_filters::Subscriber<nav_msgs::Odometry> odometry_sub (nh, "odometry", 1);
     message_filters::Subscriber<nav_msgs::Odometry> action_sub (nh, "action", 1);
+    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> odomcombined_sub (nh, "odomcombined", 1);
 
     typedef message_filters::sync_policies::ApproximateTime
         <   sensor_msgs::PointCloud2, 
             sensor_msgs::Image, 
             sensor_msgs::Image, 
-//            nav_msgs::Odometry, 
-            nav_msgs::Odometry> MySyncPolicy;
+            nav_msgs::Odometry, 
+            nav_msgs::Odometry,
+            geometry_msgs::PoseWithCovarianceStamped> MySyncPolicy;
     message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (10),    cloud_sub, 
                                                                             rgb_sub, 
                                                                             depth_sub, 
-                                                                            odometry_sub//, 
-                                                                            /*action_sub*/);
+                                                                            odometry_sub, 
+//                                                                            action_sub,
+                                                                            odomcombined_sub);
 
-    sync.registerCallback (boost::bind (&System2::readSensorsData, &system2, _1, _2, _3, _4/*, _5*/));
+    sync.registerCallback (boost::bind (&System2::readSensorsData, &system2, _1, _2, _3, _4, _5/*, _6*/));
 
-//    ros::spin();
+    ros::spin();
+
 //    graph2.optimize();    
 //    ros::Rate rate(30.0);
 //    bool init = true;
 //    Pose2::Ptr lastPose; 
 //    int frame = 0;
 //
-    Eigen::Matrix<double, 3, 3> pose_cov;
-    Eigen::Matrix<double, 2, 2> wall_cov;
-
-    double xcov = 0.05 * 0.05;
-    double ycov = 0.05 * 0.05;
-    double pcov = (0.1 * M_PI/180) * (0.1 * M_PI/180);
-    double rcov = (0.5 * 0.5);
-    double tcov = (0.1 * M_PI/180) * (0.1 * M_PI/180);
-
-    pose_cov << xcov, 0, 0,
-                0, ycov, 0,
-                0, 0, pcov;
-
-    wall_cov << rcov, 0,
-                0, tcov;
+//    Eigen::Matrix<double, 3, 3> pose_cov;
+//    Eigen::Matrix<double, 2, 2> wall_cov;
+//
+//    double xcov = 0.5 * 0.5;
+//    double ycov = 0.5 * 0.5;
+//    double pcov = (10 * M_PI/180) * (10 * M_PI/180);
+//    double rcov = (0.5 * 0.5);
+//    double tcov = (0.1 * M_PI/180) * (0.1 * M_PI/180);
+//
+//    pose_cov << xcov, 0, 0,
+//                0, ycov, 0,
+//                0, 0, pcov;
+//
+//    wall_cov << rcov, 0,
+//                0, tcov;
 //
 //    while (ros::ok())
 //    {
@@ -181,10 +222,10 @@ int main (int argc, char** argv)
 //        }
 //
 //
-////        if (frame % 3 == 0)
-////        {
-////            graph2.optimize();
-////        }
+//        if (frame % 3 == 0)
+//        {
+//            graph2.optimize();
+//        }
 //
 //        frame++;
 //        rate.sleep();
@@ -192,52 +233,136 @@ int main (int argc, char** argv)
 //        if (frame == 100)
 //            break;
 //    }
-
-    Pose2::Ptr p1 = graph2.createPose();
-    Pose2::Ptr p2 = graph2.createPose();
-    SE2 e1 (3.7 -5.2, 100*M_PI/180.0);
-    SE2 e2 (5.1, 1.9, -40*M_PI/180.0);
-    p1->setEstimate(e1);
-    p2->setEstimate(e2);
-
-    Wall2::Ptr w = graph2.createWall();
-    w->setRho (2.71); //2.68
-    w->setTheta (2.57); //2.68
-    graph2.registerWall(w);
-
-    double rho1, theta1, rho2, theta2;
-    rho1 = std::abs (w->rho() - p1->estimate().translation().x()*cos(w->theta()) - p1->estimate().translation().y()*sin(w->theta()));
-    rho2 = std::abs (w->rho() - p2->estimate().translation().x()*cos(w->theta()) - p2->estimate().translation().y()*sin(w->theta()));
-    theta1 = w->theta() - p1->estimate().rotation().angle();
-    theta2 = w->theta() - p2->estimate().rotation().angle();
-
-    PoseMeasurement2::Ptr pm = graph2.createPoseMeasurement();
-    pm->vertices()[0] = p1.get();
-    pm->vertices()[1] = p2.get();
-    pm->setMeasurement (p1->estimate().inverse() * p2->estimate());
-    Eigen::Matrix<double, 3, 3> inf;
-    inf.setIdentity();
-    pm->information () = pose_cov.inverse();
-
-    Eigen::Matrix<double, 2, 2> inf2;
-    inf2.setIdentity();
-    WallMeasurement2::Ptr wm1 = graph2.createWallMeasurement();
-    wm1->vertices()[0] = p1.get();
-    wm1->vertices()[1] = w.get();
-    double data1[2] = {theta1, rho1};
-    wm1->setMeasurementData (data1);
-    wm1->information () = wall_cov.inverse();
-
-    Eigen::Matrix<double, 2, 2> inf3;
-    inf3.setIdentity();
-    WallMeasurement2::Ptr wm2 = graph2.createWallMeasurement();
-    wm2->vertices()[0] = p2.get();
-    wm2->vertices()[1] = w.get();
-    double data2[2] = {theta2, rho2};
-    wm2->setMeasurementData (data2);
-    wm2->information () = wall_cov.inverse();
-
-    graph2.optimize();
+//
+//    typedef BlockSolver<BlockSolverTraits<-1,-1> > SlamBlockSolver;
+//    typedef LinearSolverCSparse<SlamBlockSolver::PoseLandmarkMatrixType> SlamLinearSolver;
+//    SparseOptimizer optimizer;
+//    auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+//    linearSolver->setBlockOrdering (true);
+////    OptimizationAlgorithmGaussNewton *solver = new OptimizationAlgorithmGaussNewton (
+////            g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+//    OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
+//            g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+//    optimizer.setAlgorithm (solver);
+//    optimizer.setVerbose (true);
+//
+//    Eigen::Matrix<double, 3, 3> posecov;
+//    Eigen::Matrix<double, 2, 2> wallcov;
+//
+//    double _transnoise = 10;
+//    double _rotnoise = (0.1 * M_PI/180); 
+//    double _wallnoise = 10;
+//
+//    double _transcov = _transnoise * _transnoise;
+//    double _rotcov = _rotnoise * _rotnoise;
+//    double _wallcov = _wallnoise * _wallnoise;
+//
+//    posecov << _transcov, 0, 0,
+//               0, _transcov, 0,
+//               0, 0, _rotcov;
+//
+//    wallcov << _wallcov, 0,
+//                0, _wallcov;
+//
+//    SE2 e1 (    3.0, 0.0, 3*M_PI/4);
+//    SE2 e2 (    0.0 + gaussian_generator<double>(0.0, _transnoise),
+//                4.0 + gaussian_generator<double> (0.0, _transnoise),
+//                -M_PI/4 + gaussian_generator<double> (0.0, _rotnoise));
+//    SE2 e3 (    1.0 + gaussian_generator<double>(0.0, _transnoise),
+//                2.0 + gaussian_generator<double> (0.0, _transnoise),
+//                M_PI/4 + gaussian_generator<double> (0.0, _rotnoise));
+//    SE2 e4 (    -1.0 + gaussian_generator<double>(0.0, _transnoise),
+//                -1.0 + gaussian_generator<double> (0.0, _transnoise),
+//                -M_PI + gaussian_generator<double> (0.0, _rotnoise));
+//    SE2 e5 (    2.0 + gaussian_generator<double>(0.0, _transnoise),
+//                1.0 + gaussian_generator<double> (0.0, _transnoise),
+//                M_PI/2 + gaussian_generator<double> (0.0, _rotnoise));
+//
+//    std::vector<SE2> poses;
+//    std::vector<VertexSE2*> posedb;
+//    poses.push_back (e1);
+//    poses.push_back (e2);
+//    poses.push_back (e3);
+//    poses.push_back (e4);
+//    poses.push_back (e5);
+//    
+//    for (int i = 0; i < poses.size(); i++)
+//    {
+//        VertexSE2 *p = new VertexSE2;
+//        p->setEstimate(poses[i]);
+//        p->setId(i);
+//        if (i == 0) p->setFixed (true);
+//        posedb.push_back(p);
+//        optimizer.addVertex (p);
+//
+//        if (i > 0)
+//        {
+//            PoseMeasurement2 *pm = new PoseMeasurement2;
+//            pm->vertices()[0] = posedb[i-1];
+//            pm->vertices()[1] = posedb[i];
+//            pm->setMeasurement (posedb[i-1]->estimate().inverse() * posedb[i]->estimate());
+//            pm->information () = posecov;
+//            optimizer.addEdge(pm);
+//        }
+//    }
+//
+//    Eigen::Vector2d f1 (    sqrt(0.5) + gaussian_generator<double>(0.0,_wallnoise), \
+//                            3*M_PI/4 + gaussian_generator<double>(0.0,_rotnoise));
+//    Eigen::Vector2d f2 (    1.0 + gaussian_generator<double>(0.0,_wallnoise), \
+//                            M_PI/5 + gaussian_generator<double>(0.0,_rotnoise));
+//
+//    std::vector<Eigen::Vector2d> walls;
+//    std::vector<Wall4*> walldb;
+//    walls.push_back(f1);
+//    walls.push_back(f2);
+//
+//    int nextId = (*posedb.back()).id();
+//    for (int i = 0; i < walls.size(); i++)
+//    {
+//        Wall4 *w = new Wall4;
+//        w->setRho (walls[i][0]);
+//        w->setTheta (walls[i][1]);
+//        w->setId(++nextId);
+//        walldb.push_back(w);
+//        optimizer.addVertex(w);
+//    }
+//
+//    for (int i = 0; i < posedb.size(); i++)
+//    {
+//        for (int j = 0; j < walldb.size(); j++)
+//        {
+//            double rho = walldb[j]->rho();
+//            double theta = walldb[j]->theta();
+//            double x = posedb[i]->estimate().toVector()[0];
+//            double y = posedb[i]->estimate().toVector()[1];
+//            double p = posedb[i]->estimate().toVector()[2];
+//            double cosp = cos(p);
+//            double sinp = sin(p);
+//
+//            double m = -1/tan(theta);
+//            double c = rho * sqrt(m*m+1);
+//            double xintersect = (y-c)/m;
+//            double rho_ = rho - x*cosp - y*sinp;
+//            double theta_;
+//            x < xintersect ? theta_ = theta - p + M_PI : theta_ = theta - p;
+//            rho_ += gaussian_generator<double> (0.0, 0.1);
+//            theta_ += gaussian_generator<double> (0.0, 5.0*M_PI/180);
+//            theta_ = normalize_theta (theta_);
+//
+//            WallMeasurement4 *wm = new WallMeasurement4;
+//            wm->vertices()[0] = posedb[i];
+//            wm->vertices()[1] = walldb[j];
+//            double data[2] = {theta_, rho_};
+//            wm->setMeasurementData (data);
+//            wm->information () = wallcov;
+//            optimizer.addEdge(wm);
+//        }
+//    }
+//
+//    optimizer.save("/home/ism/tmp/before.g2o");
+//    optimizer.initializeOptimization();
+//    optimizer.optimize(100);
+//    optimizer.save("/home/ism/tmp/after.g2o");
 
 	return 0;
 }

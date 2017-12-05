@@ -184,7 +184,7 @@ System2::System2(ros::NodeHandle nh, Graph2& graph)
 	_pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
 	_pub_depth = _rosnodehandle.advertise<sensor_msgs::Image> ("image_depth",1);
 	_pub_rgb = _rosnodehandle.advertise<sensor_msgs::Image> ("image_rgb",1);
-	_pub_odom = _rosnodehandle.advertise<nav_msgs::Odometry> ("odom",1);
+	_pub_odom = _rosnodehandle.advertise<nav_msgs::Odometry> ("myodom",1);
 }
 
 template <typename T> void System2::visualize(T& type)
@@ -211,7 +211,7 @@ void System2::visualize<Wall2::Ptr> (std::vector<Wall2::Ptr> walls)
     visualization_msgs::Marker marker;
     marker.header.frame_id = "odom_combined";
 
-    marker.id = 0; //marker_id++;
+    marker.id = /*0;*/ marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;
@@ -263,6 +263,44 @@ void System2::visualize<Wall2::Ptr> (Wall2::Ptr& w)
     p.x = 0.0; p.y = 0.0;
     q.x = rho * cos (theta);
     q.y = rho * sin (theta);
+
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0.0;
+
+    marker.points.push_back(p);
+    marker.points.push_back(q);
+
+    marker.lifetime = ros::Duration();
+    _pub_marker.publish(marker);
+}
+
+template <>
+void System2::visualize2<Wall2::Ptr> (Wall2::Ptr& w)
+{
+    visualization_msgs::Marker marker;
+    marker.header.frame_id = "odom_combined";
+
+    marker.id = 0; // marker_id++;
+    marker.type = visualization_msgs::Marker::LINE_LIST;
+
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.scale.x = 0.1;
+    marker.color.a = 1.0;
+
+    geometry_msgs::Point p;
+    geometry_msgs::Point q;
+
+    double rho = w->rho();
+    double theta = w->theta();
+
+    double m;
+    theta == M_PI/2 ? m = 100000000000 : m = -1/tan(theta);
+
+    p.x = rho * cos (theta);
+    p.y = rho * sin (theta);
+    q.x = 1.0;
+    q.y = m * q.x;
 
     marker.color.r = 0.0;
     marker.color.g = 1.0;
@@ -339,8 +377,9 @@ void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
         const sensor_msgs::ImageConstPtr& depth,
-        const nav_msgs::OdometryConstPtr& odom//,
-/*        const nav_msgs::OdometryConstPtr& action*/)
+        const nav_msgs::OdometryConstPtr& odom,
+//        const nav_msgs::OdometryConstPtr& action,
+        const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined)
 {
     // transform pointcloud data from sensor frame to robot frame
 //    std::ofstream myfile;
@@ -366,21 +405,22 @@ void System2::readSensorsData (
 
     visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr>(_cloud);
 
-    Pose2::Ptr pose = _tracker->trackPose (odom, odom/*action*/, _init);
+    Pose2::Ptr pose = _tracker->trackPose (odom, odom, odomcombined, _init);
     _wallDetector->detect (pose, _cloud);
-
 
     if (System2::_framecounter % 3 == 0)
 //    if (System2::_framecounter == 50)
     {
-        _graph->optimize();
-        std::vector<Wall2::Ptr> w = _graph->getWallDB();
-        for (int i = 0; i < w.size(); i++)
-            visualize<Wall2::Ptr>(w[i]);
+        _graph->localOptimize();
+//        std::vector<Wall2::Ptr> w = _graph->getWallDB();
+//        for (int i = 0; i < w.size(); i++)
+//            visualize2<Wall2::Ptr>(w[i]);
+        std::cout << "DONE LOCAL OPTIMIZE... " << std::endl;
     }
 
     System2::_framecounter++;
 
     if (_init == true) _init = false;
+    _pub_odom.publish (odom);
 }
 

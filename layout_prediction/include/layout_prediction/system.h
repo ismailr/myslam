@@ -7,6 +7,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/optimizer.h"
@@ -90,12 +91,14 @@ class System2
                 const sensor_msgs::PointCloud2ConstPtr& cloud, 
                 const sensor_msgs::ImageConstPtr& rgb,
                 const sensor_msgs::ImageConstPtr& depth,
-                const nav_msgs::OdometryConstPtr& odom//,
-/*                const nav_msgs::OdometryConstPtr& action*/);
+                const nav_msgs::OdometryConstPtr& odom,
+//                const nav_msgs::OdometryConstPtr& action,
+                const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined);
 
         long requestUniqueId () { return _gen.getUniqueId (); };
 
         template <typename T> void visualize(T&);
+        template <typename T> void visualize2(T&);
         template <typename T> void visualize (std::vector<T>);
         void visualize_grad (double m, double c);
         void visualize_rho (double rho, double theta);

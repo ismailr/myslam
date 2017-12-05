@@ -88,3 +88,34 @@ void Converter::odomToSE2(const nav_msgs::OdometryConstPtr& odom, SE2& t)
     t.fromVector (v); 
 }
 
+void Converter::odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, SE2& t)
+{
+    tf::Quaternion q (
+                odomcombined->pose.pose.orientation.x,
+                odomcombined->pose.pose.orientation.y,
+                odomcombined->pose.pose.orientation.z,
+                odomcombined->pose.pose.orientation.w
+            );
+    tf::Matrix3x3 m (q);
+    double roll, pitch, yaw;
+    m.getRPY (roll, pitch, yaw);
+
+    double odom_x = odomcombined->pose.pose.position.x;
+    double odom_y = odomcombined->pose.pose.position.y;
+    double odom_theta = yaw;
+    Eigen::Vector3d v (odom_x, odom_y, odom_theta);
+
+    t.fromVector (v); 
+}
+
+double normalize_angle (double a)
+{
+    double angle = a;
+    if (angle >= 0)
+        while (angle > 2 * M_PI)
+            angle -= 2 * M_PI;
+    else
+        while (angle < 0)
+            angle += 2 * M_PI;
+    return angle;
+}

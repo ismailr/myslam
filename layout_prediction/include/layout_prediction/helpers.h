@@ -3,6 +3,7 @@
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
+#include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
 
 #include "se2.h"
@@ -37,6 +38,8 @@ double calculate_slope (line_segment_stamped);
 line_eq points_to_line_eq (line_segment);
 line_eq points_to_line_eq (line_segment_stamped);
 
+double normalize_angle (double a);
+
 class IdGenerator
 {
     public:
@@ -53,6 +56,9 @@ class Converter
     public:
         Converter(){};
         void odomToSE2 (const nav_msgs::OdometryConstPtr& odom, SE2& t);
+        void odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, SE2& t);
 };
+
+
 
 #endif

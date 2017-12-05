@@ -446,11 +446,10 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             std::vector<Eigen::Vector2d> localMeasurement;
             line_fitting (localMeasurement, _preparedCloud);
 
-//            for (int i = 0; i < localMeasurement.size(); i++)
-            if (localMeasurement.size() == 3)
+            for (int i = 0; i < localMeasurement.size(); i++)
             {
-//                Eigen::Vector2d globalMeasurement = inverse_measurement (localMeasurement[i], pose); 
-                Eigen::Vector2d globalMeasurement = inverse_measurement_from_points (localMeasurement, pose); 
+                Eigen::Vector2d globalMeasurement = inverse_measurement (localMeasurement[i], pose); 
+//                Eigen::Vector2d globalMeasurement = inverse_measurement_from_points (localMeasurement, pose); 
 
                 Wall2::Ptr w = _graph->createWall();
                 w->setRho(globalMeasurement[1]);
@@ -523,8 +522,8 @@ void WallDetector2::prepare_cloud (PointCloud& _preparedCloud, const PointCloud:
 
 void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointCloud& _preparedCloud)
 {
-//    while(true)
-//    {
+    while(true)
+    {
         pcl::ModelCoefficients coefficients;
         pcl::PointIndices inliers;
 
@@ -540,7 +539,7 @@ void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointClou
         if(inliers.indices.size() == 0)
         {
             PCL_ERROR("No inliers.");
-//            break;
+            break;
         }
 
         if(inliers.indices.size() > 30)
@@ -554,60 +553,30 @@ void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointClou
 
             double rho = std::abs (c) /sqrt (m * m + 1);
             double theta = atan2 (y,x); 
-//            double theta;
-//
-//            if (m < 0 && c < 0)
-//                theta = atan(-1/m) + M_PI;
-//            else if (m > 0 && c >= 0)
-//                theta = atan (-1/m) + M_PI;
-//            else if (m == 0 && c < 0)
-//                theta = -M_PI/2;
-//            else if (m == 0 && c >= 0)
-//                theta = M_PI/2;
-//            else
-//                theta = atan (-1/m);
-
-//            std::cout << "GRADIENT: " << m << " INTERCEPT: " << c << std::endl;
-//            std::cout << "RHO LOCAL: " << rho << " THETA LOCAL: " << theta * 180/M_PI << std::endl;
             _system->visualize_grad (m, c);
             _system->visualize_rho (rho, theta);
 
 //            Eigen::Vector2d param (theta,rho);
 //            lines.push_back (param);
 
-            double x1 = coefficients.values[0];
-            double y1 = coefficients.values[1];
-            double x2 = coefficients.values[3];
-            double y2 = coefficients.values[4];
-            Eigen::Vector2d p (x1, y1);
-            Eigen::Vector2d q (x2, y2); 
-            q = p + 2.0 * q;
-
-            lines.push_back (p);
-            lines.push_back (q);
+//            double x1 = coefficients.values[0];
+//            double y1 = coefficients.values[1];
+//            double x2 = coefficients.values[3];
+//            double y2 = coefficients.values[4];
+//            Eigen::Vector2d p (x1, y1);
+//            Eigen::Vector2d q (x2, y2); 
+//            q = p + 2.0 * q;
+//
+//            lines.push_back (p);
+//            lines.push_back (q);
 
             Eigen::Vector2d l (theta, rho);
             lines.push_back (l);
-
-//            std::ofstream gcfile;
-//            gcfile.open ("/home/ism/tmp/gc_line.dat", std::ios::out | std::ios::app);
-//            gcfile << m << " " << c << std::endl;
-//            gcfile.close();
-
-        //    std::ofstream coeffile;
-        //    coeffile.open ("/home/ism/tmp/coeff.dat", std::ios::out | std::ios::app);
-        //    coeffile  << coefficients.values[0] << " "
-        //            << coefficients.values[1] << " "
-        //            << coefficients.values[2] << " "
-        //            << coefficients.values[3] << " "
-        //            << coefficients.values[4] << " "
-        //            << coefficients.values[5] << std::endl;
-        //    coeffile.close();
         }
-//
-//        pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = _preparedCloud.begin();
-//        _preparedCloud.erase(cloud_iter, cloud_iter + inliers.indices.back());
-//    }
+
+        pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = _preparedCloud.begin();
+        _preparedCloud.erase(cloud_iter, cloud_iter + inliers.indices.back());
+    }
 }
 
 Eigen::Vector2d WallDetector2::plane_fitting (PointCloud& _preparedCloud)
@@ -802,33 +771,39 @@ std::vector<Eigen::Vector3d> WallDetector2::extract_inliers (pcl::PointIndices::
 
 void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
 {
-    double rho = wall->getMeasurement()[1];
-    double theta = wall->getMeasurement()[0];
-
-//    std::ofstream rtlocalfile;
-//    rtlocalfile.open ("/home/ism/tmp/rtlocal.dat", std::ios::out | std::ios::app);
-//    rtlocalfile << rho << " " << theta << std::endl;
-//    rtlocalfile.close();
+    double rho_ = wall->getMeasurement()[1];
+    double theta_ = wall->getMeasurement()[0];
 
     Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
     auto y = v[1];
     auto alpha = v[2];
-    auto angle = normalize_theta (alpha + theta);
+//    auto angle = normalize_angle (alpha + theta_);
+
+    double m_, c_;
+    theta_ = normalize_angle (theta_);
+    theta_ == 0 ? m_ = std::numeric_limits<double>::infinity() : m_ = -1/tan(theta_);
+    if (theta_ > 0 && theta_ < M_PI)
+        c_ = rho_ * sqrt (m_*m_+1);
+    else if (theta_ > M_PI && theta_ < 2 * M_PI)
+        c_ = -rho_ * sqrt (m_*m_+1);
+    else //(theta_ == 0 || theta_ == M_PI)
+        c_ = std::numeric_limits<double>::infinity();
+
+    double m, c;
+    m = (sin(alpha) + m_ * cos(alpha))/(cos(alpha) - m_ * sin(alpha));
+    c = ((y - m_ * x) * cos(alpha) - (x + m_ * y) * sin(alpha) + c_) / (cos(alpha) - m_ * sin(alpha));
+
+    double xx, yx;
+    xx = (-m * c)/(m*m+1);
+    yx = c/(m*m+1);
+
+    double rho, theta;
+    rho = sqrt (xx*xx + yx*yx);
+    theta = atan2(yx,xx);
+    if (rho < sqrt(x*x + y*y)) theta = theta + M_PI; 
 
     // measurement model
-    rho = std::abs (rho + x * cos (angle) + y * sin (angle));
-    theta = angle;
-
-//    std::ofstream posefile;
-//    posefile.open ("/home/ism/tmp/pose.dat", std::ios::out | std::ios::app);
-//    posefile << x << " " << y << " " << alpha << std::endl;
-//    posefile.close();
-//
-//    std::ofstream rtglobalfile;
-//    rtglobalfile.open ("/home/ism/tmp/rtglobal.dat", std::ios::out | std::ios::app);
-//    rtglobalfile << rho << " " << theta << std::endl;
-//    rtglobalfile.close();
 
     wall->setRho (rho);
     wall->setTheta (theta);
@@ -836,29 +811,41 @@ void WallDetector2::localToGlobal (Wall2::Ptr& wall, Pose2::Ptr& pose)
 
 Eigen::Vector2d WallDetector2::inverse_measurement (Eigen::Vector2d& localMeasurement, Pose2::Ptr& pose)
 {
-
-    double rho = localMeasurement[1];
-    double theta = localMeasurement[0];
+    double rho_ = localMeasurement[1];
+    double theta_ = localMeasurement[0];
 
     Eigen::Vector3d v = pose->estimate().toVector();
     auto x = v[0];
     auto y = v[1];
     auto alpha = v[2];
-    auto angle = alpha + theta;
+//    auto angle = alpha + theta;
 
     // inverse measurement model
-    rho = std::abs (rho + x * cos (angle) + y * sin (angle));
-    theta = angle;
+//    rho = std::abs (rho + x * cos (angle) + y * sin (angle));
+//    theta = angle;
 
-//    std::ofstream myfile;
-//    myfile.open ("/home/ism/tmp/data.dat", std::ios::out | std::ios::app);
-//    myfile  << localMeasurement[1] << " " << localMeasurement[0] << " "
-//            << x << " " << y << " " << alpha << " "
-//            << rho << " " << theta << std::endl;
-//    myfile.close();
+    double m_, c_;
+    theta_ = normalize_angle (theta_);
+    theta_ == 0 ? m_ = std::numeric_limits<double>::infinity() : m_ = -1/tan(theta_);
+    if (theta_ > 0 && theta_ < M_PI)
+        c_ = rho_ * sqrt (m_*m_+1);
+    else if (theta_ > M_PI && theta_ < 2 * M_PI)
+        c_ = -rho_ * sqrt (m_*m_+1);
+    else //(theta_ == 0 || theta_ == M_PI)
+        c_ = std::numeric_limits<double>::infinity();
 
-    std::cout << "RHO GLOBAL: " << rho << " THETA GLOBAL: " << theta * 180/M_PI << std::endl;
-    std::cout << "X: " << x << " y: " << y << " alpha: " << alpha * 180/M_PI << std::endl;
+    double m, c;
+    m = (sin(alpha) + m_ * cos(alpha))/(cos(alpha) - m_ * sin(alpha));
+    c = ((y - m_ * x) * cos(alpha) - (x + m_ * y) * sin(alpha) + c_) / (cos(alpha) - m_ * sin(alpha));
+
+    double xx, yx;
+    xx = (-m * c)/(m*m+1);
+    yx = c/(m*m+1);
+
+    double rho, theta;
+    rho = sqrt (xx*xx + yx*yx);
+    theta = atan2(yx,xx);
+
     Eigen::Vector2d param (theta, rho);
     return param;
 }
@@ -896,6 +883,7 @@ Eigen::Vector2d WallDetector2::inverse_measurement_from_points (std::vector<Eige
     double cx = -(m*c)/(m*m+1);
     double cy = c/(m*m+1);
     double theta = atan2 (cy,cx);
+
 
     Eigen::Vector2d param (theta, rho);
     return param;

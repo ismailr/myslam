@@ -1,7 +1,7 @@
 <launch>
 	<arg name="dataset" default="true" />
 	<include file="$(find freenect_launch)/launch/freenect.launch" output="log" />
-	<node pkg="layout_prediction" type="layout_prediction" name="layout_prediction" args="cloud:=/camera/depth/points rgb:=/camera/rgb/image_raw depth:=/camera/depth/image_raw odometry:=/base_odometry/odom action:=/myslam/action" output="screen" /> 
+	<node pkg="layout_prediction" type="layout_prediction" name="layout_prediction" args="cloud:=/camera/depth/points rgb:=/camera/rgb/image_raw depth:=/camera/depth/image_raw odometry:=/base_odometry/odom action:=/myslam/action odomcombined:=/robot_pose_ekf/odom_combined" output="screen" /> 
 	<node pkg="layout_prediction" type="actionStamper.py" name="actionStamper" output="screen" /> 
 <!--	<node pkg="front_end" type="front_end" name="front_end" args="depth:=/camera/depth/image_raw image:=/camera/rgb/image_raw" output="screen"  /> -->
 <!--	<node pkg="image_view" type="image_view" name="depth_view" args="image:=/depth_out" output="screen"  /> -->

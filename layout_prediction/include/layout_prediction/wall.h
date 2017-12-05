@@ -155,13 +155,23 @@ class Wall2 : public VertexLine2D
         EndPoints getEndPoints() { return _endPoints; };
         Eigen::Vector2d get_center_point () { return _centerPoint; };
 
+        virtual void oplusImpl(const double* update)
+        {
+//            std::cout << "UPDATE: " << update[0] << " " << update[1] << std::endl;
+            _estimate += Eigen::Map<const Vector2D>(update);
+            _estimate(0) = normalize_theta(_estimate(0));
+        }
+
     private:
         EndPoints _endPoints;
         Eigen::Vector2d _centerPoint;
         Inliers _inliers;
+        double _length;
 
         void calculate_edge_points ();
         void calculate_center_point ();
+        void setLength (double l) { _length = l; };
+        double getLength () const { return _length; };
 
     // Fitness
     public:
@@ -177,4 +187,80 @@ class Wall2 : public VertexLine2D
     private:
         Eigen::Vector2d _measurement;
 };
+
+class Wall3 : public VertexPointXY
+{
+    public:
+        EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+        typedef std::shared_ptr<Wall3> Ptr;
+        typedef std::shared_ptr<const Wall3> ConstPtr;
+
+        Wall3();
+};
+
+class Wall4 : public BaseVertex <2, Line2D>
+{
+    public:
+    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+    typedef std::shared_ptr<Wall4> Ptr;
+    typedef std::shared_ptr<const Wall4> ConstPtr;
+
+    Wall4 (); // Set line params to zero
+    Wall4 (double rho, double theta); // Set line params
+
+    double theta() const {return _estimate[0]; }
+    double rho() const {return _estimate[1]; }
+    void setTheta(double t) { _estimate[0] = t; }
+    void setRho(double r) { _estimate[1] = r; }
+
+    virtual void setToOriginImpl() {
+        _estimate.setZero();
+    }
+
+    virtual bool setEstimateDataImpl(const double* est){
+        Eigen::Map<const Vector2D> v(est);
+        _estimate=Line2D(v);
+        return true;
+    }
+
+    virtual bool getEstimateData(double* est) const{
+        Eigen::Map<Vector2D> v(est);
+        v=_estimate;
+        return true;
+    }
+
+    virtual int estimateDimension() const {
+        return 2;
+    }
+
+    virtual bool setMinimalEstimateDataImpl(const double* est){
+        return setEstimateData(est);
+    }
+
+    virtual bool getMinimalEstimateData(double* est) const{
+        return getEstimateData(est);
+    }
+
+    virtual int minimalEstimateDimension() const {
+        return 2;
+    }
+
+    virtual void oplusImpl(const double* update)
+    {
+        _estimate += Eigen::Map<const Vector2D>(update);
+        _estimate(0) = normalize_theta(_estimate(0));
+    }
+
+    virtual bool read(std::istream& is);
+    virtual bool write(std::ostream& os) const;
+
+    void setGrad (double m, double c) { _m = m; _c = c; }; 
+    Eigen::Vector2d getGrad () const { return Eigen::Vector2d (_m,_c); };
+
+    private:
+    double _m, _c;
+};
+
 #endif

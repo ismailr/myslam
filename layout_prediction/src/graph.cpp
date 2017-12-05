@@ -11,6 +11,7 @@
 #include <g2o/core/optimization_algorithm_factory.h>
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
+#include <g2o/core/robust_kernel_impl.h>
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
@@ -273,6 +274,12 @@ Wall2::Ptr Graph2::createWall()
     return w;
 }
 
+Wall3::Ptr Graph2::createWall3()
+{
+    Wall3::Ptr w (new Wall3);
+    return w;
+}
+
 Wall2::Ptr Graph2::createWallWithId()
 {
     Wall2::Ptr w (new Wall2);
@@ -283,6 +290,17 @@ Wall2::Ptr Graph2::createWallWithId()
 void Graph2::registerWall (Wall2::Ptr& wall)
 {
     _wallDB.push_back (wall);
+}
+
+void Graph2::registerWallWithId (Wall2::Ptr& wall)
+{
+    wall->setId (requestId());
+    _wallDB.push_back (wall);
+}
+
+void Graph2::registerWall3 (Wall3::Ptr& wall)
+{
+    _wallDB3.push_back (wall);
 }
 
 PoseMeasurement2::Ptr Graph2::createPoseMeasurement()
@@ -296,6 +314,13 @@ WallMeasurement2::Ptr Graph2::createWallMeasurement()
 {
     WallMeasurement2::Ptr wm (new WallMeasurement2);
     _wallMeasurementDB.push_back (wm);
+    return wm;
+}
+
+WallMeasurement3::Ptr Graph2::createWallMeasurement3()
+{
+    WallMeasurement3::Ptr wm (new WallMeasurement3);
+    _wallMeasurementDB3.push_back (wm);
     return wm;
 }
 
@@ -367,8 +392,8 @@ void Graph2::optimize()
 //    offset->setId (0);
 //    _optimizer->addParameter (offset);
 
-//    g2o::HyperGraph::VertexSet vertexSet;
-//    g2o::HyperGraph::EdgeSet edgeSet;
+    g2o::HyperGraph::VertexSet vertexSet;
+    g2o::HyperGraph::EdgeSet edgeSet;
 
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
             it != _poseDB.end(); ++it)
@@ -379,8 +404,32 @@ void Graph2::optimize()
 //        vertexSet.insert ((*it).get());
 //        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _optimizer->addVertex ((*it).get());
-        _pid++;
+//        _pid++;
     }
+
+//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
+//            it != _wallDB.end(); ++it)
+//    {
+//        int id = requestId();
+//        (*it)->setId (id);
+//        if (it == _wallDB.begin() + 3) (*it)->setFixed (true);
+//        vertexSet.insert ((*it).get());
+//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+//        _optimizer->addVertex ((*it).get());
+//        _wid++;
+
+//        if (it !=_wallDB.begin())
+//        {
+//            AngleMeasurement::Ptr am = createAngleMeasurement();
+//            am->vertices()[0] = (*(it - 1)).get();
+//            am->vertices()[1] = (*it).get();
+//            _optimizer->addEdge (am.get());
+//            Eigen::Matrix<double, 2, 2> inf;
+//            inf.setIdentity();
+//            am->information () = inf;
+//        }
+
+//    }
 
     for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
             it != _wallDB.end(); ++it)
@@ -391,7 +440,7 @@ void Graph2::optimize()
 //        vertexSet.insert ((*it).get());
 //        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
         _optimizer->addVertex ((*it).get());
-        _wid++;
+//       _wid++;
 
 //        if (it !=_wallDB.begin())
 //        {
@@ -413,6 +462,13 @@ void Graph2::optimize()
         _pmid++;
     }
 
+//    for (std::vector<WallMeasurement2::Ptr>::iterator it = _wallMeasurementDB.begin() + _wmid;
+//            it != _wallMeasurementDB.end(); ++it)
+//    {
+//        _optimizer->addEdge ((*it).get());
+//        _wmid++;
+//    }
+
     for (std::vector<WallMeasurement2::Ptr>::iterator it = _wallMeasurementDB.begin() + _wmid;
             it != _wallMeasurementDB.end(); ++it)
     {
@@ -421,44 +477,44 @@ void Graph2::optimize()
     }
 
 
-//    if (_pid > 0)
-//    {
-//        std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
-//        vertexSet.insert ((*it).get());
-//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
-//        for (g2o::HyperGraph::EdgeSet::iterator eit = edgeSet.begin(); eit != edgeSet.end(); eit++)
-//        {
-//            Wall2* from = dynamic_cast<Wall2*>((*eit)->vertices()[0]);
-//            Wall2* to = dynamic_cast<Wall2*>((*eit)->vertices()[1]);
-//            if (from && from->nodetype == "WALL2")
-//            {
-//                from->setFixed (true);
-//            }
-//            if (to && to->nodetype == "WALL2")
-//            {
-//                to->setFixed (true);
-//            }
-//        }
-//        
-//    }
+    if (_pid > 0)
+    {
+        std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
+        vertexSet.insert ((*it).get());
+        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+        for (g2o::HyperGraph::EdgeSet::iterator eit = edgeSet.begin(); eit != edgeSet.end(); eit++)
+        {
+            Wall2* from = dynamic_cast<Wall2*>((*eit)->vertices()[0]);
+            Wall2* to = dynamic_cast<Wall2*>((*eit)->vertices()[1]);
+            if (from && from->nodetype == "WALL2")
+            {
+                from->setFixed (true);
+            }
+            if (to && to->nodetype == "WALL2")
+            {
+                to->setFixed (true);
+            }
+        }
+        
+    }
 
-//    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
-//            it != _poseDB.end(); ++it)
-//    {
-//        if (it == _poseDB.begin() + _pid)
-//            (*it)->setFixed (true);
-//        vertexSet.insert ((*it).get());
-//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
-//        _pid++;
-//    }
-//
-//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
-//            it != _wallDB.end(); ++it)
-//    {
-//        vertexSet.insert ((*it).get());
-//        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
-//        _wid++;
-//    }
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin() + _pid;
+            it != _poseDB.end(); ++it)
+    {
+        if (it == _poseDB.begin() + _pid)
+            (*it)->setFixed (true);
+        vertexSet.insert ((*it).get());
+        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+        _pid++;
+    }
+
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin() + _wid;
+            it != _wallDB.end(); ++it)
+    {
+        vertexSet.insert ((*it).get());
+        edgeSet.insert ((*it)->edges().begin(), (*it)->edges().end());
+        _wid++;
+    }
 
 
 //    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
@@ -469,43 +525,43 @@ void Graph2::optimize()
 //        myfile << std::endl;
 //    }
 
-    std::ofstream myfile;
-    myfile.open ("/home/ism/tmp/wall.dat", std::ios::out | std::ios::app);
-    myfile << "BEFORE" << std::endl;
-    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
-            it != _wallDB.end(); ++it)
-    {
-        myfile << "WALL " << (*it)->id() << " ";
-        (*it)->write (myfile);
-        myfile << std::endl;
-    }
-
-//    if (iter == 0)
+//    std::ofstream myfile;
+//    myfile.open ("/home/ism/tmp/wall.dat", std::ios::out | std::ios::app);
+//    myfile << "BEFORE" << std::endl;
+//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+//            it != _wallDB.end(); ++it)
 //    {
+//        myfile << "WALL " << (*it)->id() << " ";
+//        (*it)->write (myfile);
+//        myfile << std::endl;
+//    }
+
+    if (iter == 0)
+    {
         _optimizer->initializeOptimization();
-
-//        iter++;
-//    }
-//    else
-//    {
-//        _optimizer->updateInitialization (vertexSet, edgeSet);
-//    }
-    _optimizer->optimize (100);
-//    vertexSet.clear();
-//    edgeSet.clear();
-
-    myfile << "AFTER" << std::endl;
-    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
-            it != _wallDB.end(); ++it)
-    {
-        myfile << "WALL " << (*it)->id() << " ";
-        (*it)->write (myfile);
-        myfile << std::endl;
+        iter++;
     }
-    myfile.close();
+    else
+    {
+        _optimizer->updateInitialization (vertexSet, edgeSet);
+    }
+
+    _optimizer->optimize (10);
+    vertexSet.clear();
+    edgeSet.clear();
+
+//    myfile << "AFTER" << std::endl;
+//    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+//            it != _wallDB.end(); ++it)
+//    {
+//        myfile << "WALL " << (*it)->id() << " ";
+//        (*it)->write (myfile);
+//        myfile << std::endl;
+//    }
+//    myfile.close();
 
     std::ofstream posefile;
-    posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out/*|std::ios::app*/);
+    posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out);
 
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
             it != _poseDB.end(); ++it)
@@ -529,11 +585,68 @@ void Graph2::localOptimize()
     typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
     typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
 
-    g2o::SparseOptimizer o;
+    g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
     auto linearSolver = g2o::make_unique<SlamLinearSolver>();
     linearSolver->setBlockOrdering (false);
     OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
             g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
-    o.setAlgorithm (solver);
-    o.setVerbose (false);
+    o->setAlgorithm (solver);
+    o->setVerbose (true);
+
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin(); 
+            it != _poseDB.end(); ++it)
+    {
+        int id = requestId();
+        (*it)->setId (id);
+        if (it == _poseDB.begin()) (*it)->setFixed (true);
+        o->addVertex ((*it).get());
+    }
+
+    for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();
+            it != _wallDB.end(); ++it)
+    {
+        int id = requestId();
+        (*it)->setId (id);
+        o->addVertex ((*it).get());
+    }
+
+    for (std::vector<PoseMeasurement2::Ptr>::iterator it = _poseMeasurementDB.begin();
+            it != _poseMeasurementDB.end(); ++it)
+    {
+        g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+        ((*it).get())->setRobustKernel (rk);
+        rk->setDelta (sqrt(5.99));
+        o->addEdge ((*it).get());
+    }
+
+    for (std::vector<WallMeasurement2::Ptr>::iterator it = _wallMeasurementDB.begin();
+            it != _wallMeasurementDB.end(); ++it)
+    {
+        g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+        ((*it).get())->setRobustKernel (rk);
+        rk->setDelta (sqrt(5.99));
+        o->addEdge ((*it).get());
+    }
+
+    o->initializeOptimization();
+    o->optimize(10);
+
+    std::ofstream posefile;
+    posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+
+    for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
+            it != _poseDB.end(); ++it)
+    {
+        posefile << (*it)->estimate().toVector()(0) << " ";
+        posefile << (*it)->estimate().toVector()(1) << " ";
+        posefile << (*it)->estimate().toVector()(2) << std::endl; 
+    }
+    posefile.close();
+
+    Pose2::Ptr p = _poseDB.back();
+    _poseMeasurementDB.clear();
+    _wallMeasurementDB.clear();
+    _poseDB.clear();
+    _wallDB.clear();
+    _poseDB.push_back(p);
 }

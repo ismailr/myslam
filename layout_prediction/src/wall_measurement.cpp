@@ -153,3 +153,28 @@ WallMeasurement2::WallMeasurement2() : EdgeSE2Line2D()
 
 }
 
+WallMeasurement3::WallMeasurement3() : EdgeSE2PointXY()
+{
+
+}
+
+WallMeasurement4::WallMeasurement4() :
+BaseBinaryEdge<2, Line2D, Pose2, Wall4>()
+{
+}
+
+bool WallMeasurement4::read(std::istream& is)
+{
+    is >> _measurement[0] >> _measurement[1];
+    is >> information()(0,0) >> information()(0,1) >> information()(1,1);
+    information()(1,0) = information()(0,1);
+    return true;
+}
+
+bool WallMeasurement4::write(std::ostream& os) const
+{
+    os << measurement()[0] << " " << measurement()[1] << " ";
+    os << information()(0,0) << " " << information()(0,1) << " " << information()(1,1);
+    return os.good();
+}
+

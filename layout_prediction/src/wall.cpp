@@ -236,3 +236,26 @@ void Wall2::updateData()
 
 
 }
+
+Wall3::Wall3 () : VertexPointXY()
+{
+}
+
+Wall4::Wall4() : BaseVertex<2, Line2D>() {}
+Wall4::Wall4 (double rho, double theta) 
+{
+    _estimate[0] = theta;
+    _estimate[1] = rho;
+}
+
+bool Wall4::read(std::istream& is)
+{
+    is >> _estimate[0] >> _estimate[1]; 
+    return true;
+}
+
+bool Wall4::write(std::ostream& os) const
+{
+    os << estimate()(0) << " " << estimate()(1); 
+    return os.good();
+}

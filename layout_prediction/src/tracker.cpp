@@ -138,6 +138,19 @@ SE2* Tracker2::estimateFromOdom (const OdomConstPtr& odom)
     return t;
 }
 
+SE2* Tracker2::estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined)
+{
+    Converter c;
+    SE2 *t = new SE2();
+    c.odomCombinedToSE2 (odomcombined, *t);
+
+    // base_link to base_laser_link
+//    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+//    *t = (*t) * (*offset);
+
+    return t;
+}
+
 SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
 {
     double curTime = ros::Time::now().toSec();
@@ -156,8 +169,8 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
 
 
     SE2 *t = new SE2 (x, y, theta);
-//    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-//    *t = (*t) * (*offset);
+    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+    *t = (*t) * (*offset);
 
 //    std::ofstream actionfile;
 //    actionfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
@@ -167,11 +180,12 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
     return t;
 }
 
-Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, bool init) 
+Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, const OdomCombinedConstPtr& odomcombined, bool init) 
 {
     double time = ros::Time::now().toSec();
 
-    SE2* t = estimateFromOdom (odom);
+//    SE2* t = estimateFromOdom (odom);
+    SE2* t = estimateFromOdomCombined (odomcombined);
     Pose2::Ptr pose = _graph->createPose();
 
 //    std::ofstream poseb4optfile;
@@ -206,11 +220,12 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     pm->setMeasurement (_lastPose->estimate().inverse() * *t);
     pm->information () = inf;
     
-//    poseb4optfile.open ("/home/ism/tmp/pose_b4_opt.dat",std::ios::out|std::ios::app);
-//    poseb4optfile    << pose->estimate().toVector()[0] << " " 
-//                << pose->estimate().toVector()[1] << " "
-//                << pose->estimate().toVector()[2] << std::endl;
-//    poseb4optfile.close();
+    std::ofstream poseb4optfile;
+    poseb4optfile.open ("/home/ism/tmp/pose_b4_opt.dat",std::ios::out|std::ios::app);
+    poseb4optfile    << pose->estimate().toVector()[0] << " " 
+                << pose->estimate().toVector()[1] << " "
+                << pose->estimate().toVector()[2] << std::endl;
+    poseb4optfile.close();
     
     _prevTime = time;
     _lastPose = pose;
