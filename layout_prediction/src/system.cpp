@@ -411,16 +411,15 @@ void System2::readSensorsData (
     if (System2::_framecounter % 3 == 0)
 //    if (System2::_framecounter == 50)
     {
-        _graph->localOptimize();
+        _graph->localOptimize(_init);
 //        std::vector<Wall2::Ptr> w = _graph->getWallDB();
 //        for (int i = 0; i < w.size(); i++)
 //            visualize2<Wall2::Ptr>(w[i]);
-        std::cout << "DONE LOCAL OPTIMIZE... " << std::endl;
     }
 
     System2::_framecounter++;
 
     if (_init == true) _init = false;
-    _pub_odom.publish (odom);
+//    _pub_odom.publish (odom);
 }
 

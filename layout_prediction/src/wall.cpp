@@ -239,6 +239,9 @@ void Wall2::updateData()
 
 Wall3::Wall3 () : VertexPointXY()
 {
+    _m = 0.0;
+    _c = 0.0;
+    _p(0) = _p(1) = _q(0) = _q(1) = 0.0;
 }
 
 Wall4::Wall4() : BaseVertex<2, Line2D>() {}

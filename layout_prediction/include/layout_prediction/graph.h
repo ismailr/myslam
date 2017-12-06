@@ -80,7 +80,7 @@ class Graph2
 
     Wall2::Ptr data_association (Wall2::Ptr& wall);
     void optimize();
-    void localOptimize();
+    void localOptimize(bool init);
 
     std::vector<Wall2::Ptr> getWallDB() { return _wallDB; };
     std::vector<Wall3::Ptr> getWallDB3() { return _wallDB3; };

@@ -169,8 +169,8 @@ SE2* Tracker2::estimateFromModel (const OdomConstPtr& action)
 
 
     SE2 *t = new SE2 (x, y, theta);
-    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-    *t = (*t) * (*offset);
+//    SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+//    *t = (*t) * (*offset);
 
 //    std::ofstream actionfile;
 //    actionfile.open ("/home/ism/tmp/action.dat",std::ios::out|std::ios::app);
@@ -184,8 +184,8 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 {
     double time = ros::Time::now().toSec();
 
-//    SE2* t = estimateFromOdom (odom);
-    SE2* t = estimateFromOdomCombined (odomcombined);
+    SE2* t = estimateFromOdom (odom);
+//    SE2* t = estimateFromOdomCombined (odomcombined);
     Pose2::Ptr pose = _graph->createPose();
 
 //    std::ofstream poseb4optfile;

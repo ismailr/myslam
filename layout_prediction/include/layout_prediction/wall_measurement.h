@@ -163,8 +163,14 @@ class WallMeasurement2 : public EdgeSE2Line2D
             x < -rho ? theta_ = theta - p + M_PI : theta_ = theta - p;
 
         Eigen::Vector2d _prediction (theta_, rho_);
+//        _error[1] = sqrt (std::abs(_prediction[1] * _measurement[1] * cos (_prediction[0] - _measurement[0])));
         _error = _prediction - _measurement;
+
+//        double xerr = _prediction[1] * cos (_prediction[0]) - _measurement[1] * cos (_measurement[0]);
+//        double yerr = _prediction[1] * sin (_prediction[0]) - _measurement[1] * sin (_measurement[0]);
+//        _error[1] = sqrt (xerr*xerr + yerr*yerr);
         _error[0] = normalize_theta (_error[0]);
+        std::cout << "ERROR: " << _error[1] << std::endl;
     }
 
     private:

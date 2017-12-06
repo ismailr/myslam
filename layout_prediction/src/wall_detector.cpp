@@ -465,7 +465,8 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
                 double measurementData[2] = {localMeasurement[2][0],localMeasurement[2][1]};
                 wm->setMeasurementData (measurementData);
                 Eigen::Matrix<double, 2, 2> inf;
-                inf.setIdentity();
+//                inf.setIdentity();
+                inf << 1, 0, 0, 0;
                 wm->information () = inf;
             }
         }
@@ -481,6 +482,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud)
             Wall2::Ptr w = _graph->createWall();
             w->setRho(globalMeasurement[1]);
             w->setTheta(globalMeasurement[0]);
+            _system->visualize<Wall2::Ptr> (w);
 
             w = _graph->data_association(w); 
             pose->insert_detected_wall (w);
@@ -542,7 +544,7 @@ void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointClou
             break;
         }
 
-        if(inliers.indices.size() > 30)
+        if(inliers.indices.size() > 200)
         {
             double m;
             coefficients.values[3] == 0 ? m = std::numeric_limits<double>::max() : m = coefficients.values[4]/coefficients.values[3];
@@ -707,7 +709,7 @@ void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _prep
                     float dist = pcl::euclideanDistance(
                             _preparedCloud.points[_pointIndicesCluster[i].indices.back()],
                             _preparedCloud.points[_pointIndicesCluster[i+1].indices[0]]);
-                    if(dist < 10)
+                    if(dist < 1.0)
                     {
                         _pointIndicesCluster[i].indices.reserve(
                                 _pointIndicesCluster[i].indices.size() +

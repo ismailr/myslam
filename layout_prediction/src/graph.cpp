@@ -580,7 +580,7 @@ double Graph2::calculate_euclidean_distance (Eigen::Vector2d p, Eigen::Vector2d 
     return d;
 }
 
-void Graph2::localOptimize()
+void Graph2::localOptimize(bool init)
 {
     typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
     typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
@@ -599,7 +599,8 @@ void Graph2::localOptimize()
         int id = requestId();
         (*it)->setId (id);
         if (it == _poseDB.begin()) (*it)->setFixed (true);
-        o->addVertex ((*it).get());
+        if (!init && it != _poseDB.begin())
+            o->addVertex ((*it).get());
     }
 
     for (std::vector<Wall2::Ptr>::iterator it = _wallDB.begin();

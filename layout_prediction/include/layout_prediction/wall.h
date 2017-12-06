@@ -197,6 +197,19 @@ class Wall3 : public VertexPointXY
         typedef std::shared_ptr<const Wall3> ConstPtr;
 
         Wall3();
+
+        void setm (double m) { _m = m; };
+        void setc (double c) { _c = c; };
+        double getm () const { return _m; };
+        double getc () const { return _c; };
+        void setpq (Eigen::Vector2d p, Eigen::Vector2d q) {_p = p; _q = q; };
+        double getp () const { return _p; };
+        double getq () const { return _q; };
+
+    private:
+        double _m, _c;
+        Eigen::Vector2d _p, _q;
+
 };
 
 class Wall4 : public BaseVertex <2, Line2D>
