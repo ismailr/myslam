@@ -186,72 +186,46 @@ class WallMeasurement3 : public EdgeSE2PointXY
     typedef std::shared_ptr<const WallMeasurement3> ConstPtr;
 
     WallMeasurement3();
+
+    void computeError()
+    {
+        const Pose2* v1 = static_cast<const Pose2*>(_vertices[0]);
+        const Wall3* l2 = static_cast<const Wall3*>(_vertices[1]);
+
+        double xx = l2->estimate().x();
+        double xy = l2->estimate().y();
+        double m, c;
+        m = -xx/xy;
+        c = (xx*xx + xy*xy)/xy;
+
+        double x = v1->estimate().translation().x();
+        double y = v1->estimate().translation().y();
+        double p = v1->estimate().rotation().angle();
+
+        double m_, c_;
+        m_ = (-sin(p) + m * cos(p))/(cos(p) + m * sin(p));
+        c_ = (c - y + m * x)/(cos(p) + m * sin(p));
+
+        double xx_, xy_;
+        xx_ = (-m_*c_)/(m_*m_+1);
+        xy_ = c_/(m_*m_+1);
+
+        Eigen::Vector2d _prediction (xx_, xy_);
+        _error = _prediction - _measurement;
+
+        std::ofstream f;
+        f.open ("/home/ism/tmp/error1.dat", std::ios::out|std::ios::app);
+        f << "x = " << x << " y = " << y << " p = " << p << std::endl; 
+        f << "m = " << m << " c = " << c << std::endl; 
+        f << "m' = " << m_ << " c' = " << c_ << std::endl; 
+        f << "xx' = " << xx_ << " xy' = " << xy_ << std::endl;
+        f << "xx = " << l2->estimate().x() << " xy = " << l2->estimate().y() << std::endl;
+        f << "PREDICTION: " << _prediction.transpose() << std::endl;
+        f << "MEASUREMENT: " << _measurement.transpose() << std::endl;
+        f << "ERROR: " << _error.transpose() << std::endl;
+        f << std::endl;
+        f.close();
+    }
+
 };
-
-class WallMeasurement4: public BaseBinaryEdge<2, Line2D, Pose2, Wall4>
-{
-public:
-  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-  WallMeasurement4();
-
-  typedef std::shared_ptr<WallMeasurement4> Ptr;
-  typedef std::shared_ptr<const WallMeasurement4> ConstPtr;
-
-  void computeError()
-  {
-    const Pose2* v1 = static_cast<const Pose2*>(_vertices[0]);
-    const Wall4* l2 = static_cast<const Wall4*>(_vertices[1]);
-
-    double rho = l2->rho();
-    double theta = l2->theta();
-    double x = v1->estimate().toVector()[0];
-    double y = v1->estimate().toVector()[1];
-    double p = v1->estimate().toVector()[2];
-    double cosp = cos(p);
-    double sinp = sin(p);
-
-    double m = -1/tan(theta);
-    double c = rho * sqrt(m*m+1);
-    double xintersect = (y-c)/m;
-    double rho_ = rho - x*cosp - y*sinp;
-    double theta_;
-    x < xintersect ? theta_ = theta - p + M_PI : theta_ = theta - p;
-    Eigen::Vector2d _prediction (theta_, rho_);
-    _error = _prediction - _measurement;
-    _error[0] = normalize_theta (_error[0]);
-
-//    Vector2D prediction=l2->estimate();
-//    SE2 iT=v1->estimate().inverse();
-//    prediction[0] += iT.rotation().angle();
-//    prediction[0] = normalize_theta(prediction[0]);
-//    Vector2D n(cos(prediction[0]), sin(prediction[0]));
-//    prediction[1] += n.dot(iT.translation());
-//    _error =  prediction - _measurement;
-//    _error [0] =  normalize_theta(_error[0]);
-  }
-
-  virtual bool setMeasurementData(const double* d){
-    _measurement[0]=d[0];
-    _measurement[1]=d[1];
-    return true;
-  }
-
-  virtual bool getMeasurementData(double* d) const{
-    d[0] = _measurement[0];
-    d[1] = _measurement[1];
-    return true;
-  }
-
-  virtual int measurementDimension() const {return 2;}
-
-  virtual bool read(std::istream& is);
-  virtual bool write(std::ostream& os) const;
-
-//  virtual void initialEstimate(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to);
-//  virtual double initialEstimatePossible(const OptimizableGraph::VertexSet& from, OptimizableGraph::Vertex* to) { (void) to; return (from.count(_vertices[0]) == 1 ? 1.0 : -1.0);}
-// #ifndef NUMERIC_JACOBIAN_TWO_D_TYPES 
-//       virtual void linearizeOplus(); 
-// #endif 
-};
-
 #endif

@@ -10,117 +10,11 @@
 #include <pcl/registration/icp.h>
 
 #include "layout_prediction/tracker.h"
-#include "layout_prediction/frame.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/helpers.h"
 
-bool Tracker::init = true;
-
-Tracker::Tracker (System& system, Graph& graph) 
-    :_system (&system), _graph (&graph), _previousFrameProcessed (0) 
-{
-    _system->setTracker (*this);
-//    pcl::PointCloud<pcl::PointXYZ>::Ptr __prevCloud (new pcl::PointCloud<pcl::PointXYZ>);
-//    _prevCloud = __prevCloud;
-}
-
-void Tracker::run ()
-{
-    while (1)
-    {
-        if (_system->_framesQueue.empty())
-            continue;
-
-        std::unique_lock <std::mutex> lock_frames_queue (_system->_framesQueueMutex);
-        for (int i = 0; i < _system->_framesQueue.size(); ++i)
-        {
-            Frame::Ptr framePtr (_system->_framesQueue.front());
-
-            if (framePtr->getId() == _previousFrameProcessed) // already process this frame
-                continue;
-
-            _previousFrameProcessed = framePtr->getId();
-
-            int useCount = ++framePtr->_useCount; // use the frame and increment count
-            track (*framePtr);
-            if (useCount == 2) // WallDetector already used it, so pop and delete
-            {
-                _system->_framesQueue.pop ();
-//                delete frame; // it's a must, otherwise memory leak!
-            }
-        }
-        lock_frames_queue.unlock ();
-
-    }
-}
-
-void Tracker::track (Frame& frame)
-{
-//	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = frame.getCloud();
-//	pcl::PointCloud<pcl::PointXYZ>::Ptr _laser (new pcl::PointCloud<pcl::PointXYZ>);
-//
-//	int height = static_cast<int>(cloud->height/4);
-//	for(int i = 0; i < cloud->width; i++)
-//    {
-//        for(int j = cloud->height/2; j < cloud->height; j++)
-//        {
-//            if (i % 20 == 0 && j % 20 == 0)
-//                _laser->push_back(cloud->at(i,j));
-//        }
-//    }
-//
-//	_laser->header.frame_id = cloud->header.frame_id;
-//	_laser->header.seq = cloud->header.seq;
-
-//    /* NDT */
-//    if (Tracker::init)
-//    {
-//        _prevCloud = _laser;
-//        Tracker::init = false;
-//        return;
-//    }
-//
-//    pcl::NormalDistributionsTransform<pcl::PointXYZ, pcl::PointXYZ> ndt;
-//    ndt.setTransformationEpsilon (0.01);
-//    ndt.setStepSize (0.1);
-//    ndt.setResolution (10);
-//    ndt.setMaximumIterations (35);
-//    ndt.setInputSource (_prevCloud);
-//    ndt.setInputTarget (cloud);
-//    ndt.align (*_prevCloud);
-//
-//    Eigen::Matrix4f t = ndt.getFinalTransformation ();
-//    _prevCloud = _laser;
-//
-//    std::cout << t;
-//
-//    /* END OF NDT */
-
-//    /* ICP */
-//    if (Tracker::init)
-//    {
-//        _prevCloud = _laser;
-//        Tracker::init = false;
-//        return;
-//    }
-//
-//    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-//    icp.setMaximumIterations (5);
-//    icp.setInputSource (_prevCloud);
-//    icp.setInputTarget (_laser);
-//    icp.align (*_prevCloud);
-//
-//    Eigen::Matrix4f t = icp.getFinalTransformation ();
-//    _prevCloud = _laser;
-
-//    std::cout << t;
-
-//    /* END OF ICP */
-
-}
-
-Tracker2::Tracker2 (System2& system, Graph2& graph, LocalMapper2& localMapper) 
-    :_system (&system), _graph (&graph), _prevTime (0.0), _localMapper (&localMapper) 
+Tracker2::Tracker2 (System2& system, Graph2& graph) 
+    :_system (&system), _graph (&graph), _prevTime (0.0)
 {
     _system->set_tracker (*this);
 }
@@ -186,7 +80,7 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 
     SE2* t = estimateFromOdom (odom);
 //    SE2* t = estimateFromOdomCombined (odomcombined);
-    Pose2::Ptr pose = _graph->createPose();
+    Pose2::Ptr pose = _graph->createPoseWithId();
 
 //    std::ofstream poseb4optfile;
 
@@ -196,12 +90,6 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
         pose->setModel (*t);
         _prevTime = time;
         _lastPose = pose;
-
-//        poseb4optfile.open ("/home/ism/tmp/pose_b4_opt.dat",std::ios::out|std::ios::app);
-//        poseb4optfile    << pose->estimate().toVector()[0] << " " 
-//                    << pose->estimate().toVector()[1] << " "
-//                    << pose->estimate().toVector()[2] << std::endl;
-//        poseb4optfile.close();
 
         return pose;
     }
@@ -213,7 +101,8 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
     Eigen::Matrix<double, 3, 3> inf;
     inf.setIdentity();
 
-    PoseMeasurement2::Ptr pm = _graph->createPoseMeasurement();
+//    PoseMeasurement2::Ptr pm = _graph->createPoseMeasurement();
+    PoseMeasurement2::Ptr pm = _graph->createPoseMeasurement(_lastPose->id(), pose->id());
 
     pm->vertices()[0] = _lastPose.get();
     pm->vertices()[1] = pose.get();

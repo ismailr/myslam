@@ -87,8 +87,13 @@ class Pose2: public VertexSE2
     void insert_detected_wall (Wall2::Ptr& w) { _detectedWalls.push_back (w); };
     std::vector<Wall2::Ptr> get_detected_walls () { return _detectedWalls; };
 
+    void insert_detected_wall3 (int);
+    std::vector<int> get_detected_walls3 () const { return _detectedWalls3; };
+    bool is_detected_wall (int);
+
     private:
     SE2* _model;
     std::vector<Wall2::Ptr> _detectedWalls;
+    std::vector<int> _detectedWalls3;
 };
 #endif

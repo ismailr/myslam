@@ -31,5 +31,6 @@
 #include "pose_measurement.h"
 #include "wall.h"
 #include "wall_measurement.h"
+#include "angle_measurement.h"
 
 #endif

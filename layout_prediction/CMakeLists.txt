@@ -150,13 +150,10 @@ add_executable(layout_prediction
     src/tracker.cpp
     src/wall_detector.cpp
     src/system.cpp
-    src/frame.cpp
-    src/optimizer.cpp
     src/graph.cpp
     src/pose_measurement.cpp
     src/wall_measurement.cpp
     src/types_myslam.cpp
-    src/local_mapper.cpp
     src/angle_measurement.cpp
     src/simulator.cpp
     #    src/fitness_measurement.cpp
@@ -185,6 +182,7 @@ target_link_libraries(layout_prediction
     ${GLUT_LIBRARIES}
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
+    "/usr/lib64/libconfig++.so"
 )
 
 add_definitions(-std=c++11)

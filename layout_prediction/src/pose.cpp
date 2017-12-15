@@ -49,3 +49,20 @@ Pose2::Pose2() : VertexSE2()
 {
     nodetype = "POSE2";
 }
+
+void Pose2::insert_detected_wall3(int id)
+{
+    if (!is_detected_wall(id))
+        _detectedWalls3.push_back (id);
+}
+
+bool Pose2::is_detected_wall (int id)
+{
+    for (int i = 0; i < _detectedWalls3.size(); i++)
+    {
+        if (id == _detectedWalls3[i])
+            return true;
+    }
+
+    return false;
+}

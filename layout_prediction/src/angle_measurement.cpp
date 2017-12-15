@@ -1,7 +1,7 @@
 #include "layout_prediction/angle_measurement.h"
 
 AngleMeasurement::AngleMeasurement()
-    : BaseBinaryEdge <1, double, Wall2, Wall2>()
+    : BaseBinaryEdge <1, double, Wall3, Wall3>()
 {
     _information.setIdentity();
     _error.setZero();
