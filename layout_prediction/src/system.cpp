@@ -1,6 +1,5 @@
-#include <thread>
-#include <mutex>
 #include <stdlib.h>
+#include <string>
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -68,7 +67,7 @@ void System2::visualize<Wall3::Ptr> (std::vector<Wall3::Ptr> walls)
     visualization_msgs::Marker marker;
     marker.header.frame_id = "odom_combined";
 
-    marker.id = 0; //marker_id++;
+    marker.id = /*0;*/ marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;
@@ -106,7 +105,7 @@ void System2::visualize<Wall3::Ptr> (Wall3::Ptr& w)
     visualization_msgs::Marker marker;
     marker.header.frame_id = "base_link";
 
-    marker.id = 0;// marker_id++;
+    marker.id = /*0;*/ marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;
@@ -266,7 +265,6 @@ void System2::visualize_rho (double x, double y)
     marker.lifetime = ros::Duration();
     _pub_marker3.publish(marker);
 }
-static int frame = 0;
 void System2::readSensorsData (
         const sensor_msgs::PointCloud2ConstPtr& cloud, 
         const sensor_msgs::ImageConstPtr& rgb,
@@ -275,11 +273,6 @@ void System2::readSensorsData (
 //        const nav_msgs::OdometryConstPtr& action,
         const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined)
 {
-    // transform pointcloud data from sensor frame to robot frame
-//    std::ofstream myfile;
-//    myfile.open ("/home/ism/tmp/time.txt", std::ios::out|std::ios::app);
-//    myfile << "TIME " << ros::Time::now() << std::endl;
-//    myfile.close();
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::fromROSMsg(*cloud, *_cloud);
@@ -308,9 +301,9 @@ void System2::readSensorsData (
     if (System2::_framecounter % 10 == 0)
 //    if (System2::_framecounter == 50)
     {
-        _graph->localOptimize(_init, _currentOptimization);
-//        _graph->localOptimize(_init);
-        _currentOptimization.clear();
+//        _graph->localOptimize(_init, _currentOptimization);
+        _graph->localOptimize(_init);
+//        _currentOptimization.clear();
 //        _currentOptimization[pose->id()] = walls;
     }
 

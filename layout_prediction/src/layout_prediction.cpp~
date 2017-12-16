@@ -27,7 +27,6 @@ int main (int argc, char** argv)
 	ros::init (argc,argv,"layout_prediction");
 	ros::NodeHandle nh;
 
-
     Graph2 graph2;
     System2 system2 (nh, graph2);
     WallDetector2 wallDetector2 (system2, graph2);

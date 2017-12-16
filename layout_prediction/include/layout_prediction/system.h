@@ -1,7 +1,6 @@
 #ifndef _SYSTEM_H_
 #define _SYSTEM_H_
 
-
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud2.h>

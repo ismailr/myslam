@@ -247,6 +247,7 @@ Graph2::Graph2() :
     _optimizer->setVerbose (true);
 
     _incOptimizer = new g2o::SparseOptimizerIncremental;
+    _incOptimizer->setVerbose (true);
 
     _slamInterface = new g2o::G2oSlamInterface (_incOptimizer);
     _slamInterface->setUpdateGraphEachN (10);
@@ -665,16 +666,16 @@ void Graph2::localOptimize(bool init)
         if (pose->is_detected_wall ((*it)->id()))
             (*it)->setFixed (true);
 
-        if (it !=_wallDB3.begin())
-        {
-            AngleMeasurement::Ptr am = createAngleMeasurement();
-            am->vertices()[0] = (*(it - 1)).get();
-            am->vertices()[1] = (*it).get();
-            o->addEdge (am.get());
-            Eigen::Matrix<double, 1, 1> inf;
-            inf.setIdentity();
-            am->information () = inf;
-        }
+//        if (it !=_wallDB3.begin())
+//        {
+//            AngleMeasurement::Ptr am = createAngleMeasurement();
+//            am->vertices()[0] = (*(it - 1)).get();
+//            am->vertices()[1] = (*it).get();
+//            o->addEdge (am.get());
+//            Eigen::Matrix<double, 1, 1> inf;
+//            inf.setIdentity();
+//            am->information () = inf;
+//        }
     }
 
     for (std::vector<PoseMeasurement2::Ptr>::iterator it = _poseMeasurementDB.begin();
@@ -776,4 +777,9 @@ void Graph2::localOptimize(bool init, std::map<int, std::set<int> > data)
         posefile << it->second->estimate().toVector()(2) << std::endl; 
     }
     posefile.close();
+}
+
+void Graph2::optimizeIncremental()
+{
+
 }

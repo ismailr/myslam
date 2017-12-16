@@ -88,6 +88,7 @@ class Graph2
     void optimize();
     void localOptimize(bool init);
     void localOptimize(bool init, std::map<int, std::set<int> > data);
+    void optimizeIncremental();
 
     std::vector<Wall2::Ptr> getWallDB() { return _wallDB; };
     std::vector<Wall3::Ptr> getWallDB3() { return _wallDB3; };

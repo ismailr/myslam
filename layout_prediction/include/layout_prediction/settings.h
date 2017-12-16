@@ -2,6 +2,7 @@
 #define _SETTINGS_H_
 
 #include <iostream>
+#include <string>
 #include <libconfig.h++>
 
 using namespace std;
@@ -12,6 +13,7 @@ namespace myslam {
 
         int SIMULATION;
         int SLAM_ONLINE;
+        string PCL_FRAME;
 
         void loadConfFile(const char* fileconfig)
         {
@@ -28,6 +30,7 @@ namespace myslam {
             try {
               cfg.lookupValue ("simulation", SIMULATION);
               cfg.lookupValue ("online", SLAM_ONLINE);
+              cfg.lookupValue ("pcl_frame", PCL_FRAME);
             } catch (SettingNotFoundException &nfex) {
                 cerr << "Configuration not found!" << endl;
             }
