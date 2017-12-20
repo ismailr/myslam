@@ -38,6 +38,9 @@
 #include "g2o/stuff/misc.h"
 #include "g2o/types/slam2d/vertex_point_xy.h"
 
+#include <pcl/point_cloud.h>
+#include <pcl/point_types.h>
+
 #include "vertex_line2d.h"
 
 using namespace g2o;
@@ -202,7 +205,7 @@ class Wall3 : public VertexPointXY
 
         double getm () const { return _m; };
         double getc () const { return _c; };
-        void setpq (Eigen::Vector2d p, Eigen::Vector2d q) {_p = p; _q = q; };
+        void setpq (Eigen::Vector2d p, Eigen::Vector2d q); 
         Eigen::Vector2d getp () const { return _p; };
         Eigen::Vector2d getq () const { return _q; };
 
@@ -210,6 +213,7 @@ class Wall3 : public VertexPointXY
         {
             _estimate[0] = est[0];
             _estimate[1] = est[1];
+
             return true;
         }
 
@@ -217,15 +221,54 @@ class Wall3 : public VertexPointXY
         {
             _estimate[0] += update[0];
             _estimate[1] += update[1];
+            updateIntermediateParams();
         }
 
     private:
-        double _m, _c;
+        double _m, _c, _l, _r;
         Eigen::Vector2d _p, _q;
 
-        void paramFromEst (double* est);
+        void updateIntermediateParams ();
+        void mcFromEstimate();
+        void pqFromEstimate();
 
 
 };
+
+namespace MYSLAM {
+    class Line
+    {
+        public:
+            Line(); 
+            
+            // parameters
+            Eigen::Vector2d mc; // gradien intercept
+            Eigen::Vector2d xx; // point perpendicular to origin
+            Eigen::Vector2d rt; // rho and theta
+            Eigen::Vector2d p; // endpoint
+            Eigen::Vector2d q; // endpoint
+
+        protected:
+            void calcXxFromMc();
+            void calcXxFromRt();
+            void calcRtFromMc();
+            void calcRtFromXx();
+            void calcMcFromXx();
+            void calcMcFromRt();
+    };
+
+    class Wall
+    {
+        public:
+            typedef std::shared_ptr<Wall> Ptr;
+            Wall();
+
+            static unsigned long int _idGenerator;
+            unsigned long int _id;
+            Line _line;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
+
+    };
+}
 
 #endif

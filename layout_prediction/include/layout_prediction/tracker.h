@@ -22,6 +22,8 @@ class Tracker2
         typedef geometry_msgs::PoseWithCovarianceStampedConstPtr OdomCombinedConstPtr;
         Pose2::Ptr trackPose (const OdomConstPtr& odom, const OdomConstPtr& action, const OdomCombinedConstPtr& odomcombined, bool init = false);
 
+        void fixLastPose (Pose2::Ptr p) { _lastPose = p; };
+
     private:
         System2 *_system;
         Graph2 *_graph;
@@ -32,5 +34,29 @@ class Tracker2
         SE2* estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombine);
         SE2* estimateFromModel (const OdomConstPtr& action);
 };
+
+namespace MYSLAM {
+    class System;
+    class Tracker
+    {
+        public:
+            Tracker(System&);
+
+            Pose::Ptr _lastPose;
+
+            Pose::Ptr trackPose (
+                    const nav_msgs::OdometryConstPtr& odom, 
+                    const nav_msgs::OdometryConstPtr& action, 
+                    const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
+                    bool init = false);
+
+        private:
+            System *_system;
+            SE2* estimateFromOdom (const nav_msgs::OdometryConstPtr& odom);
+            SE2* estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombine);
+            SE2* estimateFromModel (const nav_msgs::OdometryConstPtr& action);
+
+    };
+}
 
 #endif

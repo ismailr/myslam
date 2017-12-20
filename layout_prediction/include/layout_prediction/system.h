@@ -45,6 +45,8 @@ class System2
         void visualize_grad (double m, double c);
         void visualize_rho (double rho, double theta);
 
+        Tracker2* getTracker() const { return _tracker; };
+
     private:
         bool _init;
         double _prevTime;
@@ -68,5 +70,34 @@ class System2
         ros::Publisher _pub_rgb;
         ros::Publisher _pub_odom;
 };
+
+namespace MYSLAM {
+    class WallDetector;
+    class Tracker;
+    class System
+    {
+        public:
+            System();
+
+            static unsigned long int _frameCounter;
+            double _currentTime;
+            double _prevTime;
+
+            // callback
+            void readSensorsData (
+                const sensor_msgs::PointCloud2ConstPtr& cloud, 
+                const sensor_msgs::ImageConstPtr& rgb,
+                const sensor_msgs::ImageConstPtr& depth,
+                const nav_msgs::OdometryConstPtr& odom,
+                const nav_msgs::OdometryConstPtr& action,
+                const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined
+                );
+        private:
+            bool _init;
+            Tracker *_tracker;
+            WallDetector *_wallDetector;
+            tf::TransformListener *_listener;
+    };
+}
 
 #endif

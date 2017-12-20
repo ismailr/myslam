@@ -412,7 +412,7 @@ Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
 
 Wall3::Ptr Graph2::data_association (Wall3::Ptr& wall)
 {
-    if (_wallMap.empty())
+    if (_wallDB3.empty())
     {
         registerWall3 (wall);
         return wall;
@@ -421,13 +421,13 @@ Wall3::Ptr Graph2::data_association (Wall3::Ptr& wall)
     double xest = wall->estimate().x();
     double yest = wall->estimate().y();
 
-    for (std::map<int, Wall3::Ptr>::iterator it = _wallMap.begin(); 
-            it != _wallMap.end(); it++)
+    for (std::vector<Wall3::Ptr>::iterator it = _wallDB3.begin(); 
+            it != _wallDB3.end(); it++)
     {
-        if (    std::abs(xest - it->second->estimate().x()) < THRESHOLD &&
-                std::abs(yest - it->second->estimate().y()) < THRESHOLD)
+        if (    std::abs(xest - (*it)->estimate().x()) < THRESHOLD &&
+                std::abs(yest - (*it)->estimate().y()) < THRESHOLD)
         {
-            return it->second;
+            return *it;
         }
     }
 
@@ -650,9 +650,15 @@ void Graph2::localOptimize(bool init)
     {
 //        int id = requestId();
 //        (*it)->setId (id);
-        if (it == _poseDB.begin()) (*it)->setFixed (true);
-        if (!init && it != _poseDB.begin())
+
+        if (init)
+        {
             o->addVertex ((*it).get());
+            if ((*it)->id() == 0) (*it)->setFixed (true);
+        }
+        else if (it != _poseDB.begin())
+            o->addVertex ((*it).get());
+        else (*it)->setFixed (true);
     }
 
     for (std::vector<Wall3::Ptr>::iterator it = _wallDB3.begin();
@@ -662,9 +668,9 @@ void Graph2::localOptimize(bool init)
 //        (*it)->setId (id);
         o->addVertex ((*it).get());
 
-        Pose2::Ptr pose = *_poseDB.begin();
-        if (pose->is_detected_wall ((*it)->id()))
-            (*it)->setFixed (true);
+//        Pose2::Ptr pose = *_poseDB.begin();
+//        if (pose->is_detected_wall ((*it)->id()))
+//            (*it)->setFixed (true);
 
 //        if (it !=_wallDB3.begin())
 //        {
@@ -700,7 +706,7 @@ void Graph2::localOptimize(bool init)
     mfile.open ("/home/ism/tmp/data.g2o", std::ios::out | std::ios::app);
     o->save(mfile);
     o->initializeOptimization();
-    o->optimize(10);
+    o->optimize(100);
     o->save(mfile);
     mfile << std::endl << std::endl;
     mfile.close();
@@ -711,19 +717,34 @@ void Graph2::localOptimize(bool init)
     for (std::vector<Pose2::Ptr>::iterator it = _poseDB.begin();
             it != _poseDB.end(); ++it)
     {
+        if (!init && it == _poseDB.begin()) continue;
         posefile << (*it)->estimate().toVector()(0) << " ";
         posefile << (*it)->estimate().toVector()(1) << " ";
         posefile << (*it)->estimate().toVector()(2) << std::endl; 
     }
     posefile.close();
-//    _system->visualize<Wall3::Ptr> (_wallDB3);
+//    _system->visualize<Wall3::Ptr> (_wall3DB);
 
     Pose2::Ptr p = _poseDB.back();
+    std::vector<Wall3::Ptr> wallFixed;
+    for (std::vector<Wall3::Ptr>::iterator it = _wallDB3.begin();
+            it != _wallDB3.end(); it++)
+    {
+        if (p->is_detected_wall ((*it)->id()))
+        {
+            Wall3 *w = dynamic_cast<Wall3*> ((*it)->clone());
+//            Wall3::Ptr ww (w);
+//            wallFixed.push_back (ww);
+        }
+    }
     _poseMeasurementDB.clear();
     _wallMeasurementDB3.clear();
     _poseDB.clear();
     _wallDB3.clear();
     _poseDB.push_back(p);
+    _wallDB3.insert (_wallDB3.end(), wallFixed.begin(), wallFixed.end());
+
+//    _system->getTracker()->fixLastPose (p);
 }
 
 void Graph2::localOptimize(bool init, std::map<int, std::set<int> > data)

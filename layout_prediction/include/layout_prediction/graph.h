@@ -118,6 +118,7 @@ class Graph2
     std::vector<Pose2::Ptr> _poseDB;
     std::vector<Wall2::Ptr> _wallDB;
     std::vector<Wall3::Ptr> _wallDB3;
+    std::vector<Wall3::Ptr> _wall3DB;
     std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;
     std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
     std::vector<WallMeasurement3::Ptr> _wallMeasurementDB3;

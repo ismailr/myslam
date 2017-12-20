@@ -245,7 +245,13 @@ Wall3::Wall3 () : VertexPointXY()
     _p(0) = _p(1) = _q(0) = _q(1) = 0.0;
 }
 
-void Wall3::paramFromEst (double* est)
+void Wall3::updateIntermediateParams ()
+{
+    mcFromEstimate();
+//    pqFromEstimate();
+}
+
+void Wall3::mcFromEstimate()
 {
     double& x = _estimate[0];
     double& y = _estimate[1];
@@ -255,6 +261,50 @@ void Wall3::paramFromEst (double* est)
         _m = -x/y;
         _c = (x*x + y*y)/y;
     }
-
 }
 
+void Wall3::pqFromEstimate()
+{
+    double& x = _estimate[0];
+    double& y = _estimate[1];
+    Eigen::Vector2d r (x,y);
+
+    double norm = sqrt (1 + _m*_m);
+    Eigen::Vector2d unitm (1/norm,_m/norm);
+
+    _p = r - _l * unitm;
+    _q = r + _r * unitm;
+}
+
+void Wall3::setpq (Eigen::Vector2d p, Eigen::Vector2d q) 
+{
+    _p = q;
+    _q = p;
+
+    double& x = _estimate[0];
+    double& y = _estimate[1];
+
+    _l = sqrt ((x-_p.x())*(x-_p.x()) + (y-_p.y())*(y-_p.y()));
+    _r = sqrt ((x-_q.x())*(x-_q.x()) + (y-_q.y())*(y-_q.y()));
+}
+
+namespace MYSLAM {
+    unsigned long int Wall::_idGenerator = 0;
+
+    Line::Line(){
+        mc.setZero();
+        xx.setZero();
+        rt.setZero();
+        p.setZero();
+        q.setZero();
+    };
+
+    void Line::calcXxFromMc(){};
+    void Line::calcXxFromRt(){};
+    void Line::calcRtFromMc(){};
+    void Line::calcRtFromXx(){};
+    void Line::calcMcFromXx(){};
+    void Line::calcMcFromRt(){};
+
+    Wall::Wall(){ _id = Wall::_idGenerator++; };
+}

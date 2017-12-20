@@ -19,6 +19,7 @@
 #include <pcl/registration/ndt.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/project_inliers.h>
 #include <pcl/features/normal_3d.h>
 #include <pcl/kdtree/kdtree.h>
 
@@ -32,6 +33,7 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall_measurement.h"
+#include "layout_prediction/settings.h"
 
 WallDetector2::WallDetector2(System2& system, Graph2& graph) 
     :_method(WallDetector2::USE_LINE_FITTING),
@@ -53,7 +55,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud, std::s
     {
         for (PointCloudCluster::iterator it = _pointCloudCluster.begin();
                 it != _pointCloudCluster.end(); ++it)
-            line_fitting (_preparedCloud, pose, walls);
+            line_fitting (**it, pose, walls);
     }
     else if (_method == WallDetector2::USE_PLANE_FITTING)
     {
@@ -78,6 +80,7 @@ void WallDetector2::detect(Pose2::Ptr& pose, const PointCloud::Ptr cloud, std::s
             wm->setMeasurementData (measurementData);
             Eigen::Matrix<double, 2, 2> inf;
             inf.setIdentity();
+//            inf << 100.0, 0.0, 0.0, 100.0;
             wm->information () = inf;
         }
 
@@ -181,6 +184,7 @@ void WallDetector2::line_fitting (PointCloud& _preparedCloud, Pose2::Ptr& pose, 
         seg.setInputCloud(_preparedCloud.makeShared());
         seg.segment(inliers, coefficients);
 
+
         if(inliers.indices.size() == 0)
         {
             PCL_ERROR("No inliers.");
@@ -220,8 +224,19 @@ void WallDetector2::line_fitting (PointCloud& _preparedCloud, Pose2::Ptr& pose, 
             q_(0) = points.back().x();
             q_(1) = points.back().y();
 
-            w->setpq (p_,q_);
-            _system->visualize<Wall3::Ptr> (w);
+            double x = pose->estimate().translation().x();
+            double y = pose->estimate().translation().y();
+            double t = pose->estimate().rotation().angle();
+            double cost = cos(t);
+            double sint = sin(t);
+
+            p(0) = p_(0)*cost - p_(1)*sint + x;
+            p(1) = p_(0)*sint + p_(1)*cost + y;
+            q(0) = q_(0)*cost - q_(1)*sint + x;
+            q(1) = q_(0)*sint + q_(1)*cost + y;
+
+            w->setpq (p,q);
+//            _system->visualize<Wall3::Ptr> (w);
 //            _system->visualize_rho (xx, xy);
 //
 //            double x = pose->estimate().translation().x();
@@ -408,7 +423,7 @@ void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _prep
         tree->setInputCloud (_preparedCloud.makeShared());
 
         pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
-        ec.setClusterTolerance (1);
+        ec.setClusterTolerance (0.1);
         ec.setMinClusterSize (100);
         ec.setMaxClusterSize (25000);
         ec.setSearchMethod (tree);
@@ -580,3 +595,224 @@ void WallDetector2::localToGlobal (double* mc_, Pose2::Ptr& pose, double* mc)
     m = (sinp +  m_ * cosp)/(cosp - m_ * sinp);
     c = -m * x + y + c_/(cosp - m_ * sinp);
 }
+
+namespace MYSLAM {
+    WallDetector::WallDetector(System& system) : 
+        _system (&system), _method (MYSLAM::WALL_DETECTOR_METHOD)
+    {
+
+    }
+
+    void WallDetector::detect(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
+            std::vector<Wall::Ptr>& outWalls)
+    {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+        prepareCloud (inCloud, cloud);
+
+        std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudset;
+        clusterCloud (cloud, cloudset);
+
+        if (_method == LINE_FITTING)
+        {
+            for (std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>::iterator it = cloudset.begin();
+                    it != cloudset.end(); ++it)
+                lineFitting (*it, pose, outWalls);
+        }
+        else if (_method == PLANE_FITTING)
+        {
+            for (std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>::iterator it = cloudset.begin();
+                    it != cloudset.end(); ++it)
+            {
+            }
+        }
+    }
+
+    void WallDetector::prepareCloud (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
+            pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud)
+    {
+        int width = inCloud->width;
+        int height = static_cast<int>(inCloud->height/MYSLAM::WALL_DETECTOR_CLOUD_ROW);
+
+        if (_method == LINE_FITTING)
+            for(int i = 0; i < width; i++)
+                outCloud->push_back(inCloud->at(i,height));
+        else if (_method == PLANE_FITTING) {}
+    }
+
+    void WallDetector::clusterCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
+            std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& cloudset)
+    {
+        std::vector<pcl::PointIndices> indexset;
+
+        if (_method == LINE_FITTING)
+        {
+            // NaN-based clustering
+            std::vector<int> in;
+            for(size_t i = 0; i < inCloud->width; ++i)
+            {
+                if(pcl::isFinite(inCloud->points[i]))
+                {
+                    in.push_back(i);
+                    continue;
+                }
+
+                if(in.size() > 0)
+                {
+                    pcl::PointIndices r;
+                    r.indices.resize(in.size());
+                    for(size_t j = 0; j < in.size(); ++j)
+                        r.indices[j] = in[j];
+                    indexset.push_back(r);
+                }
+
+                in.clear();
+            }
+
+            // Concat clusters 
+            if(!indexset.empty())
+            {
+                for(size_t i = 0; i < indexset.size()-1 ; ++i)
+                {
+                    // calculate distance between consecutive clusters
+                    if(!indexset[i].indices.empty())
+                    {
+                        float dist = pcl::euclideanDistance(
+                                inCloud->points[indexset[i].indices.back()],
+                                inCloud->points[indexset[i+1].indices.front()]);
+                        if(dist < 1.0)
+                        {
+                            indexset[i].indices.reserve(
+                                    indexset[i].indices.size() +
+                                    indexset[i+1].indices.size()); 
+                            indexset[i].indices.insert(
+                                    indexset[i].indices.end(),
+                                    indexset[i+1].indices.begin(), 
+                                    indexset[i+1].indices.end());
+                            indexset.erase(indexset.begin() + i);
+                        }
+                    }
+                }
+            }
+        }
+        else if (_method == PLANE_FITTING)
+        {
+            pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
+            tree->setInputCloud (inCloud);
+
+            pcl::EuclideanClusterExtraction<pcl::PointXYZ> ec;
+            ec.setClusterTolerance (0.1);
+            ec.setMinClusterSize (100);
+            ec.setMaxClusterSize (25000);
+            ec.setSearchMethod (tree);
+            ec.setInputCloud (inCloud);
+            ec.extract (indexset);
+        }
+
+        for (std::vector<pcl::PointIndices>::iterator it = indexset.begin(); 
+                it != indexset.end(); ++it)
+        {
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cluster (new pcl::PointCloud<pcl::PointXYZ>);
+            for (std::vector<int>::iterator pit = it->indices.begin();
+                    pit != it->indices.end(); ++pit)
+                cluster->points.push_back ((*inCloud)[*pit]);
+
+            cloudset.push_back (cluster);
+        }
+    }
+
+    void WallDetector::lineFitting (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, Pose::Ptr& pose, 
+            std::vector<Wall::Ptr>& outWalls)
+    {
+        while(true)
+        {
+            pcl::ModelCoefficients::Ptr coefficients;
+            pcl::PointIndices inliers;
+
+            pcl::SACSegmentation<pcl::PointXYZ> seg;
+            seg.setOptimizeCoefficients(true);
+            seg.setModelType(pcl::SACMODEL_LINE);
+            seg.setMethodType(pcl::SAC_RANSAC);
+            seg.setDistanceThreshold(0.1);
+
+            seg.setInputCloud(inCloud);
+            seg.segment(inliers, *coefficients);
+
+            if(inliers.indices.size() == 0)
+            {
+                PCL_ERROR("No inliers.");
+                break;
+            }
+
+            if(inliers.indices.size() > 100)
+            {
+                Eigen::Vector2d mc_;
+                double& m_ = mc_[0]; 
+                double& c_ = mc_[1]; 
+                coefficients->values[3] == 0 ? 
+                    m_ = std::numeric_limits<double>::infinity() :
+                    m_ = coefficients->values[4]/coefficients->values[3];
+                c_ = coefficients->values[1]- (m_ * coefficients->values[0]);
+
+                Eigen::Vector2d xxxy_;
+                double& xx_ = xxxy_[0];
+                double& xy_ = xxxy_[1];
+                xx_ = - (m_ * c_)/(m_ * m_ + 1);
+                xy_ = c_/(m_ * m_ + 1);
+
+                Eigen::Vector2d mc;
+                double& m = mc[0];
+                double& c = mc[1]; 
+                localToGlobal (mc_, pose, mc);
+
+                Eigen::Vector2d xxxy;
+                double& xx = xxxy[0];
+                double& xy = xxxy[1];
+                xx = - (m * c)/(m * m + 1);
+                xy = c/(m * m + 1);
+
+                pcl::PointCloud<pcl::PointXYZ>::Ptr cloudProjected;
+                pcl::ProjectInliers<pcl::PointXYZ> proj;
+                proj.setModelType (pcl::SACMODEL_LINE);
+                proj.setInputCloud (inCloud);
+                proj.setModelCoefficients (coefficients);
+                proj.filter (*cloudProjected);
+
+                Eigen::Vector2d p, q;
+                p.x() = cloudProjected->front().x;
+                p.y() = cloudProjected->front().y;
+                q.x() = cloudProjected->back().x;
+                q.y() = cloudProjected->back().y;
+
+                Wall::Ptr w (new Wall);
+                w->_line.xx = xxxy;
+                w->_line.p = p;
+                w->_line.q = q;
+                w->_cloud = cloudProjected;
+
+                outWalls.push_back(w);
+            }
+
+            pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = inCloud->begin();
+            inCloud->erase(cloud_iter, cloud_iter + inliers.indices.back());
+        }
+    }
+
+    void WallDetector::localToGlobal (Eigen::Vector2d& mc_, Pose::Ptr& pose, Eigen::Vector2d& mc)
+    {
+        double x = pose->_pose[0];
+        double y = pose->_pose[1];
+        double p = pose->_pose[2];
+        double cosp = cos(p);
+        double sinp = sin(p);
+
+        double& m = mc[0];
+        double& c = mc[1];
+        double& m_ = mc_[0];
+        double& c_ = mc_[1];
+
+        m = (sinp +  m_ * cosp)/(cosp - m_ * sinp);
+        c = -m * x + y + c_/(cosp - m_ * sinp);
+    }
+}
+
+

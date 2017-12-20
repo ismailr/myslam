@@ -13,7 +13,7 @@ class Simulator
     struct Dinding
     {
         int id;
-        double m, c, rho, theta;
+        double m, c, xx, xy;
         Eigen::Vector2d p;
         Eigen::Vector2d q;
     };
@@ -25,24 +25,26 @@ class Simulator
 
             SE2 *truePose;
             SE2 *simPose;
-            std::vector<Dinding*> sensedData;
+            std::vector<Dinding*> sensedDinding;
+            std::vector<Eigen::Vector2d> sensedData;
 
             void move();
             void sense();
 
         private:
             Simulator* _sim;
-            const double xNoise = 0.5, yNoise = 0.5;
-            const double pNoise  = 5.0 * M_PI/180.0;
-            const double RANGE = 20.0;
-            const double FOV = M_PI/2;
+            const double xNoise = 0.01, yNoise = 0.01;
+            const double pNoise  = 0.01 * M_PI/180.0;
+            const double RANGE = 2.0;
     };
 
     std::vector<Dinding> struktur;
     Robot *robot;
 
-    Robot* getNextState();
+    void getNextState();
     std::vector<Dinding> getStruktur () const { return struktur; };
+
+    void run();
 
     private:
     const int NUM_OF_WALLS = 8;

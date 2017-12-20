@@ -17,6 +17,7 @@
 #include "layout_prediction/graph.h"
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/helpers.h"
+#include "layout_prediction/settings.h"
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
@@ -53,6 +54,11 @@ template <> void System2::visualize<pcl::PointCloud<pcl::PointXYZ>::Ptr> (pcl::P
     _pub_cloud.publish (cloud);
 }
 
+template <> void System2::visualize<pcl::PointCloud<pcl::PointXYZ>> (pcl::PointCloud<pcl::PointXYZ>& cloud)
+{
+    _pub_cloud.publish (cloud);
+}
+
 template <>
 void System2::visualize<nav_msgs::OdometryConstPtr> (nav_msgs::OdometryConstPtr& odom)
 {
@@ -67,7 +73,7 @@ void System2::visualize<Wall3::Ptr> (std::vector<Wall3::Ptr> walls)
     visualization_msgs::Marker marker;
     marker.header.frame_id = "odom_combined";
 
-    marker.id = /*0;*/ marker_id++;
+    marker.id = 0; //marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;
@@ -105,7 +111,7 @@ void System2::visualize<Wall3::Ptr> (Wall3::Ptr& w)
     visualization_msgs::Marker marker;
     marker.header.frame_id = "base_link";
 
-    marker.id = /*0;*/ marker_id++;
+    marker.id = 0;// marker_id++;
     marker.type = visualization_msgs::Marker::LINE_LIST;
 
     marker.action = visualization_msgs::Marker::ADD;
@@ -278,8 +284,8 @@ void System2::readSensorsData (
 	pcl::fromROSMsg(*cloud, *_cloud);
 
     try {
-        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_link", ros::Time::now(), ros::Duration(10.0));
-        pcl_ros::transformPointCloud ("/base_link", *_cloud, *_cloud, *_listener);
+        _listener->waitForTransform ("/openni_rgb_optical_frame", "/base_laser_link", ros::Time::now(), ros::Duration(10.0));
+        pcl_ros::transformPointCloud ("/base_laser_link", *_cloud, *_cloud, *_listener);
     } 
     catch (tf::TransformException &ex) {
         ROS_ERROR ("%s", ex.what());
@@ -298,7 +304,7 @@ void System2::readSensorsData (
 
     _currentOptimization[pose->id()] = walls;
 
-    if (System2::_framecounter % 10 == 0)
+    if (System2::_framecounter % 3 == 0)
 //    if (System2::_framecounter == 50)
     {
 //        _graph->localOptimize(_init, _currentOptimization);
@@ -311,5 +317,56 @@ void System2::readSensorsData (
 
     if (_init == true) _init = false;
 //    _pub_odom.publish (odom);
+}
+
+namespace MYSLAM {
+    unsigned int long System::_frameCounter = 0;
+
+    System::System(){
+        _tracker = new Tracker(*this);
+        _wallDetector = new WallDetector (*this);
+    };
+
+    void System::readSensorsData (
+            const sensor_msgs::PointCloud2ConstPtr& cloud, 
+            const sensor_msgs::ImageConstPtr& rgb,
+            const sensor_msgs::ImageConstPtr& depth,
+            const nav_msgs::OdometryConstPtr& odom,
+            const nav_msgs::OdometryConstPtr& action,
+            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined)
+    {
+        _currentTime = ros::Time::now().toSec();
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::fromROSMsg(*cloud, *_cloud);
+
+        try {
+            _listener->waitForTransform (   
+                    "/openni_rgb_optical_frame",
+                    MYSLAM::PCL_FRAME,
+//                    "/base_laser_link", 
+                    ros::Time::now(), 
+                    ros::Duration(10.0));
+
+            pcl_ros::transformPointCloud (
+//                    "/base_laser_link", 
+                    MYSLAM::PCL_FRAME,
+                    *_cloud, *_cloud, *_listener);
+        } 
+        catch (tf::TransformException &ex) {
+            ROS_ERROR ("%s", ex.what());
+        }
+
+        // trackPose
+        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
+
+        // detectwall
+        std::vector<Wall::Ptr> walls;
+        _wallDetector->detect (pose, _cloud, walls);
+        // optimize
+
+        _prevTime = _currentTime;
+        _init = false;
+    }
 }
 

@@ -66,3 +66,12 @@ bool Pose2::is_detected_wall (int id)
 
     return false;
 }
+
+namespace MYSLAM {
+    unsigned int long Pose::_idGenerator = 0;
+
+    Pose::Pose(){ 
+        _id = Pose::_idGenerator++;
+        _pose.setZero();
+    };
+}

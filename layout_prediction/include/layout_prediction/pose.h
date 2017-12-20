@@ -96,4 +96,20 @@ class Pose2: public VertexSE2
     std::vector<Wall2::Ptr> _detectedWalls;
     std::vector<int> _detectedWalls3;
 };
+
+namespace MYSLAM {
+    class Pose
+    {
+        public:
+            typedef std::shared_ptr<Pose> Ptr;
+            Pose();
+
+            static unsigned int long _idGenerator;
+            unsigned int long _id;
+            Eigen::Vector3d _pose;
+            Eigen::Vector3d _poseByModel;
+
+            std::vector<std::tuple<Wall::Ptr,Eigen::Vector2d> > detectedWalls;
+    };
+}
 #endif

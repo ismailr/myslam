@@ -90,6 +90,21 @@ class PoseMeasurement2 : public EdgeSE2
         const Pose* v2 = static_cast<const Pose*>(_vertices[1]);
         SE2 delta = _inverseMeasurement * (v1->estimate().inverse()*v2->estimate());
         _error = delta.toVector();
+
+        double x1 = v1->estimate().translation().x();
+        double y1 = v1->estimate().translation().y();
+        double p1 = v1->estimate().rotation().angle();
+        double x2 = v2->estimate().translation().x();
+        double y2 = v2->estimate().translation().y();
+        double p2 = v2->estimate().rotation().angle();
+
+        std::ofstream f;
+        f.open ("/home/ism/tmp/error_pose.dat", std::ios::out|std::ios::app);
+        f << "x1 = " << x1 << " y1 = " << y1 << " p1 = " << p1 << std::endl; 
+        f << "x2 = " << x2 << " y2 = " << y2 << " p2 = " << p2 << std::endl; 
+        f << "ERROR: " << _error.transpose() << std::endl;
+        f << std::endl;
+        f.close();
     }
 
     private:
