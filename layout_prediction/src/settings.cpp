@@ -6,6 +6,7 @@ namespace MYSLAM {
     string PCL_FRAME;
     int WALL_DETECTOR_METHOD;
     int WALL_DETECTOR_CLOUD_ROW;
+    double DATA_ASSOCIATION_THRESHOLD;
 
     void loadConfFile(const char* fileconfig)
     {
@@ -25,6 +26,7 @@ namespace MYSLAM {
           cfg.lookupValue ("pcl_frame", PCL_FRAME);
           cfg.lookupValue ("wall_detector_method", WALL_DETECTOR_METHOD);
           cfg.lookupValue ("wall_detector_cloud_row", WALL_DETECTOR_CLOUD_ROW);
+          cfg.lookupValue ("data_association_threshold", DATA_ASSOCIATION_THRESHOLD);
         } catch (SettingNotFoundException &nfex) {
             cerr << "Configuration not found!" << endl;
         }

@@ -109,7 +109,7 @@ namespace MYSLAM {
             Eigen::Vector3d _pose;
             Eigen::Vector3d _poseByModel;
 
-            std::vector<std::tuple<Wall::Ptr,Eigen::Vector2d> > detectedWalls;
+            std::vector<int> _detectedWalls;
     };
 }
 #endif

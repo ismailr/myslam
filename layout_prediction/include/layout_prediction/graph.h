@@ -139,4 +139,28 @@ class Graph2
     std::vector<int> currentNodes;
 };
 
+namespace MYSLAM {
+    class System;
+    class Graph
+    {
+        public:
+            Graph(System&);
+            Wall::Ptr dataAssociation (Wall::Ptr& w);
+
+            std::map<int, Pose::Ptr> _poseMap;
+            std::map<int, Wall::Ptr> _wallMap;
+
+            std::map<std::tuple<int, int>, Eigen::Vector2d> _poseWallMap;
+
+            // local optimization book keeping
+            std::vector<int> _activePoses;
+            std::vector<int> _activeWalls;
+            std::vector<std::tuple<int, int> > _activeEdges;
+
+        private:
+            System *_system;
+    };
+
+}
+
 #endif

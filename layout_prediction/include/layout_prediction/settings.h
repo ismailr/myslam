@@ -14,5 +14,8 @@ namespace MYSLAM {
     extern string PCL_FRAME;
     extern int WALL_DETECTOR_METHOD;
     extern int WALL_DETECTOR_CLOUD_ROW;
+    extern double DATA_ASSOCIATION_THRESHOLD;
+
+    void loadConfFile(const char* fileconfig);
 }
 #endif

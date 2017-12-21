@@ -11,6 +11,7 @@
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/graph.h"
 #include "layout_prediction/tracker.h"
+#include "layout_prediction/optimizer.h"
 #include "layout_prediction/helpers.h"
 #include "se2.h"
 
@@ -74,10 +75,11 @@ class System2
 namespace MYSLAM {
     class WallDetector;
     class Tracker;
+    class Optimizer;
     class System
     {
         public:
-            System();
+            System(ros::NodeHandle nh);
 
             static unsigned long int _frameCounter;
             double _currentTime;
@@ -89,13 +91,16 @@ namespace MYSLAM {
                 const sensor_msgs::ImageConstPtr& rgb,
                 const sensor_msgs::ImageConstPtr& depth,
                 const nav_msgs::OdometryConstPtr& odom,
-                const nav_msgs::OdometryConstPtr& action,
+//                const nav_msgs::OdometryConstPtr& action,
                 const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined
                 );
         private:
             bool _init;
+            ros::NodeHandle _rosnodehandle;
+            Graph *_graph;
             Tracker *_tracker;
             WallDetector *_wallDetector;
+            Optimizer *_optimizer;
             tf::TransformListener *_listener;
     };
 }

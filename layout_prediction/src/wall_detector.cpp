@@ -604,9 +604,9 @@ namespace MYSLAM {
     }
 
     void WallDetector::detect(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
-            std::vector<Wall::Ptr>& outWalls)
+            std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls)
     {
-        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud;
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
         prepareCloud (inCloud, cloud);
 
         std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudset;
@@ -721,11 +721,11 @@ namespace MYSLAM {
     }
 
     void WallDetector::lineFitting (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, Pose::Ptr& pose, 
-            std::vector<Wall::Ptr>& outWalls)
+            std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls)
     {
         while(true)
         {
-            pcl::ModelCoefficients::Ptr coefficients;
+            pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
             pcl::PointIndices inliers;
 
             pcl::SACSegmentation<pcl::PointXYZ> seg;
@@ -770,7 +770,7 @@ namespace MYSLAM {
                 xx = - (m * c)/(m * m + 1);
                 xy = c/(m * m + 1);
 
-                pcl::PointCloud<pcl::PointXYZ>::Ptr cloudProjected;
+                pcl::PointCloud<pcl::PointXYZ>::Ptr cloudProjected (new pcl::PointCloud<pcl::PointXYZ>);
                 pcl::ProjectInliers<pcl::PointXYZ> proj;
                 proj.setModelType (pcl::SACMODEL_LINE);
                 proj.setInputCloud (inCloud);
@@ -789,7 +789,8 @@ namespace MYSLAM {
                 w->_line.q = q;
                 w->_cloud = cloudProjected;
 
-                outWalls.push_back(w);
+                std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
+                outWalls.push_back(measurement);
             }
 
             pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = inCloud->begin();

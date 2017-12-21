@@ -71,13 +71,13 @@ namespace MYSLAM {
             WallDetector(System&);
 
             void detect(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
-                    std::vector<Wall::Ptr>& outWalls);
+                    std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void prepareCloud (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
                     pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud);
             void clusterCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
                     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& cloudset);
             void lineFitting (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, Pose::Ptr& pose, 
-                    std::vector<Wall::Ptr>& outWalls);
+                    std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void localToGlobal (Eigen::Vector2d& mc_, Pose::Ptr& pose, Eigen::Vector2d& mc);
 
         private:

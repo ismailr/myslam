@@ -19,6 +19,7 @@
 
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall.h"
+#include "layout_prediction/settings.h"
 
 using namespace g2o;
 
@@ -803,4 +804,29 @@ void Graph2::localOptimize(bool init, std::map<int, std::set<int> > data)
 void Graph2::optimizeIncremental()
 {
 
+}
+
+namespace MYSLAM {
+    Graph::Graph(System& system):_system (&system) {};
+
+    Wall::Ptr Graph::dataAssociation (Wall::Ptr& w)
+    {
+        double& xx = w->_line.xx[0];
+        double& xy = w->_line.xx[1];
+
+        for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
+                it != _wallMap.end(); it++)
+        {
+            double& xxref = it->second->_line.xx[0];
+            double& xyref = it->second->_line.xx[1];
+
+            if (    std::abs(xx-xxref) < MYSLAM::DATA_ASSOCIATION_THRESHOLD 
+                    && std::abs(xy-xyref) < MYSLAM::DATA_ASSOCIATION_THRESHOLD)
+                return it->second;
+        }
+
+        _wallMap[w->_id] = w;
+        _activeWalls.push_back (w->_id);
+        return w;
+    }
 }

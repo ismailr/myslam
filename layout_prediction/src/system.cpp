@@ -322,23 +322,26 @@ void System2::readSensorsData (
 namespace MYSLAM {
     unsigned int long System::_frameCounter = 0;
 
-    System::System(){
+    System::System(ros::NodeHandle nh):_rosnodehandle (nh){
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
+        _graph = new Graph (*this);
+        _optimizer = new Optimizer (*this, *_graph);
+        _listener = new tf::TransformListener;
     };
 
     void System::readSensorsData (
-            const sensor_msgs::PointCloud2ConstPtr& cloud, 
+            const sensor_msgs::PointCloud2ConstPtr& cloudmsg, 
             const sensor_msgs::ImageConstPtr& rgb,
             const sensor_msgs::ImageConstPtr& depth,
             const nav_msgs::OdometryConstPtr& odom,
-            const nav_msgs::OdometryConstPtr& action,
+//            const nav_msgs::OdometryConstPtr& action,
             const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined)
     {
         _currentTime = ros::Time::now().toSec();
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud (new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::fromROSMsg(*cloud, *_cloud);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::fromROSMsg(*cloudmsg, *cloud);
 
         try {
             _listener->waitForTransform (   
@@ -351,22 +354,41 @@ namespace MYSLAM {
             pcl_ros::transformPointCloud (
 //                    "/base_laser_link", 
                     MYSLAM::PCL_FRAME,
-                    *_cloud, *_cloud, *_listener);
+                    *cloud, *cloud, *_listener);
         } 
         catch (tf::TransformException &ex) {
             ROS_ERROR ("%s", ex.what());
         }
 
         // trackPose
-        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
+        Pose::Ptr pose = _tracker->trackPose (odom, odom, odomCombined, _init);
+        _graph->_poseMap[pose->_id] = pose;
+        _graph->_activePoses.push_back (pose->_id);
 
         // detectwall
-        std::vector<Wall::Ptr> walls;
-        _wallDetector->detect (pose, _cloud, walls);
-        // optimize
+        std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
+        _wallDetector->detect (pose, cloud, walls);
+
+        // data association
+        for (size_t i = 0; i < walls.size(); i++)
+        {
+            Wall::Ptr w = std::get<0>(walls[i]);
+            w = _graph->dataAssociation (w);
+            std::tuple<int, int> m (pose->_id, w->_id);
+            _graph->_poseWallMap[m] = std::get<1>(walls[i]);
+            _graph->_activeEdges.push_back (m);
+            pose->_detectedWalls.push_back (w->_id);
+        }
+
+        // do local mapping each time detected two new walls
+        if (_graph->_activeWalls.size() == 2)
+        {
+            _optimizer->localOptimize();
+        }
 
         _prevTime = _currentTime;
         _init = false;
+        System::_frameCounter++;
     }
 }
 
