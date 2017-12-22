@@ -157,3 +157,8 @@ WallMeasurement3::WallMeasurement3() : EdgeSE2PointXY()
 {
 
 }
+
+namespace MYSLAM {
+    WallMeasurement::WallMeasurement() : EdgeSE2PointXY() {};
+
+}

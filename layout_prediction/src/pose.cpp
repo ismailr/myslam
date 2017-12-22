@@ -25,6 +25,7 @@
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "layout_prediction/pose.h"
+#include "layout_prediction/helpers.h"
 
 Pose::Pose() : BaseVertex<3, SE2>()
 {
@@ -68,10 +69,10 @@ bool Pose2::is_detected_wall (int id)
 }
 
 namespace MYSLAM {
-    unsigned int long Pose::_idGenerator = 0;
-
     Pose::Pose(){ 
-        _id = Pose::_idGenerator++;
+        _id = Generator::id++;
         _pose.setZero();
     };
+
+    PoseVertex::PoseVertex(){};
 }

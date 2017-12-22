@@ -108,7 +108,7 @@ void Converter::odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampe
     t.fromVector (v); 
 }
 
-inline double normalize_angle (double a)
+double normalize_angle (double a)
 {
     double angle = a;
     if (angle >= 0)
@@ -119,3 +119,5 @@ inline double normalize_angle (double a)
             angle += 2 * M_PI;
     return angle;
 }
+
+unsigned long int Generator::id = 0;

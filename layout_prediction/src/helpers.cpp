@@ -119,3 +119,5 @@ double normalize_angle (double a)
             angle += 2 * M_PI;
     return angle;
 }
+
+unsigned long int Generator::id = 0;

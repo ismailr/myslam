@@ -38,7 +38,7 @@ double calculate_slope (line_segment_stamped);
 line_eq points_to_line_eq (line_segment);
 line_eq points_to_line_eq (line_segment_stamped);
 
-inline double normalize_angle (double a);
+double normalize_angle (double a);
 
 class IdGenerator
 {
@@ -57,6 +57,12 @@ class Converter
         Converter(){};
         void odomToSE2 (const nav_msgs::OdometryConstPtr& odom, SE2& t);
         void odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, SE2& t);
+};
+
+class Generator
+{
+    public:
+        static unsigned long int id;
 };
 
 

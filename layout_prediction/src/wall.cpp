@@ -37,6 +37,7 @@
 
 #include "layout_prediction/wall.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/helpers.h"
 
 Wall::Wall() :
 BaseVertex<2, Line2D>()
@@ -289,8 +290,6 @@ void Wall3::setpq (Eigen::Vector2d p, Eigen::Vector2d q)
 }
 
 namespace MYSLAM {
-    unsigned long int Wall::_idGenerator = 0;
-
     Line::Line(){
         mc.setZero();
         xx.setZero();
@@ -306,5 +305,7 @@ namespace MYSLAM {
     void Line::calcMcFromXx(){};
     void Line::calcMcFromRt(){};
 
-    Wall::Wall(){ _id = Wall::_idGenerator++; };
+    Wall::Wall(){ _id = Generator::id++; };
+
+    WallVertex::WallVertex(){};
 }

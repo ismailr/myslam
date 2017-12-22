@@ -32,11 +32,11 @@
 
 #include <string>
 
-#include "g2o/config.h"
-#include "g2o/core/base_vertex.h"
-#include "g2o/core/hyper_graph_action.h"
-#include "g2o/stuff/misc.h"
-#include "g2o/types/slam2d/vertex_point_xy.h"
+#include <g2o/config.h>
+#include <g2o/core/base_vertex.h>
+#include <g2o/core/hyper_graph_action.h>
+#include <g2o/stuff/misc.h>
+#include <g2o/types/slam2d/vertex_point_xy.h>
 
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -263,11 +263,18 @@ namespace MYSLAM {
             typedef std::shared_ptr<Wall> Ptr;
             Wall();
 
-            static unsigned long int _idGenerator;
             unsigned long int _id;
             Line _line;
             pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
 
+    };
+
+    class WallVertex : public VertexPointXY
+    {
+        public:
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+            WallVertex();
     };
 }
 

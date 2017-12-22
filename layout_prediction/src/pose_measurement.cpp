@@ -65,3 +65,7 @@ PoseMeasurement2::PoseMeasurement2() : EdgeSE2()
 
 }
 
+namespace MYSLAM {
+    PoseMeasurement::PoseMeasurement() : EdgeSE2() {};
+}
+

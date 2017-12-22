@@ -59,6 +59,10 @@ class Converter
         void odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, SE2& t);
 };
 
-
+class Generator
+{
+    public:
+        static unsigned long int id;
+};
 
 #endif
