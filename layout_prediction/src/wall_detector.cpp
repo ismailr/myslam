@@ -777,11 +777,23 @@ namespace MYSLAM {
                 proj.setModelCoefficients (coefficients);
                 proj.filter (*cloudProjected);
 
+                Eigen::Vector2d p_, q_;
+                p_.x() = cloudProjected->front().x;
+                p_.y() = cloudProjected->front().y;
+                q_.x() = cloudProjected->back().x;
+                q_.y() = cloudProjected->back().y;
+
+                double& x = pose->_pose[0];
+                double& y = pose->_pose[1];
+                double& t = pose->_pose[2];
+                double cost = cos(t);
+                double sint = sin(t);
+
                 Eigen::Vector2d p, q;
-                p.x() = cloudProjected->front().x;
-                p.y() = cloudProjected->front().y;
-                q.x() = cloudProjected->back().x;
-                q.y() = cloudProjected->back().y;
+                p.x() = p_.x()*cost - p_.y()*sint + x;
+                p.y() = p_.x()*sint + p_.y()*cost + y;
+                q.x() = q_.x()*cost - q_.y()*sint + x;
+                q.y() = q_.x()*sint + q_.y()*cost + y;
 
                 Wall::Ptr w (new Wall);
                 w->_line.xx = xxxy;

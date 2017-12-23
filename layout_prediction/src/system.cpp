@@ -327,6 +327,7 @@ namespace MYSLAM {
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
         _optimizer = new Optimizer (*this, *_graph);
+        _visualizer = new Visualizer (_rosnodehandle, *this, *_graph);
         _listener = new tf::TransformListener;
     };
 
@@ -360,6 +361,8 @@ namespace MYSLAM {
             ROS_ERROR ("%s", ex.what());
         }
 
+        _visualizer->visualizeCloud (cloud);
+
         // trackPose
         Pose::Ptr pose = _tracker->trackPose (odom, odom, odomCombined, _init);
         _graph->_poseMap[pose->_id] = pose;
@@ -381,9 +384,10 @@ namespace MYSLAM {
         }
 
         // do local mapping each time detected two new walls
-        if (_graph->_activeWalls.size() == 2)
+        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)
         {
             _optimizer->localOptimize();
+            _visualizer->visualizeWall();
         }
 
         _prevTime = _currentTime;

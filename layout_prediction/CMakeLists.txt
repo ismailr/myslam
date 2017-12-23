@@ -158,6 +158,7 @@ add_executable(layout_prediction
     src/simulator.cpp
     src/settings.cpp
     src/optimizer.cpp
+    src/visualizer.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp

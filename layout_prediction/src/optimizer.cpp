@@ -50,9 +50,8 @@ namespace MYSLAM {
         Eigen::Matrix<double, 2, 2> wallInfMatrix;
         wallInfMatrix.setIdentity();
 
-        PoseVertex *u; // holding PoseVertex created in it - 1 iteration
-        for (std::vector<int>::iterator it = activePoses.begin();
-                it != activePoses.end(); it++)
+        PoseVertex *u; 
+        for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
         {
             Pose* pose = poseMap[*it].get();
             double& x = pose->_pose[0];
@@ -63,7 +62,7 @@ namespace MYSLAM {
             PoseVertex *v = new PoseVertex;
             v->setId (pose->_id);
             v->setEstimate (vse2);
-            v->setFixed (pose->_id == 0);
+            v->setFixed (pose->_id == 0 || it == activePoses.begin());
             o->addVertex (v);
 
             if (it != activePoses.begin())
@@ -112,8 +111,40 @@ namespace MYSLAM {
         o->initializeOptimization();
         o->optimize(10);
 
+        std::ofstream posefile;
+        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+        for (std::vector<int>::iterator it = activePoses.begin();
+                it != activePoses.end(); it++)
+        {
+            PoseVertex* optv = dynamic_cast<PoseVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            poseMap[*it]->_pose[0] = x;
+            poseMap[*it]->_pose[1] = y;
+            poseMap[*it]->_pose[2] = p;
+
+            posefile << x << " " << y << " " << p << std::endl;
+        }
+        posefile.close();
+
+        for (std::vector<int>::iterator it = activeWalls.begin();
+                it != activeWalls.end(); it++)
+        {
+            WallVertex* optv = dynamic_cast<WallVertex*> (o->vertex (*it));
+            double xx = optv->estimate().x();
+            double xy = optv->estimate().y();
+
+            wallMap[*it]->_line.xx[0] = xx;
+            wallMap[*it]->_line.xx[1] = xy;
+            wallMap[*it]->updateParams ();
+        }
+
+        int fixPoseForNextIter = *(activePoses.begin());
         activePoses.clear();
         activeWalls.clear();
         activeEdges.clear();
+        activePoses.push_back (fixPoseForNextIter);
     }
 }

@@ -304,8 +304,16 @@ namespace MYSLAM {
     void Line::calcRtFromXx(){};
     void Line::calcMcFromXx(){};
     void Line::calcMcFromRt(){};
+    void Line::calcPq(){};
 
     Wall::Wall(){ _id = Generator::id++; };
 
+    void Wall::updateParams(){
+        _line.calcMcFromXx();
+        _line.calcRtFromMc();
+        _line.calcPq();
+    };
+
     WallVertex::WallVertex(){};
+
 }

@@ -13,6 +13,7 @@
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/helpers.h"
+#include "layout_prediction/visualizer.h"
 #include "se2.h"
 
 class WallDetector2;
@@ -76,6 +77,7 @@ namespace MYSLAM {
     class WallDetector;
     class Tracker;
     class Optimizer;
+    class Visualizer;
     class System
     {
         public:
@@ -101,6 +103,7 @@ namespace MYSLAM {
             Tracker *_tracker;
             WallDetector *_wallDetector;
             Optimizer *_optimizer;
+            Visualizer *_visualizer;
             tf::TransformListener *_listener;
     };
 }
