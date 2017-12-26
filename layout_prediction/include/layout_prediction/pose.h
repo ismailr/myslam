@@ -117,6 +117,11 @@ namespace MYSLAM {
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
 
             PoseVertex();
+            SE2* getModel() const { return _model; };
+            void setModel(SE2& model) { _model = &model; };
+
+        private:
+            SE2 *_model;
     };
 }
 #endif

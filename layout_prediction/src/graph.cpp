@@ -807,6 +807,7 @@ void Graph2::optimizeIncremental()
 }
 
 namespace MYSLAM {
+    Graph::Graph(){}; // simulation
     Graph::Graph(System& system):_system (&system) {};
 
     Wall::Ptr Graph::dataAssociation (Wall::Ptr& w)
@@ -826,7 +827,7 @@ namespace MYSLAM {
         }
 
         _wallMap[w->_id] = w;
-        _activeWalls.push_back (w->_id);
+//        _activeWalls.push_back (w->_id);
         return w;
     }
 }

@@ -80,6 +80,9 @@ namespace MYSLAM {
                     std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void localToGlobal (Eigen::Vector2d& mc_, Pose::Ptr& pose, Eigen::Vector2d& mc);
 
+            std::vector<Eigen::Vector3d> extractInliers (pcl::PointIndices inliers, 
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud);
+
         private:
             int _method;
             System *_system;

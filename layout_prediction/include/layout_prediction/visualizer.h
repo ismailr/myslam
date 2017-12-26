@@ -23,14 +23,20 @@ namespace MYSLAM {
     {
         public:
             Visualizer (ros::NodeHandle, System&, Graph&);
-            void visualizeWall ();
+            void visualizeWallOptimizedPq (bool local = false);
+            void visualizeWallOptimizedRt (bool local = false);
+            void visualizeWallMeasuredPq (Eigen::Vector2d&, Eigen::Vector2d&, bool local = false);
+            void visualizeWallMeasuredRt (double, double, bool local = false);
             void visualizeCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr&);
 
         private:
             System *_system;
             Graph *_graph;
             ros::NodeHandle _rosnodehandle;
-            ros::Publisher _pub_marker;
+            ros::Publisher _pub_wall_measured_pq;
+            ros::Publisher _pub_wall_measured_rt;
+            ros::Publisher _pub_wall_optimized_pq;
+            ros::Publisher _pub_wall_optimized_rt;
             ros::Publisher _pub_cloud;
     };
 }

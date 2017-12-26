@@ -12,6 +12,7 @@
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/helpers.h"
+#include "layout_prediction/settings.h"
 
 Tracker2::Tracker2 (System2& system, Graph2& graph) 
     :_system (&system), _graph (&graph), _prevTime (0.0)
@@ -135,8 +136,11 @@ namespace MYSLAM {
         c.odomToSE2 (odom, *t);
 
         // base_link to base_laser_link
-        SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-        *t = (*t) * (*offset);
+        if (MYSLAM::PCL_FRAME == "/base_laser_link")
+        {
+            SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+            *t = (*t) * (*offset);
+        }
 
         return t;
     }
@@ -148,8 +152,11 @@ namespace MYSLAM {
         c.odomCombinedToSE2 (odomcombined, *t);
 
         // base_link to base_laser_link
-        SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-        *t = (*t) * (*offset);
+        if (MYSLAM::PCL_FRAME == "/base_laser_link")
+        {
+            SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+            *t = (*t) * (*offset);
+        }
 
         return t;
     }
@@ -169,9 +176,13 @@ namespace MYSLAM {
         double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
         double theta = theta0 +  w * deltaTime;
 
+
         SE2 *t = new SE2 (x, y, theta);
-        SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-        *t = (*t) * (*offset);
+        if (MYSLAM::PCL_FRAME == "/base_laser_link")
+        {
+            SE2 *offset = new SE2 (0.275, 0.0, 0.252);
+            *t = (*t) * (*offset);
+        }
 
         return t;
     }
@@ -183,7 +194,7 @@ namespace MYSLAM {
             bool init) 
     {
         SE2* t = estimateFromOdom (odom);
-    //    SE2* t = estimateFromOdomCombined (odomcombined);
+//        SE2* c = estimateFromOdomCombined (odomcombined);
         Pose::Ptr pose (new Pose); 
 
         if (init)

@@ -144,6 +144,7 @@ namespace MYSLAM {
     class Graph
     {
         public:
+            Graph();
             Graph(System&);
             Wall::Ptr dataAssociation (Wall::Ptr& w);
 
@@ -154,7 +155,7 @@ namespace MYSLAM {
 
             // local optimization book keeping
             std::vector<int> _activePoses;
-            std::vector<int> _activeWalls;
+            std::set<int> _activeWalls;
             std::vector<std::tuple<int, int> > _activeEdges;
 
         private:

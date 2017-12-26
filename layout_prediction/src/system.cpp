@@ -320,7 +320,7 @@ void System2::readSensorsData (
 }
 
 namespace MYSLAM {
-    unsigned int long System::_frameCounter = 0;
+    unsigned int long System::_frameCounter = 1;
 
     System::System(ros::NodeHandle nh):_rosnodehandle (nh){
         _tracker = new Tracker(*this);
@@ -336,7 +336,7 @@ namespace MYSLAM {
             const sensor_msgs::ImageConstPtr& rgb,
             const sensor_msgs::ImageConstPtr& depth,
             const nav_msgs::OdometryConstPtr& odom,
-//            const nav_msgs::OdometryConstPtr& action,
+            const nav_msgs::OdometryConstPtr& action,
             const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined)
     {
         _currentTime = ros::Time::now().toSec();
@@ -346,14 +346,12 @@ namespace MYSLAM {
 
         try {
             _listener->waitForTransform (   
-                    "/openni_rgb_optical_frame",
                     MYSLAM::PCL_FRAME,
-//                    "/base_laser_link", 
+                    "/openni_rgb_optical_frame",
                     ros::Time::now(), 
                     ros::Duration(10.0));
 
             pcl_ros::transformPointCloud (
-//                    "/base_laser_link", 
                     MYSLAM::PCL_FRAME,
                     *cloud, *cloud, *_listener);
         } 
@@ -361,10 +359,29 @@ namespace MYSLAM {
             ROS_ERROR ("%s", ex.what());
         }
 
-        _visualizer->visualizeCloud (cloud);
+        if (MYSLAM::PCL_FRAME == "/base_laser_link")
+        {
+            tf::StampedTransform transform;
+            try {
+                _listener->waitForTransform (   
+                        "/base_laser_link",
+                        "/base_link",
+                        ros::Time::now(), 
+                        ros::Duration(1.0));
+
+                _listener->lookupTransform (
+                        "/base_laser_link",
+                        "/base_link",
+                        ros::Time(0),
+                        transform);
+
+            } catch (tf::TransformException &ex) {
+                ROS_ERROR ("%s", ex.what());
+            }
+        }
 
         // trackPose
-        Pose::Ptr pose = _tracker->trackPose (odom, odom, odomCombined, _init);
+        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
         _graph->_poseMap[pose->_id] = pose;
         _graph->_activePoses.push_back (pose->_id);
 
@@ -379,15 +396,17 @@ namespace MYSLAM {
             w = _graph->dataAssociation (w);
             std::tuple<int, int> m (pose->_id, w->_id);
             _graph->_poseWallMap[m] = std::get<1>(walls[i]);
+            _graph->_activeWalls.insert (w->_id);
             _graph->_activeEdges.push_back (m);
             pose->_detectedWalls.push_back (w->_id);
         }
 
         // do local mapping each time detected two new walls
-        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)
+//        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)
+        if (System::_frameCounter % 5 == 0)
         {
-            _optimizer->localOptimize();
-            _visualizer->visualizeWall();
+            _optimizer->globalOptimize();
+//            _visualizer->visualizeWallOptimizedRt();
         }
 
         _prevTime = _currentTime;

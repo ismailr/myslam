@@ -155,9 +155,34 @@ add_executable(layout_prediction
     src/wall_measurement.cpp
     src/types_myslam.cpp
     src/angle_measurement.cpp
+    src/settings.cpp
+    src/optimizer.cpp
+    src/visualizer.cpp
+    #    src/fitness_measurement.cpp
+    src/g2o/vertex_se2.cpp
+    src/g2o/vertex_line2d.cpp
+    src/g2o/edge_se2.cpp
+    src/g2o/edge_se2_line2d.cpp
+    src/g2o/edge_line2d.cpp
+)
+
+add_executable(simulation
+	src/simulation.cpp
+	src/helpers.cpp
+	src/pose.cpp
+    src/wall.cpp
+    src/tracker.cpp
+    src/wall_detector.cpp
+    src/system.cpp
+    src/graph.cpp
+    src/pose_measurement.cpp
+    src/wall_measurement.cpp
+    src/types_myslam.cpp
+    src/angle_measurement.cpp
     src/simulator.cpp
     src/settings.cpp
     src/optimizer.cpp
+    src/visualizer.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
@@ -172,6 +197,22 @@ add_executable(layout_prediction
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(layout_prediction
+	${catkin_LIBRARIES}
+	${G2O_CORE_LIBRARY}
+	${G2O_STUFF_LIBRARY}
+	${G2O_SOLVER_CSPARSE}
+	${G2O_SOLVER_CSPARSE_EXTENSION}
+    ${G2O_TYPES_SLAM3D}
+    ${G2O_TYPES_SLAM2D}
+    ${G2O_OPENGL_HELPER}
+    ${OPENGL_gl_LIBRARY}
+    ${GLUT_LIBRARIES}
+    "/usr/local/lib/libg2o_incremental.so"
+    "/usr/local/lib/libg2o_interactive.so"
+    "/usr/lib64/libconfig++.so"
+)
+
+target_link_libraries(simulation
 	${catkin_LIBRARIES}
 	${G2O_CORE_LIBRARY}
 	${G2O_STUFF_LIBRARY}

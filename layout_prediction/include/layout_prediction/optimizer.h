@@ -5,10 +5,12 @@
 #include "layout_prediction/graph.h"
 
 namespace MYSLAM {
+    class Graph;
     class Optimizer
     {
         public:
-            Optimizer(System&, Graph&);
+            Optimizer(System&, MYSLAM::Graph&);
+            Optimizer(MYSLAM::Graph&); // simulation
             void localOptimize();
             void loopClosure();
             void globalOptimize();

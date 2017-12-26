@@ -83,7 +83,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Flat Squares
+      Style: Points
       Topic: /filtered_cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -116,10 +116,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /line_strip
+      Marker Topic: /wall_measured_pq
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Alpha: 0.3
@@ -133,18 +133,18 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /gradient
+      Marker Topic: /wall_measured_rt
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /localine
+      Marker Topic: /wall_optimized
       Name: Marker
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
   Enabled: true

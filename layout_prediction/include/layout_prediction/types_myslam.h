@@ -28,8 +28,8 @@
 #define _TYPES_MYSLAM_H_
 
 #include "pose.h"
-#include "pose_measurement.h"
 #include "wall.h"
+#include "pose_measurement.h"
 #include "wall_measurement.h"
 #include "angle_measurement.h"
 

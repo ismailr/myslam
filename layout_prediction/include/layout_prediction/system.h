@@ -93,9 +93,11 @@ namespace MYSLAM {
                 const sensor_msgs::ImageConstPtr& rgb,
                 const sensor_msgs::ImageConstPtr& depth,
                 const nav_msgs::OdometryConstPtr& odom,
-//                const nav_msgs::OdometryConstPtr& action,
+                const nav_msgs::OdometryConstPtr& action,
                 const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined
                 );
+
+            Visualizer* getVisualizer () { return _visualizer; };
         private:
             bool _init;
             ros::NodeHandle _rosnodehandle;
