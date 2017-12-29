@@ -132,7 +132,7 @@ void WallDetector2::line_fitting (std::vector<Eigen::Vector2d>& lines, PointClou
             break;
         }
 
-        if(inliers.indices.size() > 100)
+        if(inliers.indices.size() > 50)
         {
             double m;
             coefficients.values[3] == 0 ? m = std::numeric_limits<double>::max() : m = coefficients.values[4]/coefficients.values[3];
@@ -808,14 +808,17 @@ namespace MYSLAM {
 //                _system->getVisualizer()->visualizeWallMeasuredPq (p_,q_, true);
 //                _system->getVisualizer()->visualizeWallMeasuredRt (xx,xy);
 
-                Wall::Ptr w (new Wall);
-                w->_line.xx = xxxy;
-                w->_line.p = p;
-                w->_line.q = q;
-                w->_cloud = inCloud;
+                if (m_ != std::numeric_limits<double>::infinity());
+                {
+                    Wall::Ptr w (new Wall);
+                    w->_line.xx = xxxy;
+                    w->_line.p = p;
+                    w->_line.q = q;
+                    w->_cloud = inCloud;
 
-                std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
-                outWalls.push_back(measurement);
+                    std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
+                    outWalls.push_back(measurement);
+                }
             }
 
             pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = inCloud->begin();

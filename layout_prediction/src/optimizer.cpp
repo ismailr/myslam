@@ -74,7 +74,7 @@ namespace MYSLAM {
             v->setId (pose->_id); 
             v->setEstimate (vse2);
             v->setModel (vse2_model);
-            v->setFixed (pose->_id == 0 || it == activePoses.begin()); 
+            v->setFixed (pose->_id == 0/* || it == activePoses.begin()*/); 
             o->addVertex (v); 
 
             if (it != activePoses.begin())
@@ -234,6 +234,7 @@ namespace MYSLAM {
             WallVertex *v = new WallVertex;
             v->setId (wall->_id);
             v->setEstimateDataImpl (data);
+            v->setMarginalized (true);
             o->addVertex (v);
         }
 

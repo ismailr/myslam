@@ -8,6 +8,7 @@
 #include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
+#include <tf2/impl/utils.h>
 
 #include "layout_prediction/system.h"
 #include "layout_prediction/wall_detector.h"
@@ -322,13 +323,15 @@ void System2::readSensorsData (
 namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
-    System::System(ros::NodeHandle nh):_rosnodehandle (nh){
+    System::System(ros::NodeHandle nh):_rosnodehandle (nh), _init (true) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
         _optimizer = new Optimizer (*this, *_graph);
         _visualizer = new Visualizer (_rosnodehandle, *this, *_graph);
         _listener = new tf::TransformListener;
+        _buffer = new tf2_ros::Buffer;
+        _listener2 = new tf2_ros::TransformListener (*_buffer);
     };
 
     void System::readSensorsData (
@@ -347,7 +350,7 @@ namespace MYSLAM {
         try {
             _listener->waitForTransform (   
                     MYSLAM::PCL_FRAME,
-                    "/openni_rgb_optical_frame",
+                    "openni_rgb_optical_frame",
                     ros::Time::now(), 
                     ros::Duration(10.0));
 
@@ -359,26 +362,28 @@ namespace MYSLAM {
             ROS_ERROR ("%s", ex.what());
         }
 
-        if (MYSLAM::PCL_FRAME == "/base_laser_link")
-        {
-            tf::StampedTransform transform;
-            try {
-                _listener->waitForTransform (   
-                        "/base_laser_link",
-                        "/base_link",
-                        ros::Time::now(), 
-                        ros::Duration(1.0));
+        geometry_msgs::TransformStamped transformStamped;
+        try {
+            transformStamped = _buffer->lookupTransform (
+                    "base_laser_link",
+                    "base_link",
+                    ros::Time(0));
 
-                _listener->lookupTransform (
-                        "/base_laser_link",
-                        "/base_link",
-                        ros::Time(0),
-                        transform);
-
-            } catch (tf::TransformException &ex) {
-                ROS_ERROR ("%s", ex.what());
-            }
+        } catch (tf2::TransformException &ex) {
+            ROS_WARN ("%s", ex.what());
+            ros::Duration(1.0).sleep();
         }
+
+        double x = transformStamped.transform.translation.x;
+        double y = transformStamped.transform.translation.y;
+        double z = transformStamped.transform.translation.z;
+        double qx = transformStamped.transform.rotation.x;
+        double qy = transformStamped.transform.rotation.y;
+        double qz = transformStamped.transform.rotation.z;
+        double qw = transformStamped.transform.rotation.w;
+
+        tf2::Quaternion q (qx, qy, qz, qw);
+        double angle = tf2::impl::getYaw(q);
 
         // trackPose
         Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
@@ -405,8 +410,8 @@ namespace MYSLAM {
 //        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)
         if (System::_frameCounter % 5 == 0)
         {
-            _optimizer->globalOptimize();
-//            _visualizer->visualizeWallOptimizedRt();
+            _optimizer->localOptimize();
+            _visualizer->visualizeWallOptimizedPq();
         }
 
         _prevTime = _currentTime;

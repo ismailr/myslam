@@ -43,6 +43,7 @@ namespace MYSLAM {
             Tracker(System&);
 
             Pose::Ptr _lastPose;
+            SE2 *_lastOdom;
 
             Pose::Ptr trackPose (
                     const nav_msgs::OdometryConstPtr& odom, 
@@ -52,9 +53,9 @@ namespace MYSLAM {
 
         private:
             System *_system;
-            SE2* estimateFromOdom (const nav_msgs::OdometryConstPtr& odom);
+            SE2* odomToSE2 (const nav_msgs::OdometryConstPtr& odom);
             SE2* estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombine);
-            SE2* estimateFromModel (const nav_msgs::OdometryConstPtr& action);
+            SE2* actionToSE2 (const nav_msgs::OdometryConstPtr& action);
 
     };
 }

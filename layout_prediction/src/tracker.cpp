@@ -129,19 +129,11 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 namespace MYSLAM {
     Tracker::Tracker(System& system): _system (&system) {};
 
-    SE2* Tracker::estimateFromOdom (const nav_msgs::OdometryConstPtr& odom)
+    SE2* Tracker::odomToSE2 (const nav_msgs::OdometryConstPtr& odom)
     {
         Converter c;
         SE2 *t = new SE2();
         c.odomToSE2 (odom, *t);
-
-        // base_link to base_laser_link
-        if (MYSLAM::PCL_FRAME == "/base_laser_link")
-        {
-            SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-            *t = (*t) * (*offset);
-        }
-
         return t;
     }
 
@@ -150,18 +142,10 @@ namespace MYSLAM {
         Converter c;
         SE2 *t = new SE2();
         c.odomCombinedToSE2 (odomcombined, *t);
-
-        // base_link to base_laser_link
-        if (MYSLAM::PCL_FRAME == "/base_laser_link")
-        {
-            SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-            *t = (*t) * (*offset);
-        }
-
         return t;
     }
 
-    SE2* Tracker::estimateFromModel (const nav_msgs::OdometryConstPtr& action)
+    SE2* Tracker::actionToSE2 (const nav_msgs::OdometryConstPtr& action)
     {
         double deltaTime = _system->_currentTime - _system->_prevTime;
 
@@ -176,14 +160,7 @@ namespace MYSLAM {
         double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
         double theta = theta0 +  w * deltaTime;
 
-
         SE2 *t = new SE2 (x, y, theta);
-        if (MYSLAM::PCL_FRAME == "/base_laser_link")
-        {
-            SE2 *offset = new SE2 (0.275, 0.0, 0.252);
-            *t = (*t) * (*offset);
-        }
-
         return t;
     }
 
@@ -193,7 +170,7 @@ namespace MYSLAM {
             const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
             bool init) 
     {
-        SE2* t = estimateFromOdom (odom);
+        SE2* t = odomToSE2 (odom);
 //        SE2* c = estimateFromOdomCombined (odomcombined);
         Pose::Ptr pose (new Pose); 
 
@@ -202,13 +179,33 @@ namespace MYSLAM {
             pose->_pose = t->toVector();
             pose->_poseByModel = pose->_pose;
             _lastPose = pose;
+            _lastOdom = t;
             return pose;
         }
 
-        SE2* m = estimateFromModel (action);
-        pose->_pose = t->toVector();
+        SE2* m = actionToSE2 (action);
+
+        // distance travelled calculated from last odometry
+        SE2 d = *t * _lastOdom->inverse();
+
+        // estimation from odometry
+        SE2 last_est (_lastPose->_pose[0], _lastPose->_pose[1], _lastPose->_pose[2]);
+        SE2 est = d * last_est;
+
+        pose->_pose = est.toVector();
         pose->_poseByModel = m->toVector();
         _lastPose = pose;
+        _lastOdom = t;
+
+        ofstream actfile;
+        actfile.open ("/home/ism/tmp/action.dat", std::ios::out | std::ios::app);
+        actfile << m->translation().x() << " " << m->translation().y() << std::endl;
+        actfile.close();
+
+        ofstream odomfile;
+        odomfile.open ("/home/ism/tmp/odom.dat", std::ios::out | std::ios::app);
+        odomfile << t->translation().x() << " " << t->translation().y() << std::endl;
+        odomfile.close();
 
         return pose;
     }

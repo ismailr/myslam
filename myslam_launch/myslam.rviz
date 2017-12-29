@@ -14,8 +14,6 @@ Panels:
         - /Marker1
         - /Map1/Position1
         - /Map1/Orientation1
-        - /Marker2
-        - /Marker3
       Splitter Ratio: 0.5
     Tree Height: 299
   - Class: rviz/Selection
@@ -116,10 +114,10 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /wall_measured_pq
+      Marker Topic: /wall_optimized_pq
       Name: Marker
       Namespaces:
-        "": true
+        wall: true
       Queue Size: 100
       Value: true
     - Alpha: 0.3
@@ -130,22 +128,6 @@ Visualization Manager:
       Name: Map
       Topic: /map
       Unreliable: false
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /wall_measured_rt
-      Name: Marker
-      Namespaces:
-        "": true
-      Queue Size: 100
-      Value: true
-    - Class: rviz/Marker
-      Enabled: true
-      Marker Topic: /wall_optimized
-      Name: Marker
-      Namespaces:
-        "": true
-      Queue Size: 100
       Value: true
   Enabled: true
   Global Options:

@@ -7,6 +7,7 @@
 #include <sensor_msgs/Image.h>
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <tf2_ros/transform_listener.h>
 
 #include "layout_prediction/wall_detector.h"
 #include "layout_prediction/graph.h"
@@ -107,6 +108,8 @@ namespace MYSLAM {
             Optimizer *_optimizer;
             Visualizer *_visualizer;
             tf::TransformListener *_listener;
+            tf2_ros::TransformListener *_listener2;
+            tf2_ros::Buffer *_buffer;
     };
 }
 
