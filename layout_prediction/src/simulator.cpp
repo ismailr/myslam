@@ -150,7 +150,6 @@ namespace MYSLAM {
 
     void Simulator::Robot::sense()
     {
-
         double x = simPose->translation().x();
         double y = simPose->translation().y();
         double p = simPose->rotation().angle();
