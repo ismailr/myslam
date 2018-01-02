@@ -24,13 +24,12 @@ namespace MYSLAM {
             public:
                 Robot(Simulator*);
 
-                SE2 *truePose;
-                SE2 *simPose;
+                Eigen::Vector3d truePose;
+                Eigen::Vector3d simPose;
                 std::vector<Dinding*> sensedDinding;
                 std::vector<Eigen::Vector2d> sensedData;
 
                 void move();
-                void moveStraight();
                 void sense();
 
             private:

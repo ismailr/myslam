@@ -110,8 +110,9 @@ namespace MYSLAM {
 namespace MYSLAM {
     Simulator::Robot::Robot(Simulator* sim) : _sim (sim) 
     {
-        truePose = new SE2 (0.0, 0.0, 0.0);
-        simPose = new SE2 (0.0, 0.0, 0.0);
+        truePose.setZero(); 
+        simPose.setZero();
+        truePose[2] = 2.68;
         sense();
     }
 
@@ -120,39 +121,40 @@ namespace MYSLAM {
         sensedData.clear();
         sensedDinding.clear();
 
-        const double xdis = 0.1;
-        const double ydis = 0.1;
-        const double pdis = 0.1 * M_PI/180.0;
+        const double tstep = 0.2;
 
-        double xmov = uniform_generator<double> (-xdis, xdis);
-        double ymov = uniform_generator<double> (-ydis, ydis);
-        double pmov = uniform_generator<double> (-pdis, pdis);
+        double xtrue = truePose[0];
+        double ytrue = truePose[1];
+        double ptrue = truePose[2];
+        double dx = -xtrue;
+        double dy = -ytrue;
+        xtrue += tstep * cos (ptrue);
+        ytrue += tstep * sin (ptrue);
+        dx = dx + xtrue;
+        dy = dy + ytrue;
+        double d = sqrt (dx*dx) + (dy*dy);
 
-        SE2 trueMove (xmov, ymov, pmov);
-        SE2 tmpMove = trueMove * *truePose;
-        if (tmpMove.translation().x() > -20 && tmpMove.translation().x() < 50 &&
-            tmpMove.translation().y() > -20 && tmpMove.translation().y() < 70)
-            *truePose = tmpMove;
-        else
-        {
-            trueMove = trueMove.inverse();
-            *truePose = trueMove * *truePose;
-        }
+        truePose << xtrue, ytrue, ptrue;
 
-        double xnoise = gaussian_generator<double>(0.0, xnoise_var);
-        double ynoise = gaussian_generator<double>(0.0, ynoise_var);
+        double noise = gaussian_generator<double>(0.0, xnoise_var);
         double pnoise = gaussian_generator<double>(0.0, pnoise_var);
+        d = d + noise;
 
-        SE2 noise (xnoise, ynoise, pnoise);
-        SE2 simMove = noise * trueMove;
-        *simPose = simMove * *simPose;
+        double xsim = simPose[0];
+        double ysim = simPose[1];
+        double psim = simPose[2];
+        psim = ptrue + pnoise;
+        xsim = xsim + d * cos(psim);
+        ysim = ysim + d * sin(psim);
+
+        simPose << xsim, ysim, psim;
     }
 
     void Simulator::Robot::sense()
     {
-        double x = simPose->translation().x();
-        double y = simPose->translation().y();
-        double p = simPose->rotation().angle();
+        double x = simPose[0];
+        double y = simPose[1];
+        double p = simPose[2];
         double cosp = cos(p);
         double sinp = sin(p);
 
@@ -228,19 +230,14 @@ namespace MYSLAM {
         for (int frame = 1; frame < MYSLAM::SIM_NUMBER_OF_ITERATIONS; frame++)
         {
             // poses
-            SE2 *t = robot->truePose;
-            SE2 *s = robot->simPose;
+            Eigen::Vector3d t = robot->truePose;
+            Eigen::Vector3d s = robot->simPose;
 
-            mfile   << s->translation().x() << " " 
-                    << s->translation().y() << " "
-                    << s->rotation().angle() << " "
-                    << t->translation().x() << " "
-                    << t->translation().y() << " "
-                    << t->rotation().angle() << std::endl;
+            mfile   << s[0] << " " << s[1] << " " << s[2] << " " << t[0] << " " << t[1] << " " << t[2] << std::endl;
 
             Pose::Ptr pose (new Pose);
-            pose->_pose = s->toVector();
-            pose->_poseByModel = t->toVector();
+            pose->_pose = s;
+            pose->_poseByModel = t;
             graph._poseMap [pose->_id] = pose;
             graph._activePoses.push_back (pose->_id);
 

@@ -187,7 +187,6 @@ namespace MYSLAM {
 
         // heading change
         double dt = normalize_theta (t->rotation().angle() - _lastOdom->rotation().angle());
-        std::cout << "ANGLE DIFF: " << t->rotation().angle() << " - " << _lastOdom->rotation().angle() << " = " << dt << std::endl;
 
         // distance
         double x1 = t->translation().x();

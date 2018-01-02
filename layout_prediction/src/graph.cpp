@@ -352,12 +352,12 @@ WallMeasurement3::Ptr Graph2::createWallMeasurement3(int from, int to)
     return wm;
 }
 
-AngleMeasurement::Ptr Graph2::createAngleMeasurement()
-{
-    AngleMeasurement::Ptr am (new AngleMeasurement);
-    _angleMeasurementDB.push_back (am);
-    return am;
-}
+//AngleMeasurement::Ptr Graph2::createAngleMeasurement()
+//{
+//    AngleMeasurement::Ptr am (new AngleMeasurement);
+//    _angleMeasurementDB.push_back (am);
+//    return am;
+//}
 
 Wall2::Ptr Graph2::data_association (Wall2::Ptr& wall)
 {

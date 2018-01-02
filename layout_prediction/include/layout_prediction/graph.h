@@ -79,7 +79,7 @@ class Graph2
     PoseMeasurement2::Ptr createPoseMeasurement();
     WallMeasurement2::Ptr createWallMeasurement();
     WallMeasurement3::Ptr createWallMeasurement3();
-    AngleMeasurement::Ptr createAngleMeasurement();
+//    AngleMeasurement::Ptr createAngleMeasurement();
     PoseMeasurement2::Ptr createPoseMeasurement(int,int);
     WallMeasurement3::Ptr createWallMeasurement3(int,int);
 
@@ -122,7 +122,7 @@ class Graph2
     std::vector<PoseMeasurement2::Ptr> _poseMeasurementDB;
     std::vector<WallMeasurement2::Ptr> _wallMeasurementDB;
     std::vector<WallMeasurement3::Ptr> _wallMeasurementDB3;
-    std::vector<AngleMeasurement::Ptr> _angleMeasurementDB;
+//    std::vector<AngleMeasurement::Ptr> _angleMeasurementDB;
 
     std::map<int, Pose2::Ptr> _poseMap;
     std::map<int, Wall3::Ptr> _wallMap;

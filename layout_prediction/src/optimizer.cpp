@@ -1,6 +1,7 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
+#include "layout_prediction/angle_measurement.h"
 
 #include <g2o/core/sparse_optimizer.h>
 #include <g2o/core/hyper_graph.h>
@@ -85,6 +86,7 @@ namespace MYSLAM {
                 pm->setMeasurement (u->estimate().inverse() * v->estimate());
                 pm->information () = poseInfMatrix;
                 o->addEdge (pm);
+
             }
 
             u = v;
@@ -102,6 +104,18 @@ namespace MYSLAM {
             v->setId (wall->_id);
             v->setEstimateDataImpl (data);
             o->addVertex (v);
+
+//            for (std::set<int>::iterator jt = activeWalls.begin();
+//                    jt != activeWalls.end(); jt++)
+//            {
+//                AngleMeasurement* am = new AngleMeasurement;
+//                am->vertices()[0] = o->vertex (*jt);
+//                am->vertices()[1] = o->vertex (*jt);
+//                o->addEdge (am);
+//                Eigen::Matrix<double, 1, 1> inf;
+//                inf.setIdentity();
+//                am->information () = inf;
+//            }
         }
 
         for (std::vector<std::tuple<int,int> >::iterator it = activeEdges.begin();
@@ -117,6 +131,11 @@ namespace MYSLAM {
             wm->vertices()[1] = o->vertex (std::get<1>(*it));
             wm->setMeasurementData (data);
             wm->information() = wallInfMatrix;
+            
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            wm->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
+
             o->addEdge (wm);
         }
 
