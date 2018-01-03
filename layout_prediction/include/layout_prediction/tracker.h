@@ -50,6 +50,11 @@ namespace MYSLAM {
                     const nav_msgs::OdometryConstPtr& action, 
                     const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
                     bool init = false);
+            Pose::Ptr trackPose (
+                    SE2 odom,
+                    const nav_msgs::OdometryConstPtr& action, 
+                    const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
+                    bool init = false);
 
         private:
             System *_system;

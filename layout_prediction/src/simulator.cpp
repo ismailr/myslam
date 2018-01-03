@@ -113,6 +113,7 @@ namespace MYSLAM {
         truePose.setZero(); 
         simPose.setZero();
         truePose[2] = 2.68;
+        simPose[2] = truePose[2];
         sense();
     }
 
@@ -126,24 +127,23 @@ namespace MYSLAM {
         double xtrue = truePose[0];
         double ytrue = truePose[1];
         double ptrue = truePose[2];
-        double dx = -xtrue;
-        double dy = -ytrue;
+        double dx = xtrue;
+        double dy = ytrue;
         xtrue += tstep * cos (ptrue);
         ytrue += tstep * sin (ptrue);
-        dx = dx + xtrue;
-        dy = dy + ytrue;
-        double d = sqrt (dx*dx) + (dy*dy);
+        dx = xtrue - dx;
+        dy = ytrue - dy;
+        double d = sqrt ((dx*dx) + (dy*dy));
 
         truePose << xtrue, ytrue, ptrue;
 
         double noise = gaussian_generator<double>(0.0, xnoise_var);
-        double pnoise = gaussian_generator<double>(0.0, pnoise_var);
         d = d + noise;
 
         double xsim = simPose[0];
         double ysim = simPose[1];
         double psim = simPose[2];
-        psim = ptrue + pnoise;
+        psim = ptrue;
         xsim = xsim + d * cos(psim);
         ysim = ysim + d * sin(psim);
 
@@ -187,12 +187,12 @@ namespace MYSLAM {
 
     Simulator::Simulator()
     {
-        double grads[8] = {-.5, 2, -.5, 2, -.5, 2, -.5, 2};
-        double intercepts[8] = {-12.0, 30.0, 80.0, -30.0, 40.0, 15.0, 10.0, -30.0};
-        double x[9] = {7.2,-16.8,20.0,44.0,28.0,10.0,-2.0,16.0,7.2};
-        double y[9] = {-15.6,-3.6,70.0,58.0,26.0,35.0,11.0,2.0,-15.6};
+        double grads[8] = {2, -.5, 2, -.5, 2, -.5, 2, -.5};
+        double intercepts[8] = {30.0, 80.0, -30.0, 40.0, 15.0, 10.0, -30.0, -12.0};
+        double x[9] = {-16.8,20.0,44.0,28.0,10.0,-2.0,16.0,7.2, -16.8};
+        double y[9] = {-3.6,70.0,58.0,26.0,35.0,11.0,2.0,-15.6, -3.6};
 
-        for (int i = 0; i < NUM_OF_WALLS; i++)
+        for (int i = 0; i < 1 /*NUM_OF_WALLS*/; i++)
         {
             Dinding *d = new Dinding;
             d->id = i;

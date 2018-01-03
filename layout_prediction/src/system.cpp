@@ -362,11 +362,13 @@ namespace MYSLAM {
             ROS_ERROR ("%s", ex.what());
         }
 
+        _visualizer->visualizeCloud(cloud);
+
         geometry_msgs::TransformStamped transformStamped;
         try {
             transformStamped = _buffer->lookupTransform (
-                    "base_laser_link",
                     "base_link",
+                    "base_laser_link",
                     ros::Time(0));
 
         } catch (tf2::TransformException &ex) {
@@ -385,8 +387,15 @@ namespace MYSLAM {
         tf2::Quaternion q (qx, qy, qz, qw);
         double angle = tf2::impl::getYaw(q);
 
+        SE2 transform (x, y, angle);
+        SE2 odomSE2;
+        Converter c;
+        c.odomToSE2 (odom, odomSE2);
+        SE2 laserPose = odomSE2 * transform;
+
         // trackPose
-        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
+//        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
+        Pose::Ptr pose = _tracker->trackPose (laserPose, action, odomCombined, _init);
         _graph->_poseMap[pose->_id] = pose;
         _graph->_activePoses.push_back (pose->_id);
 
@@ -394,6 +403,8 @@ namespace MYSLAM {
         std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
         _wallDetector->detect (pose, cloud, walls);
 
+        ofstream mfile;
+        mfile.open ("/home/ism/tmp/measurement.dat", std::ios::out | std::ios::app);
         // data association
         for (size_t i = 0; i < walls.size(); i++)
         {
@@ -404,7 +415,9 @@ namespace MYSLAM {
             _graph->_activeWalls.insert (w->_id);
             _graph->_activeEdges.push_back (m);
             pose->_detectedWalls.push_back (w->_id);
+            mfile << "MEASUREMENT OF WALL: " << w->_id << " FROM POSE: " << pose->_id << " = " << std::get<1>(walls[i]) << std::endl;
         }
+        mfile.close();
 
         // do local mapping each time detected two new walls
 //        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)

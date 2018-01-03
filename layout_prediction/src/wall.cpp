@@ -302,16 +302,77 @@ namespace MYSLAM {
     void Line::calcXxFromRt(){};
     void Line::calcRtFromMc(){};
     void Line::calcRtFromXx(){};
-    void Line::calcMcFromXx(){};
+
+    void Line::calcMcFromXx(){
+        double& m = mc[0];
+        double& c = mc[1];
+
+        m = -xx[0]/xx[1];
+        c = (xx[0]*xx[0] + xx[1]*xx[1])/xx[1];
+    };
+
     void Line::calcMcFromRt(){};
-    void Line::calcPq(){};
+
+    void Line::calcPq(){
+        double& px = p[0];
+        double& py = p[1];
+        double& qx = q[0];
+        double& qy = q[1];
+        double& x = xx[0];
+        double& y = xx[1];
+
+        double& m = mc[0];
+        double& c = mc[1];
+
+        // line with gradient m through (0,0) is y = mx
+        // vector in line (x, y/m)
+        // unit vector sqrt (x,y/m)/(x*x + y*y/m*m)
+        // for x = 1, y = 1
+
+        double normalizer = 1 + 1/m*m;
+        Eigen::Vector2d unit (1/normalizer, 1/(m*normalizer));
+
+        std::cout << "UNIT: " << unit.transpose() << std::endl;
+
+        if (ppos == 0)
+        {
+            p = xx - p2xx * unit;
+            q = xx + q2xx * unit;
+        } else {
+            p = xx + p2xx * unit;
+            q = xx - q2xx * unit;
+        }
+    };
+
+    void Line::calcSegment() {
+        double& px = p[0];
+        double& py = p[1];
+        double& qx = q[0];
+        double& qy = q[1];
+        double& x = xx[0];
+        double& y = xx[1];
+
+        double px2xx = px - x;
+        double py2xy = py - y;
+        double qx2xx = qx - x;
+        double qy2xy = qy - y;
+
+        px2xx < 0 ? ppos = 0 : ppos = 1;
+
+        p2xx = sqrt(px2xx*px2xx + py2xy*py2xy);
+        q2xx = sqrt(qx2xx*qx2xx + qy2xy*qy2xy);
+    };
+
 
     Wall::Wall(){ _id = Generator::id++; };
 
     void Wall::updateParams(){
         _line.calcMcFromXx();
-        _line.calcRtFromMc();
         _line.calcPq();
+    };
+
+    void Wall::initParams(){
+        _line.calcSegment();
     };
 
     WallVertex::WallVertex(){};

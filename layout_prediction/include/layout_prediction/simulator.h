@@ -36,8 +36,8 @@ namespace MYSLAM {
                 Simulator* _sim;
                 const double xnoise_var = 0.01, ynoise_var = 0.01;
                 const double pnoise_var  = 0.01 * M_PI/180.0;
-                const double wnoise_var = 0.5;
-                const double RANGE = 10.0;
+                const double wnoise_var = 0.1;
+                const double RANGE = 15.0;
         };
 
         std::vector<Dinding> struktur;

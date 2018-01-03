@@ -815,6 +815,7 @@ namespace MYSLAM {
                     w->_line.p = p;
                     w->_line.q = q;
                     w->_cloud = inCloud;
+                    w->initParams();
 
                     std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
                     outWalls.push_back(measurement);

@@ -228,4 +228,67 @@ namespace MYSLAM {
         return pose;
     }
 
+    Pose::Ptr Tracker::trackPose (
+            SE2 odom,
+            const nav_msgs::OdometryConstPtr& action, 
+            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
+            bool init) 
+    {
+        SE2 *t = new SE2 (odom);
+        Pose::Ptr pose (new Pose); 
+        
+        if (init)
+        {
+            pose->_pose = t->toVector();
+            pose->_poseByModel = pose->_pose;
+            _lastPose = pose;
+            _lastOdom = t;
+            return pose;
+        }
+
+        SE2* m = actionToSE2 (action);
+
+        // heading change
+        double dt = normalize_theta (t->rotation().angle() - _lastOdom->rotation().angle());
+
+        // distance
+        double x1 = t->translation().x();
+        double y1 = t->translation().y();
+        double x0 = _lastOdom->translation().x();
+        double y0 = _lastOdom->translation().y();
+        double dr = sqrt ((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
+
+        // handling backward motion
+        double current_heading = normalize_angle (_lastPose->_pose[2] + dt);
+        if (current_heading < M_PI/2 || current_heading > 3*M_PI/2)
+            x1 > x0 ? dr = dr : dr = -dr;
+        else if (current_heading > M_PI/2 && current_heading < 3*M_PI/2)
+            x1 > x0 ? dr = -dr : dr = dr;
+        else if (current_heading == M_PI/2)
+            y1 > y0 ? dr = dr : dr = -dr;
+        else if (current_heading == 3*M_PI/2)
+            y1 > y0 ? dr = -dr : dr = dr;
+
+        double dx = dr * cos (current_heading);
+        double dy = dr * sin (current_heading);
+        Eigen::Vector3d incr (dx, dy, dt);
+
+        pose->_pose = _lastPose->_pose + incr;
+        pose->_poseByModel = m->toVector();
+        _lastPose = pose;
+        _lastOdom = t;
+
+        ofstream actfile;
+        actfile.open ("/home/ism/tmp/action.dat", std::ios::out | std::ios::app);
+        actfile << m->translation().x() << " " << m->translation().y() << " " << m->rotation().angle() << std::endl;
+        actfile.close();
+
+        ofstream odomfile;
+        odomfile.open ("/home/ism/tmp/odom.dat", std::ios::out | std::ios::app);
+        odomfile << t->translation().x() << " " << t->translation().y() << " " << t->rotation().angle() << std::endl;
+        odomfile.close();
+
+        return pose;
+    }
+
 }

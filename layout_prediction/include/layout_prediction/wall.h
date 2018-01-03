@@ -248,6 +248,9 @@ namespace MYSLAM {
             Eigen::Vector2d p; // endpoint
             Eigen::Vector2d q; // endpoint
 
+            double p2xx, q2xx;
+            int ppos;
+
             void calcXxFromMc();
             void calcXxFromRt();
             void calcRtFromMc();
@@ -255,6 +258,7 @@ namespace MYSLAM {
             void calcMcFromXx();
             void calcMcFromRt();
             void calcPq();
+            void calcSegment();
     };
 
     class Wall
@@ -262,6 +266,7 @@ namespace MYSLAM {
         public:
             typedef std::shared_ptr<Wall> Ptr;
             Wall();
+            void initParams ();
             void updateParams ();
 
             unsigned long int _id;
