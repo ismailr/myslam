@@ -7,6 +7,8 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <pr2_mechanism_controllers/BaseOdometryState.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2/impl/utils.h>
 
 #include "layout_prediction/system.h"
 #include "layout_prediction/pose.h"
@@ -44,6 +46,7 @@ namespace MYSLAM {
 
             Pose::Ptr _lastPose;
             SE2 *_lastOdom;
+            SE2 *_lastAction;
 
             Pose::Ptr trackPose (
                     const nav_msgs::OdometryConstPtr& odom, 
@@ -61,6 +64,9 @@ namespace MYSLAM {
             SE2* odomToSE2 (const nav_msgs::OdometryConstPtr& odom);
             SE2* estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombine);
             SE2* actionToSE2 (const nav_msgs::OdometryConstPtr& action);
+
+            tf2_ros::TransformListener *_listener2;
+            tf2_ros::Buffer *_buffer;
 
     };
 }

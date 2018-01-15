@@ -323,15 +323,20 @@ void System2::readSensorsData (
 namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
-    System::System(ros::NodeHandle nh):_rosnodehandle (nh), _init (true) {
+    System::System(ros::NodeHandle nh)
+        :_rosnodehandle (nh), _init (true), _lastPoseId (-1) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
-        _optimizer = new Optimizer (*this, *_graph);
+//        _optimizer = new Optimizer (*this, *_graph);
         _visualizer = new Visualizer (_rosnodehandle, *this, *_graph);
         _listener = new tf::TransformListener;
         _buffer = new tf2_ros::Buffer;
         _listener2 = new tf2_ros::TransformListener (*_buffer);
+
+        /* ISAM */
+        _slam = new isam::Slam();
+        _optimizer = new Optimizer (*this, *_graph, *_slam);
     };
 
     void System::readSensorsData (
@@ -342,7 +347,16 @@ namespace MYSLAM {
             const nav_msgs::OdometryConstPtr& action,
             const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined)
     {
-        _currentTime = ros::Time::now().toSec();
+//        _currentTime = ros::Time::now().toSec();
+        _currentTime = action->header.stamp.toSec();
+
+//        double vx = action->pose.pose.position.x;
+//        double vy = action->pose.pose.position.y;
+//        double w  = action->pose.pose.orientation.z;
+//
+//        if (!_init && vx == 0 && vy == 0 && w == 0)
+//            return;
+
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*cloudmsg, *cloud);
@@ -364,40 +378,42 @@ namespace MYSLAM {
 
         _visualizer->visualizeCloud(cloud);
 
-        geometry_msgs::TransformStamped transformStamped;
-        try {
-            transformStamped = _buffer->lookupTransform (
-                    "base_link",
-                    "base_laser_link",
-                    ros::Time(0));
-
-        } catch (tf2::TransformException &ex) {
-            ROS_WARN ("%s", ex.what());
-            ros::Duration(1.0).sleep();
-        }
-
-        double x = transformStamped.transform.translation.x;
-        double y = transformStamped.transform.translation.y;
-        double z = transformStamped.transform.translation.z;
-        double qx = transformStamped.transform.rotation.x;
-        double qy = transformStamped.transform.rotation.y;
-        double qz = transformStamped.transform.rotation.z;
-        double qw = transformStamped.transform.rotation.w;
-
-        tf2::Quaternion q (qx, qy, qz, qw);
-        double angle = tf2::impl::getYaw(q);
-
-        SE2 transform (x, y, angle);
-        SE2 odomSE2;
-        Converter c;
-        c.odomToSE2 (odom, odomSE2);
-        SE2 laserPose = odomSE2 * transform;
+//        geometry_msgs::TransformStamped transformStamped;
+//        try {
+//            transformStamped = _buffer->lookupTransform (
+//                    "base_link",
+//                    "base_laser_link",
+//                    ros::Time(0));
+//
+//        } catch (tf2::TransformException &ex) {
+//            ROS_WARN ("%s", ex.what());
+//            ros::Duration(1.0).sleep();
+//        }
+//
+//        double x = transformStamped.transform.translation.x;
+//        double y = transformStamped.transform.translation.y;
+//        double z = transformStamped.transform.translation.z;
+//        double qx = transformStamped.transform.rotation.x;
+//        double qy = transformStamped.transform.rotation.y;
+//        double qz = transformStamped.transform.rotation.z;
+//        double qw = transformStamped.transform.rotation.w;
+//
+//        tf2::Quaternion q (qx, qy, qz, qw);
+//        double angle = tf2::impl::getYaw(q);
+//
+//        SE2 transform (x, y, angle);
+//        SE2 odomSE2;
+//        Converter c;
+//        c.odomToSE2 (odom, odomSE2);
+//        SE2 laserPose = odomSE2 * transform;
 
         // trackPose
-//        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
-        Pose::Ptr pose = _tracker->trackPose (laserPose, action, odomCombined, _init);
+        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
+//        Pose::Ptr pose = _tracker->trackPose (laserPose, action, odomCombined, _init);
         _graph->_poseMap[pose->_id] = pose;
         _graph->_activePoses.push_back (pose->_id);
+        std::tuple<int,int> posePoseId (_lastPoseId, pose->_id);
+        _graph->_posePoseMap[posePoseId] = pose->_measurement;
 
         // detectwall
         std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
@@ -415,20 +431,20 @@ namespace MYSLAM {
             _graph->_activeWalls.insert (w->_id);
             _graph->_activeEdges.push_back (m);
             pose->_detectedWalls.push_back (w->_id);
-            mfile << "MEASUREMENT OF WALL: " << w->_id << " FROM POSE: " << pose->_id << " = " << std::get<1>(walls[i]) << std::endl;
         }
         mfile.close();
 
         // do local mapping each time detected two new walls
 //        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)
-        if (System::_frameCounter % 5 == 0)
-        {
-            _optimizer->localOptimize();
+//        if (System::_frameCounter % 2 == 0)
+//        {
+            _optimizer->incrementalOptimize(pose->_id, walls);
             _visualizer->visualizeWallOptimizedPq();
-        }
+//        }
 
         _prevTime = _currentTime;
         _init = false;
+        _lastPoseId = pose->_id;
         System::_frameCounter++;
     }
 }

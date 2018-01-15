@@ -249,7 +249,7 @@ namespace MYSLAM {
             Eigen::Vector2d q; // endpoint
 
             double p2xx, q2xx;
-            int ppos;
+            Eigen::Vector3d ppos, qpos;
 
             void calcXxFromMc();
             void calcXxFromRt();

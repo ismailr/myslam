@@ -112,7 +112,7 @@ namespace MYSLAM {
     {
         truePose.setZero(); 
         simPose.setZero();
-        truePose[2] = 2.68;
+        truePose[2] = 2.88;
         simPose[2] = truePose[2];
         sense();
     }
@@ -122,7 +122,7 @@ namespace MYSLAM {
         sensedData.clear();
         sensedDinding.clear();
 
-        const double tstep = 0.2;
+        const double tstep = 0.1;
 
         double xtrue = truePose[0];
         double ytrue = truePose[1];
@@ -143,9 +143,34 @@ namespace MYSLAM {
         double xsim = simPose[0];
         double ysim = simPose[1];
         double psim = simPose[2];
-        psim = ptrue;
         xsim = xsim + d * cos(psim);
         ysim = ysim + d * sin(psim);
+
+        simPose << xsim, ysim, psim;
+    }
+
+    void Simulator::Robot::turn (int direction)
+    {
+        sensedData.clear();
+        sensedDinding.clear();
+
+        const double pstep = 0.1;
+
+        double xtrue = truePose[0];
+        double ytrue = truePose[1];
+        double ptrue = truePose[2];
+
+        direction == 0 ? ptrue -= pstep : ptrue += pstep;
+
+        truePose << xtrue, ytrue, ptrue;
+
+        double noise = gaussian_generator<double>(0.0, wnoise_var);
+
+        double xsim = simPose[0];
+        double ysim = simPose[1];
+        double psim = simPose[2];
+
+        direction == 0 ? psim -= pstep + noise : psim += pstep + noise;
 
         simPose << xsim, ysim, psim;
     }
@@ -176,23 +201,27 @@ namespace MYSLAM {
             Eigen::Vector2d data (xx_,xy_);
 
             double r = sqrt (xx_*xx_ + xy_*xy_);
+            double angle = normalize_angle (atan2 (xy_,xx_));
 
             if (r <= RANGE)
             {
-                sensedDinding.push_back (&(*it));
-                sensedData.push_back (data);
+                if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
+                {
+                    sensedDinding.push_back (&(*it));
+                    sensedData.push_back (data);
+                }
             }
         }
     }
 
     Simulator::Simulator()
     {
-        double grads[8] = {2, -.5, 2, -.5, 2, -.5, 2, -.5};
-        double intercepts[8] = {30.0, 80.0, -30.0, 40.0, 15.0, 10.0, -30.0, -12.0};
-        double x[9] = {-16.8,20.0,44.0,28.0,10.0,-2.0,16.0,7.2, -16.8};
-        double y[9] = {-3.6,70.0,58.0,26.0,35.0,11.0,2.0,-15.6, -3.6};
+        double grads[4] = {2, -.5, 2, -.5};
+        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
+        double x[5] = {-12, -6.8, 7.2, 2, -12};
+        double y[5] = {1, 11.4, 4.4, -6, 1};
 
-        for (int i = 0; i < 1 /*NUM_OF_WALLS*/; i++)
+        for (int i = 0; i < 4 /*NUM_OF_WALLS*/; i++)
         {
             Dinding *d = new Dinding;
             d->id = i;
@@ -227,6 +256,9 @@ namespace MYSLAM {
         std::vector<Dinding*> dindings;
         std::vector<Wall::Ptr> walls;
 
+        Eigen::Vector3d lastSimPose;
+        Pose::Ptr lastPose;
+
         for (int frame = 1; frame < MYSLAM::SIM_NUMBER_OF_ITERATIONS; frame++)
         {
             // poses
@@ -236,8 +268,26 @@ namespace MYSLAM {
             mfile   << s[0] << " " << s[1] << " " << s[2] << " " << t[0] << " " << t[1] << " " << t[2] << std::endl;
 
             Pose::Ptr pose (new Pose);
-            pose->_pose = s;
-            pose->_poseByModel = t;
+            if (frame == 1)
+            {
+                pose->_pose = s;
+                pose->_poseByModel = t;
+                graph._poseMap [pose->_id] = pose;
+                graph._activePoses.push_back (pose->_id);
+                lastSimPose = s;
+                lastPose = pose;
+                getNextState();
+                continue;
+            }
+
+            Eigen::Vector3d delta = s - lastSimPose;
+            double dr = sqrt (delta[0]*delta[0] + delta[1]*delta[1]);
+            double current_heading = lastPose->_pose[2] + delta[2];
+            double dx = dr * cos (current_heading);
+            double dy = dr * sin (current_heading);
+            Eigen::Vector3d incr (dx, dy, delta[2]);
+
+            pose->_pose = lastPose->_pose + incr;
             graph._poseMap [pose->_id] = pose;
             graph._activePoses.push_back (pose->_id);
 
@@ -251,8 +301,12 @@ namespace MYSLAM {
                 {
                     Wall::Ptr wall (new Wall);
                     w = wall;
+                    w->_line.p = d->p;
+                    w->_line.q = d->q;
+//                    w->initParams();
                     dindings.push_back (d);
                     walls.push_back (w);
+
                 } else {
                     for (int j = 0; j < dindings.size(); j++)
                     {
@@ -265,6 +319,9 @@ namespace MYSLAM {
                         {
                             Wall::Ptr wall (new Wall);
                             w = wall;
+                            w->_line.p = d->p;
+                            w->_line.q = d->q;
+//                            w->initParams();
                             dindings.push_back (robot->sensedDinding[i]);
                             walls.push_back (w);
                             break;
@@ -298,6 +355,7 @@ namespace MYSLAM {
 
                 w->_line.xx[0] = xx;
                 w->_line.xx[1] = xy;
+                w->initParams();
 
                 graph._wallMap [w->_id] = w;
                 graph._activeWalls.insert (w->_id);
@@ -307,31 +365,52 @@ namespace MYSLAM {
                 graph._activeEdges.push_back (e);
             }
 
-            if (frame % 5 == 0)
+            if (frame % 2 == 0)
             {
                 o.localOptimize();
             }
 
-            getNextState();
+//            getNextState();
+            lastSimPose = s;
+            lastPose = pose;
+
+            if (frame < 75)
+            {
+                robot->move();
+                robot->sense();
+            } else if (frame >= 75 && frame < 85) {
+                robot->turn(0);
+                robot->sense();
+            } else if (frame >= 85 && frame < 120) {
+                robot->move();
+                robot->sense();
+            } else if (frame >= 120 && frame < 127) {
+                robot->turn(0);
+                robot->sense();
+            } else {
+                robot->move();
+                robot->sense();
+            }
         }
+
+//        o.globalOptimize();
 
         mfile.close();
 
         ofstream wfile;
         wfile.open ("/home/ism/tmp/wall.dat", std::ios::out | std::ios::app);
-        wfile << "RESULT" << std::endl;
         for (std::map<int, Wall::Ptr>::iterator it = graph._wallMap.begin();
                 it != graph._wallMap.end(); it++)
         {
-            wfile << it->first << " " << it->second->_line.xx[0] << " " << it->second->_line.xx[1] << std::endl;
+            wfile << it->second->_line.p.transpose() << " " << it->second->_line.q.transpose() << std::endl;
         }
-        wfile << std::endl;
+//        wfile << std::endl;
 
-        for (int i = 0; i < struktur.size(); i++)
-        {
-            wfile << struktur[i].id << " " << struktur[i].xx << " " << struktur[i].xy << std::endl;
-        }
-        wfile << std::endl;
+//        for (int i = 0; i < struktur.size(); i++)
+//        {
+//            wfile << struktur[i].id << " " << struktur[i].xx << " " << struktur[i].xy << std::endl;
+//        }
+//        wfile << std::endl;
         wfile.close();
 
     }

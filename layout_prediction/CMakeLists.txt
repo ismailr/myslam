@@ -164,6 +164,9 @@ add_executable(layout_prediction
     src/g2o/edge_se2.cpp
     src/g2o/edge_se2_line2d.cpp
     src/g2o/edge_line2d.cpp
+    src/slam_interface.cpp
+    src/sparse_optimizer_online.cpp
+    src/sparse_optimizer_incremental.cpp
 )
 
 add_executable(simulation
@@ -189,6 +192,9 @@ add_executable(simulation
     src/g2o/edge_se2.cpp
     src/g2o/edge_se2_line2d.cpp
     src/g2o/edge_line2d.cpp
+    src/slam_interface.cpp
+    src/sparse_optimizer_online.cpp
+    src/sparse_optimizer_incremental.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -200,6 +206,7 @@ target_link_libraries(layout_prediction
 	${catkin_LIBRARIES}
 	${G2O_CORE_LIBRARY}
 	${G2O_STUFF_LIBRARY}
+    ${G2O_SOLVER_CHOLMOD}
 	${G2O_SOLVER_CSPARSE}
 	${G2O_SOLVER_CSPARSE_EXTENSION}
     ${G2O_TYPES_SLAM3D}
@@ -210,12 +217,15 @@ target_link_libraries(layout_prediction
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
+    "/usr/local/lib/libisam.a"
+    "/usr/lib64/libcholmod.so"
 )
 
 target_link_libraries(simulation
 	${catkin_LIBRARIES}
 	${G2O_CORE_LIBRARY}
 	${G2O_STUFF_LIBRARY}
+    ${G2O_SOLVER_CHOLMOD}
 	${G2O_SOLVER_CSPARSE}
 	${G2O_SOLVER_CSPARSE_EXTENSION}
     ${G2O_TYPES_SLAM3D}
@@ -226,6 +236,8 @@ target_link_libraries(simulation
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
+    "/usr/local/lib/libisam.a"
+    "/usr/lib64/libcholmod.so"
 )
 
 add_definitions(-std=c++11)

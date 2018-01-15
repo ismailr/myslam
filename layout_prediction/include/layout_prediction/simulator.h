@@ -30,14 +30,15 @@ namespace MYSLAM {
                 std::vector<Eigen::Vector2d> sensedData;
 
                 void move();
+                void turn(int direction);
                 void sense();
 
             private:
                 Simulator* _sim;
-                const double xnoise_var = 0.01, ynoise_var = 0.01;
-                const double pnoise_var  = 0.01 * M_PI/180.0;
-                const double wnoise_var = 0.1;
-                const double RANGE = 15.0;
+                const double xnoise_var = 1e-1, ynoise_var = 1e-1;
+                const double pnoise_var  = 1e-1 * M_PI/180.0;
+                const double wnoise_var = 1e-1;
+                const double RANGE = 10.0;
         };
 
         std::vector<Dinding> struktur;

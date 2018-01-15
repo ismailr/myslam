@@ -119,12 +119,12 @@ namespace MYSLAM {
 
             PoseMeasurement();
 
-            void computeError()
-            {
-                const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
-                const PoseVertex* v2 = static_cast<const PoseVertex*>(_vertices[1]);
-                SE2 delta = _inverseMeasurement * (v1->estimate().inverse()*v2->estimate());
-                _error = delta.toVector();
+//            void computeError()
+//            {
+//                const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
+//                const PoseVertex* v2 = static_cast<const PoseVertex*>(_vertices[1]);
+//                SE2 delta = _inverseMeasurement * (v1->estimate().inverse()*v2->estimate());
+//                _error = delta.toVector();
 //
 //                double x1 = v1->estimate().translation().x();
 //                double y1 = v1->estimate().translation().y();
@@ -140,16 +140,17 @@ namespace MYSLAM {
 //                f << "ERROR: " << _error.transpose() << std::endl;
 //                f << std::endl;
 //                f.close();
-            }
-
-//            void computeError()
-//            {
-//                const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
-//                const PoseVertex* v2 = static_cast<const PoseVertex*>(_vertices[1]);
-//                Eigen::Vector3d prediction = ((*(v1->getModel())).inverse() * *(v2->getModel())).toVector();
-//                Eigen::Vector3d measurement = _measurement.toVector();
-//                _error = (measurement - prediction);
 //            }
+
+            void computeError()
+            {
+                const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
+                const PoseVertex* v2 = static_cast<const PoseVertex*>(_vertices[1]);
+//                Eigen::Vector3d prediction = ((*(v1->getModel())).inverse() * *(v2->getModel())).toVector();
+                Eigen::Vector3d prediction = (v1->estimate().inverse()*v2->estimate()).toVector();
+                Eigen::Vector3d measurement = _measurement.toVector();
+                _error = (measurement - prediction);
+            }
     };
 
 }

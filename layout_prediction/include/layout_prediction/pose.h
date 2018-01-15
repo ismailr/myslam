@@ -104,9 +104,11 @@ namespace MYSLAM {
             typedef std::shared_ptr<Pose> Ptr;
             Pose();
 
-            unsigned int long _id;
+            unsigned long int _id;
+            unsigned long int _previousId;
             Eigen::Vector3d _pose;
             Eigen::Vector3d _poseByModel;
+            Eigen::Vector3d _measurement;
 
             std::vector<int> _detectedWalls;
     };

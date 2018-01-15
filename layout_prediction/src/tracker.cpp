@@ -127,10 +127,45 @@ Pose2::Ptr Tracker2::trackPose (const OdomConstPtr& odom, const OdomConstPtr& ac
 }
 
 namespace MYSLAM {
-    Tracker::Tracker(System& system): _system (&system) {};
+    Tracker::Tracker(System& system): _system (&system) {
+        _buffer = new tf2_ros::Buffer;
+        _listener2 = new tf2_ros::TransformListener (*_buffer);
+    };
 
     SE2* Tracker::odomToSE2 (const nav_msgs::OdometryConstPtr& odom)
     {
+//        geometry_msgs::TransformStamped transformStamped;
+//        try {
+//            transformStamped = _buffer->lookupTransform (
+//                    "base_link",
+//                    "base_laser_link",
+//                    ros::Time(0));
+//
+//        } catch (tf2::TransformException &ex) {
+//            ROS_WARN ("%s", ex.what());
+//            ros::Duration(1.0).sleep();
+//        }
+//
+//        double x = transformStamped.transform.translation.x;
+//        double y = transformStamped.transform.translation.y;
+//        double z = transformStamped.transform.translation.z;
+//        double qx = transformStamped.transform.rotation.x;
+//        double qy = transformStamped.transform.rotation.y;
+//        double qz = transformStamped.transform.rotation.z;
+//        double qw = transformStamped.transform.rotation.w;
+//
+//        tf2::Quaternion q (qx, qy, qz, qw);
+//        double angle = tf2::impl::getYaw(q);
+//
+//        SE2 transform (x, y, angle);
+//        SE2 odomSE2;
+//
+//        Converter c;
+//        c.odomToSE2 (odom, odomSE2);
+//        SE2 *laserPose = new SE2;
+//        *laserPose = odomSE2 * transform;
+//        return laserPose;
+
         Converter c;
         SE2 *t = new SE2();
         c.odomToSE2 (odom, *t);
@@ -152,9 +187,12 @@ namespace MYSLAM {
         double vx = action->pose.pose.position.x;
         double vy = action->pose.pose.position.y;
         double w  = action->pose.pose.orientation.z;
-        double x0 = _lastPose->_pose[0];
-        double y0 = _lastPose->_pose[1];
-        double theta0 = _lastPose->_pose[2];
+//        double x0 = _lastPose->_pose[0];
+//        double y0 = _lastPose->_pose[1];
+//        double theta0 = _lastPose->_pose[2];
+        double x0 = _lastAction->translation().x();
+        double y0 = _lastAction->translation().y();
+        double theta0 = _lastAction->rotation().angle();
 
         double x = x0 + (vx * cos(theta0) - vy * sin(theta0)) * deltaTime;
         double y = y0 + (vx * sin(theta0) + vy * cos(theta0)) * deltaTime;
@@ -170,29 +208,32 @@ namespace MYSLAM {
             const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
             bool init) 
     {
-        SE2* t = odomToSE2 (odom);
-//        SE2* c = estimateFromOdomCombined (odomcombined);
+        SE2* m = odomToSE2 (odom);
+//        SE2* t = estimateFromOdomCombined (odomcombined);
         Pose::Ptr pose (new Pose); 
 
         if (init)
         {
-            pose->_pose = t->toVector();
+            pose->_pose = m->toVector();
             pose->_poseByModel = pose->_pose;
+            pose->_measurement = Eigen::Vector3d();
+            pose->_previousId = -1;
             _lastPose = pose;
-            _lastOdom = t;
+            _lastOdom = m;
+            _lastAction = m;
             return pose;
         }
 
-        SE2* m = actionToSE2 (action);
+        SE2* t = actionToSE2 (action);
 
         // heading change
-        double dt = normalize_theta (t->rotation().angle() - _lastOdom->rotation().angle());
+        double dt = t->rotation().angle() - _lastAction->rotation().angle();
 
         // distance
         double x1 = t->translation().x();
         double y1 = t->translation().y();
-        double x0 = _lastOdom->translation().x();
-        double y0 = _lastOdom->translation().y();
+        double x0 = _lastAction->translation().x();
+        double y0 = _lastAction->translation().y();
         double dr = sqrt ((x1-x0)*(x1-x0) + (y1-y0)*(y1-y0));
 
         // handling backward motion
@@ -212,17 +253,20 @@ namespace MYSLAM {
 
         pose->_pose = _lastPose->_pose + incr;
         pose->_poseByModel = m->toVector();
+        pose->_measurement = incr;
+        pose->_previousId = _lastPose->_id;
         _lastPose = pose;
-        _lastOdom = t;
+        _lastOdom = m;
+        _lastAction = t;
 
         ofstream actfile;
         actfile.open ("/home/ism/tmp/action.dat", std::ios::out | std::ios::app);
-        actfile << m->translation().x() << " " << m->translation().y() << " " << m->rotation().angle() << std::endl;
+        actfile << t->translation().x() << " " << t->translation().y() << " " << t->rotation().angle() << std::endl;
         actfile.close();
 
         ofstream odomfile;
         odomfile.open ("/home/ism/tmp/odom.dat", std::ios::out | std::ios::app);
-        odomfile << t->translation().x() << " " << t->translation().y() << " " << t->rotation().angle() << std::endl;
+        odomfile << m->translation().x() << " " << m->translation().y() << " " << m->rotation().angle() << std::endl;
         odomfile.close();
 
         return pose;

@@ -32,7 +32,7 @@ int main (int argc, char** argv)
 //    System2 system2 (nh, graph2);
 //    WallDetector2 wallDetector2 (system2, graph2);
 //    Tracker2 tracker2 (system2, graph2);
-    
+
     MYSLAM::System system (nh);
 
     // Get sensors data

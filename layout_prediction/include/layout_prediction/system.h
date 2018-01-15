@@ -17,9 +17,10 @@
 #include "layout_prediction/visualizer.h"
 #include "se2.h"
 
+#include "isam/isam.h"
+
 class WallDetector2;
 class Tracker2;
-class Graph;
 class Graph2;
 class Pose;
 class Pose2;
@@ -87,6 +88,7 @@ namespace MYSLAM {
             static unsigned long int _frameCounter;
             double _currentTime;
             double _prevTime;
+            int _lastPoseId;
 
             // callback
             void readSensorsData (
@@ -110,6 +112,9 @@ namespace MYSLAM {
             tf::TransformListener *_listener;
             tf2_ros::TransformListener *_listener2;
             tf2_ros::Buffer *_buffer;
+
+            /* ISAM */
+            isam::Slam *_slam;
     };
 }
 

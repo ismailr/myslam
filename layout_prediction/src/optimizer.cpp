@@ -17,19 +17,45 @@
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 
+#include "isam/wall2d.h"
+#include "isam/pose2d.h"
+#include "isam/pose2d_wall2d_factor.h"
+
 using namespace g2o;
+using namespace isam;
 
 namespace MYSLAM {
     Optimizer::Optimizer (System& system, Graph& graph)
        : _system (&system), _graph (&graph)
     {
+        _incOptimizer = new SparseOptimizerIncremental;
+        _incOptimizer->setVerbose (true);
 
+        _slamInterface = new SlamInterface (_incOptimizer);
+        _slamInterface->setUpdateGraphEachN (10);
+        _slamInterface->setBatchSolveEachN (100);
+    }
+
+    Optimizer::Optimizer (System& system, Graph& graph, isam::Slam& slam)
+       : _system (&system), _graph (&graph), _slam (&slam)
+    {
+        _incOptimizer = new SparseOptimizerIncremental;
+        _incOptimizer->setVerbose (true);
+
+        _slamInterface = new SlamInterface (_incOptimizer);
+        _slamInterface->setUpdateGraphEachN (10);
+        _slamInterface->setBatchSolveEachN (100);
     }
 
     Optimizer::Optimizer (Graph& graph)
        : _graph (&graph)
     {
+        _incOptimizer = new SparseOptimizerIncremental;
+        _incOptimizer->setVerbose (true);
 
+        _slamInterface = new SlamInterface (_incOptimizer);
+        _slamInterface->setUpdateGraphEachN (10);
+        _slamInterface->setBatchSolveEachN (100);
     }
 
     void Optimizer::localOptimize()
@@ -52,10 +78,15 @@ namespace MYSLAM {
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
         std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
 
-        Eigen::Matrix<double, 3, 3> poseInfMatrix;
-        poseInfMatrix.setIdentity();
-        Eigen::Matrix<double, 2, 2> wallInfMatrix;
-        wallInfMatrix.setIdentity();
+        Eigen::Matrix<double, 3, 3> poseCovMatrix;
+//        poseCovMatrix.setIdentity();
+        poseCovMatrix <<    1e-1, 0.0, 0.0,
+                            0.0, 1e-1, 0.0,
+                            0.0, 0.0, 1e-1;
+        Eigen::Matrix<double, 2, 2> wallCovMatrix;
+//        wallCovMatrix.setIdentity();
+        wallCovMatrix <<    1e-1, 0.0,
+                            0.0, 1e-1;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
@@ -75,7 +106,7 @@ namespace MYSLAM {
             v->setId (pose->_id); 
             v->setEstimate (vse2);
             v->setModel (vse2_model);
-            v->setFixed (pose->_id == 0 || it == activePoses.begin()); 
+            v->setFixed (pose->_id == 0 /*|| it == activePoses.begin()*/); 
             o->addVertex (v); 
 
             if (it != activePoses.begin())
@@ -83,8 +114,11 @@ namespace MYSLAM {
                 PoseMeasurement* pm = new PoseMeasurement;
                 pm->vertices()[0] = u;
                 pm->vertices()[1] = v;
-                pm->setMeasurement (u->estimate().inverse() * v->estimate());
-                pm->information () = poseInfMatrix;
+//                pm->setMeasurement (u->estimate().inverse() * v->estimate());
+                SE2 mu = *(u->getModel());
+                SE2 mv = *(v->getModel());
+                pm->setMeasurement (mu.inverse() * mv);
+                pm->information () = poseCovMatrix.inverse();
                 o->addEdge (pm);
 
             }
@@ -130,11 +164,11 @@ namespace MYSLAM {
             wm->vertices()[0] = o->vertex (std::get<0>(*it));
             wm->vertices()[1] = o->vertex (std::get<1>(*it));
             wm->setMeasurementData (data);
-            wm->information() = wallInfMatrix;
+            wm->information() = wallCovMatrix.inverse();
             
-            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-            wm->setRobustKernel (rk);
-            rk->setDelta (sqrt(5.99));
+//            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+//            wm->setRobustKernel (rk);
+//            rk->setDelta (sqrt(5.99));
 
             o->addEdge (wm);
         }
@@ -162,7 +196,7 @@ namespace MYSLAM {
             poseMap[*it]->_pose[1] = y;
             poseMap[*it]->_pose[2] = p;
 
-            if (it != activePoses.begin())
+            if (*it == 0 || it != activePoses.begin())
                 posefile << x << " " << y << " " << p << std::endl;
         }
         posefile.close();
@@ -307,5 +341,47 @@ namespace MYSLAM {
             wallMap[id]->_line.xx[1] = xy;
             wallMap[id]->updateParams ();
         }
+    }
+
+    void Optimizer::incrementalOptimize(int poseId, std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls)
+    {
+        std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
+        std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
+        std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
+
+        Noise noise3 = Information (100. * eye(3));
+        Noise noise2 = Information (100. * eye(2));
+
+        Pose::Ptr poseData = poseMap[poseId];
+        double x = poseData->_pose[0];
+        double y = poseData->_pose[1];
+        double p = poseData->_pose[2];
+
+//        Pose2d_Node *pose_node = new Pose2d_Node();
+//        _slam->add_node (pose_node);
+//        _poseNodes.push_back (pose_node);
+
+//        if (poseId == 0)
+//        {
+//            Pose2d origin (x, y, p);
+//            Pose2d_Factor *prior = new Pose2d_Factor (_poseNodes[0], origin, noise3);
+//            _slam->add_factor (prior);
+//        }
+//
+//        Pose2d_Pose2d_Factor *constraint = 
+//            new Pose2d_Pose2d_Factor (_poseNodes.back(), _poseNodes.rbegin()[1], poseData->_measurement, noise3);
+//        _slam->add_factor (constraint);
+//
+//        for (int i = 0; i < walls.size(); i++)
+//        {
+            Wall2d_Node *wall_node = new Wall2d_Node();
+//            _slam->add_node (wall_node);
+//
+//            Wall2d measure (poseWallMap[std::tuple<int,int>(poseId,walls[i]->_id)]); 
+//            Pose2d_Wall2d_Factor *measurement = 
+//                new Pose2d_Wall2d_Factor (_poseNodes.back(), wall_node, measure, noise2);
+//
+//            _slam->add_factor (measurement);
+//        }
     }
 }

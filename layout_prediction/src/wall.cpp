@@ -325,23 +325,24 @@ namespace MYSLAM {
         double& c = mc[1];
 
         // line with gradient m through (0,0) is y = mx
-        // vector in line (x, y/m)
-        // unit vector sqrt (x,y/m)/(x*x + y*y/m*m)
-        // for x = 1, y = 1
+        // vector in line (x, mx)
+        // unit vector sqrt (x,mx)/(x*x + mx*mx)
+        // for x = 1
 
-        double normalizer = 1 + 1/m*m;
-        Eigen::Vector2d unit (1/normalizer, 1/(m*normalizer));
+        double normalizer = 1 + m*m;
+        Eigen::Vector2d unit (1/normalizer, m/normalizer);
 
-        std::cout << "UNIT: " << unit.transpose() << std::endl;
+        Eigen::Vector3d x3d (x, y, 0);
+        Eigen::Vector3d p3d (px, py, 0);
+        Eigen::Vector3d q3d (qx, qy, 0);
 
-        if (ppos == 0)
-        {
-            p = xx - p2xx * unit;
-            q = xx + q2xx * unit;
-        } else {
-            p = xx + p2xx * unit;
-            q = xx - q2xx * unit;
-        }
+        Eigen::Vector3d presult = x3d + p2xx * (x3d.cross(-ppos)).normalized();
+        Eigen::Vector3d qresult = x3d + q2xx * (x3d.cross(-qpos)).normalized();
+
+        p[0] = presult[0];
+        p[1] = presult[1];
+        q[0] = qresult[0];
+        q[1] = qresult[1];
     };
 
     void Line::calcSegment() {
@@ -352,15 +353,18 @@ namespace MYSLAM {
         double& x = xx[0];
         double& y = xx[1];
 
-        double px2xx = px - x;
-        double py2xy = py - y;
-        double qx2xx = qx - x;
-        double qy2xy = qy - y;
+        Eigen::Vector3d x3d (x, y, 0);
+        Eigen::Vector3d p3d (px, py, 0);
+        Eigen::Vector3d q3d (qx, qy, 0);
 
-        px2xx < 0 ? ppos = 0 : ppos = 1;
+        Eigen::Vector3d pd = p3d - x3d;
+        Eigen::Vector3d qd = q3d - x3d;
 
-        p2xx = sqrt(px2xx*px2xx + py2xy*py2xy);
-        q2xx = sqrt(qx2xx*qx2xx + qy2xy*qy2xy);
+        p2xx = pd.norm();
+        q2xx = qd.norm();
+
+        ppos = (x3d.cross(pd)).normalized();
+        qpos = (x3d.cross(qd)).normalized();
     };
 
 
