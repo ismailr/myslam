@@ -11,8 +11,6 @@
 #include "slam_interface.h"
 
 #include "isam/isam.h"
-#include "isam/pose2d.h"
-#include "isam/pose2d_wall2d_factor.h"
 
 namespace MYSLAM {
     class Graph;
@@ -20,11 +18,12 @@ namespace MYSLAM {
     {
         public:
             Optimizer(System&, MYSLAM::Graph&);
-            Optimizer(System&, MYSLAM::Graph&, isam::Slam&); // ISAM
+            Optimizer(System&, MYSLAM::Graph&, isam::Slam&);
             Optimizer(MYSLAM::Graph&); // simulation
             void localOptimize();
             void globalOptimize();
-            void incrementalOptimize(int, std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >);
+            void globalOptimizePoint();
+            void incrementalOptimize();
 
         private:
             System *_system;
@@ -33,9 +32,7 @@ namespace MYSLAM {
             SparseOptimizerIncremental *_incOptimizer;
             SlamInterface *_slamInterface;
 
-            /* ISAM */
             isam::Slam *_slam;
-            std::vector<Pose2d_Node*> _poseNodes;
     };
 }
 

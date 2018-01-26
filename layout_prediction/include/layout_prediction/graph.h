@@ -9,6 +9,7 @@
 #include <math.h>
 
 #include "layout_prediction/wall.h"
+#include "layout_prediction/point.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/wall_measurement.h"
@@ -111,16 +112,21 @@ namespace MYSLAM {
             Graph();
             Graph(System&);
             Wall::Ptr dataAssociation (Wall::Ptr& w);
+            Point::Ptr dataAssociationPoint (Point::Ptr& p);
 
             std::map<int, Pose::Ptr> _poseMap;
             std::map<int, Wall::Ptr> _wallMap;
+            std::map<int, Point::Ptr> _pointMap;
 
             std::map<std::tuple<int, int>, Eigen::Vector3d> _posePoseMap;
             std::map<std::tuple<int, int>, Eigen::Vector2d> _poseWallMap;
+            std::map<std::tuple<int, int>, Eigen::Vector2d> _posePointMap;
 
             // local optimization book keeping
             std::vector<int> _activePoses;
             std::set<int> _activeWalls;
+            std::set<int> _lastActiveWalls;
+            std::set<int> _activePoints;
             std::vector<std::tuple<int, int> > _activeEdges;
 
         private:

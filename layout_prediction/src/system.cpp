@@ -25,6 +25,7 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
+#include <pcl/filters/median_filter.h>
 
 static int marker_id = 0;
 int System2::_framecounter = 1;
@@ -324,19 +325,18 @@ namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
     System::System(ros::NodeHandle nh)
-        :_rosnodehandle (nh), _init (true), _lastPoseId (-1) {
+        :_rosnodehandle (nh), _init (true) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
-//        _optimizer = new Optimizer (*this, *_graph);
+        _optimizer = new Optimizer (*this, *_graph);
         _visualizer = new Visualizer (_rosnodehandle, *this, *_graph);
         _listener = new tf::TransformListener;
         _buffer = new tf2_ros::Buffer;
         _listener2 = new tf2_ros::TransformListener (*_buffer);
 
-        /* ISAM */
-        _slam = new isam::Slam();
-        _optimizer = new Optimizer (*this, *_graph, *_slam);
+//        _slam = new isam::Slam();
+//        _optimizer = new Optimizer (*this, *_graph, *_slam);
     };
 
     void System::readSensorsData (
@@ -357,9 +357,38 @@ namespace MYSLAM {
 //        if (!_init && vx == 0 && vy == 0 && w == 0)
 //            return;
 
+        // convert sensor data 
+        double datax = 0.0, datay = 0.0, datat = 0.0;
 
+        Converter c;
+        SE2 *t = new SE2();
+
+        if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL) {
+            datax = action->pose.pose.position.x;
+            datay = action->pose.pose.position.y;
+            datat = action->pose.pose.orientation.z;
+        } else {
+            if (_tracker->_method == _tracker->USE_ODOMETRY
+                || _tracker->_method == _tracker->USE_SCAN_MATCHING) 
+                c.odomToSE2 (odom, *t);
+            else if (_tracker->_method == _tracker->USE_ODOMETRY_IMU)
+                c.odomCombinedToSE2 (odomCombined, *t);
+
+            datax = t->translation().x();
+            datay = t->translation().y();
+            datat = t->rotation().angle();
+        }
+
+        double data[3] = {datax, datay, datat};
+
+        // convert pointcloud
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*cloudmsg, *cloud);
+
+        pcl::PointCloud<pcl::PointXYZ> medfilteredCloud;
+        pcl::MedianFilter<pcl::PointXYZ> medfilter; 
+        medfilter.setInputCloud (cloud);
+        medfilter.applyFilter (*cloud);
 
         try {
             _listener->waitForTransform (   
@@ -376,52 +405,31 @@ namespace MYSLAM {
             ROS_ERROR ("%s", ex.what());
         }
 
-        _visualizer->visualizeCloud(cloud);
+        Pose::Ptr pose (new Pose);
 
-//        geometry_msgs::TransformStamped transformStamped;
-//        try {
-//            transformStamped = _buffer->lookupTransform (
-//                    "base_link",
-//                    "base_laser_link",
-//                    ros::Time(0));
-//
-//        } catch (tf2::TransformException &ex) {
-//            ROS_WARN ("%s", ex.what());
-//            ros::Duration(1.0).sleep();
-//        }
-//
-//        double x = transformStamped.transform.translation.x;
-//        double y = transformStamped.transform.translation.y;
-//        double z = transformStamped.transform.translation.z;
-//        double qx = transformStamped.transform.rotation.x;
-//        double qy = transformStamped.transform.rotation.y;
-//        double qz = transformStamped.transform.rotation.z;
-//        double qw = transformStamped.transform.rotation.w;
-//
-//        tf2::Quaternion q (qx, qy, qz, qw);
-//        double angle = tf2::impl::getYaw(q);
-//
-//        SE2 transform (x, y, angle);
-//        SE2 odomSE2;
-//        Converter c;
-//        c.odomToSE2 (odom, odomSE2);
-//        SE2 laserPose = odomSE2 * transform;
+        if (_init) // set prior
+        {
+            pose->_pose = t->toVector();
+            _tracker->setPrior (pose);
+            _tracker->setFirstPCL (cloud);
+        } else {
+            if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL)
+                _tracker->trackPoseByConstantVelocityModel (data, pose);
+            else if (_tracker->_method == _tracker->USE_ODOMETRY
+                    || _tracker->_method == _tracker->USE_ODOMETRY_IMU)
+                _tracker->trackPoseByOdometry (data, pose);
+            else if (_tracker->_method == _tracker->USE_SCAN_MATCHING)
+                _tracker->trackPoseByScanMatching (cloud, pose, data);
+        }
 
-        // trackPose
-        Pose::Ptr pose = _tracker->trackPose (odom, action, odomCombined, _init);
-//        Pose::Ptr pose = _tracker->trackPose (laserPose, action, odomCombined, _init);
         _graph->_poseMap[pose->_id] = pose;
         _graph->_activePoses.push_back (pose->_id);
-        std::tuple<int,int> posePoseId (_lastPoseId, pose->_id);
-        _graph->_posePoseMap[posePoseId] = pose->_measurement;
 
         // detectwall
         std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
         _wallDetector->detect (pose, cloud, walls);
 
-        ofstream mfile;
-        mfile.open ("/home/ism/tmp/measurement.dat", std::ios::out | std::ios::app);
-        // data association
+      // data association
         for (size_t i = 0; i < walls.size(); i++)
         {
             Wall::Ptr w = std::get<0>(walls[i]);
@@ -432,20 +440,18 @@ namespace MYSLAM {
             _graph->_activeEdges.push_back (m);
             pose->_detectedWalls.push_back (w->_id);
         }
-        mfile.close();
 
-        // do local mapping each time detected two new walls
-//        if (_graph->_activeWalls.size() == 2 || System::_frameCounter % 5 == 0)
-//        if (System::_frameCounter % 2 == 0)
-//        {
-            _optimizer->incrementalOptimize(pose->_id, walls);
-            _visualizer->visualizeWallOptimizedPq();
-//        }
+        if (System::_frameCounter % 10 == 0)
+        {
+            _optimizer->localOptimize();
+//            _visualizer->visualizeWallOptimizedPq();
+        }
 
         _prevTime = _currentTime;
         _init = false;
-        _lastPoseId = pose->_id;
         System::_frameCounter++;
+
+        _visualizer->visualizeCloud(cloud);
     }
 }
 

@@ -46,29 +46,27 @@ namespace MYSLAM {
 
             Pose::Ptr _lastPose;
             SE2 *_lastOdom;
-            SE2 *_lastAction;
+            pcl::PointCloud<pcl::PointXYZ>::Ptr _lastPCL; 
 
-            Pose::Ptr trackPose (
-                    const nav_msgs::OdometryConstPtr& odom, 
-                    const nav_msgs::OdometryConstPtr& action, 
-                    const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
-                    bool init = false);
-            Pose::Ptr trackPose (
-                    SE2 odom,
-                    const nav_msgs::OdometryConstPtr& action, 
-                    const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, 
-                    bool init = false);
+            const int USE_ODOMETRY = 1;
+            const int USE_ODOMETRY_IMU = 2;
+            const int USE_CONSTANT_VELOCITY_MODEL = 3;
+            const int USE_SCAN_MATCHING = 4;
+            int _method;
+
+            void setPrior (Pose::Ptr& p) { _lastPose = p; _lastOdom->fromVector(p->_pose); };
+            void setFirstPCL (pcl::PointCloud<pcl::PointXYZ>::Ptr& priorPCL) { _lastPCL = priorPCL; };
+
+            void trackPoseByConstantVelocityModel (double *data, Pose::Ptr& pose);
+            void trackPoseByOdometry (double *data, Pose::Ptr& pose);
+            void trackPoseByScanMatching (pcl::PointCloud<pcl::PointXYZ>::Ptr& pcl, Pose::Ptr& pose, double *data); 
 
         private:
             System *_system;
-            SE2* odomToSE2 (const nav_msgs::OdometryConstPtr& odom);
-            SE2* estimateFromOdomCombined (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombine);
-            SE2* actionToSE2 (const nav_msgs::OdometryConstPtr& action);
 
             tf2_ros::TransformListener *_listener2;
             tf2_ros::Buffer *_buffer;
 
     };
 }
-
 #endif

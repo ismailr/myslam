@@ -107,8 +107,8 @@ namespace MYSLAM {
             unsigned long int _id;
             unsigned long int _previousId;
             Eigen::Vector3d _pose;
-            Eigen::Vector3d _poseByModel;
             Eigen::Vector3d _measurement;
+            Eigen::Matrix<double,3,3> poseCovarianceMatrix;
 
             std::vector<int> _detectedWalls;
     };
@@ -117,13 +117,7 @@ namespace MYSLAM {
     {
         public:
             EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
             PoseVertex();
-            SE2* getModel() const { return _model; };
-            void setModel(SE2& model) { _model = &model; };
-
-        private:
-            SE2 *_model;
     };
 }
 #endif

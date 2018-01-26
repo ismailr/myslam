@@ -22,6 +22,7 @@
 #include "layout_prediction/simulator.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
+#include "layout_prediction/point.h"
 #include "layout_prediction/graph.h"
 #include "layout_prediction/wall_measurement.h"
 #include "layout_prediction/pose_measurement.h"
@@ -48,73 +49,33 @@ template<typename T> T uniform_generator (T min, T max)
 }
 
 namespace MYSLAM {
-    void localToGlobal (Eigen::Vector2d& mc_, Pose::Ptr& pose, Eigen::Vector2d& mc)
-    {
-        double x = pose->_pose[0];
-        double y = pose->_pose[1];
-        double p = pose->_pose[2];
-        double cosp = cos(p);
-        double sinp = sin(p);
-
-        double& m = mc[0];
-        double& c = mc[1];
-        double& m_ = mc_[0];
-        double& c_ = mc_[1];
-
-        m = (sinp +  m_ * cosp)/(cosp - m_ * sinp);
-        c = -m * x + y + c_/(cosp - m_ * sinp);
-    }
-
-    void measurement_model (PoseVertex* p, WallVertex* w, double* z)
-    {
-        double x = p->estimate().translation().x();
-        double y = p->estimate().translation().y();
-        double t = p->estimate().rotation().angle();
-        double sint = sin(t);
-        double cost = cos(t);
-
-        double xx = w->estimate().x();
-        double xy = w->estimate().y();
-
-        double m = -xx/xy;
-        double c = (xx*xx + xy*xy)/xy;
-
-        double m_ = (-sint + m*cost)/(cost + m*sint);
-        double c_ = (c - y + m*x)/(cost + m*sint);
-
-        double xx_ = -m_*c_/(m_*m_+1);
-        double xy_ = c_/(m_*m_+1);
-
-        z[0] = xx_;
-        z[1] = xy_;
-    }
-
-    void measurement_model_xy (VertexSE2* p, VertexPointXY* w, double* z)
-    {
-        double px = p->estimate().translation().x();
-        double py = p->estimate().translation().y();
-        double pt = p->estimate().rotation().angle();
-        double sint = sin(pt);
-        double cost = cos(pt);
-
-        double x = w->estimate().x();
-        double y = w->estimate().y();
-
-        Eigen::Vector2d result = p->estimate().inverse() * w->estimate();
-
-        z[0] = result[0];
-        z[1] = result[1];
-    }
-}
-
-namespace MYSLAM {
-    Simulator::Robot::Robot(Simulator* sim) : _sim (sim) 
+    Simulator::Robot::Robot(Simulator* sim) 
+        : _sim (sim), _moveStep (0.5) 
     {
         truePose.setZero(); 
         simPose.setZero();
-        truePose[2] = 2.88;
+        truePose[2] = 3.0;
         simPose[2] = truePose[2];
-        sense();
+//        sense();
+    }
+
+    void Simulator::Robot::moveStraight() {
+        SE2 trupose;
+        trupose.fromVector (truePose);  
+
+        SE2 trumove (_moveStep, 0.0, 0.0);
+        trupose = trupose * trumove;
+        truePose = trupose.toVector();
+
+        SE2 simpose;
+        simpose.fromVector(simPose);
+
+        SE2 simmove (
+                trumove.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
+                trumove.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
+                trumove.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
+        simpose = simpose * simmove;
+        simPose = simpose.toVector();
     }
 
     void Simulator::Robot::move()
@@ -122,22 +83,20 @@ namespace MYSLAM {
         sensedData.clear();
         sensedDinding.clear();
 
-        const double tstep = 0.1;
-
         double xtrue = truePose[0];
         double ytrue = truePose[1];
         double ptrue = truePose[2];
         double dx = xtrue;
         double dy = ytrue;
-        xtrue += tstep * cos (ptrue);
-        ytrue += tstep * sin (ptrue);
+        xtrue += _moveStep * cos (ptrue);
+        ytrue += _moveStep * sin (ptrue);
         dx = xtrue - dx;
         dy = ytrue - dy;
         double d = sqrt ((dx*dx) + (dy*dy));
 
         truePose << xtrue, ytrue, ptrue;
 
-        double noise = gaussian_generator<double>(0.0, xnoise_var);
+        double noise = gaussian_generator<double>(0.0, xnoise_stdev);
         d = d + noise;
 
         double xsim = simPose[0];
@@ -149,33 +108,67 @@ namespace MYSLAM {
         simPose << xsim, ysim, psim;
     }
 
-    void Simulator::Robot::turn (int direction)
+    void Simulator::Robot::turn (int direction, double angle)
     {
         sensedData.clear();
         sensedDinding.clear();
 
-        const double pstep = 0.1;
+        direction == 0 ? angle = angle : angle = -angle;
+        SE2 truturn (_moveStep, 0.0, angle);
 
-        double xtrue = truePose[0];
-        double ytrue = truePose[1];
-        double ptrue = truePose[2];
+        SE2 trupose;
+        trupose.fromVector (truePose);
+        trupose = trupose * truturn;
+        truePose = trupose.toVector();
 
-        direction == 0 ? ptrue -= pstep : ptrue += pstep;
+        SE2 simpose;
+        simpose.fromVector (simPose);
 
-        truePose << xtrue, ytrue, ptrue;
-
-        double noise = gaussian_generator<double>(0.0, wnoise_var);
-
-        double xsim = simPose[0];
-        double ysim = simPose[1];
-        double psim = simPose[2];
-
-        direction == 0 ? psim -= pstep + noise : psim += pstep + noise;
-
-        simPose << xsim, ysim, psim;
+        SE2 simturn (
+                truturn.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
+                truturn.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
+                truturn.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
+        simpose = simpose * simturn;
+        simPose = simpose.toVector();
     }
 
     void Simulator::Robot::sense()
+    {
+        double x = simPose[0];
+        double y = simPose[1];
+        double t = simPose[2];
+        double cost = cos(t);
+        double sint = sin(t);
+
+        // sensor model
+        for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
+        {
+            double xxnoise = gaussian_generator<double>(0.0, wnoise_stdev);
+            double xynoise = gaussian_generator<double>(0.0, wnoise_stdev);
+
+            double& xx = (*it).xx;
+            double& xy = (*it).xy;
+
+            double xx_ = xx*cost + xy*sint - x*cost - y*sint + xxnoise;
+            double xy_ = -xx*sint + xy*cost + x*sint - y*cost + xynoise;
+
+            Eigen::Vector2d data (xx_, xy_);
+
+            double r = sqrt (xx_*xx_ + xy_*xy_);
+            double angle = normalize_theta (atan2 (xy_,xx_));
+
+            if (r <= RANGE)
+            {
+//                if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
+//                {
+                    sensedDinding.push_back (&(*it));
+                    sensedData.push_back (data);
+//                }
+            }
+        }
+    }
+
+    void Simulator::Robot::sensePoint()
     {
         double x = simPose[0];
         double y = simPose[1];
@@ -186,22 +179,19 @@ namespace MYSLAM {
         // sensor model
         for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
         {
-            double& m = (*it).m;
-            double& c = (*it).c;
+            double& lx = (*it).m;
+            double& ly = (*it).c;
 
-            double m_ = (-sinp + m * cosp)/(cosp + m * sinp);
-            double c_ = (c - y + m * x)/(cosp + m * sinp);
+            double xxnoise = gaussian_generator<double>(0.0, wnoise_stdev);
+            double xynoise = gaussian_generator<double>(0.0, wnoise_stdev);
 
-            double xxnoise = gaussian_generator<double>(0.0, wnoise_var);
-            double xynoise = gaussian_generator<double>(0.0, wnoise_var);
+            double x_ = (lx - x) * cosp;
+            double y_ = (ly - y) * sinp;
 
-            double xx_ = -m_*c_/(m_*m_+1) + xxnoise;
-            double xy_ = c_/(m_*m_+1) + xynoise;
+            Eigen::Vector2d data (x_,y_);
 
-            Eigen::Vector2d data (xx_,xy_);
-
-            double r = sqrt (xx_*xx_ + xy_*xy_);
-            double angle = normalize_angle (atan2 (xy_,xx_));
+            double r = sqrt (x_*x_ + y_*y_);
+            double angle = normalize_theta (atan2 (y_,x_));
 
             if (r <= RANGE)
             {
@@ -216,12 +206,29 @@ namespace MYSLAM {
 
     Simulator::Simulator()
     {
-        double grads[4] = {2, -.5, 2, -.5};
-        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
-        double x[5] = {-12, -6.8, 7.2, 2, -12};
-        double y[5] = {1, 11.4, 4.4, -6, 1};
+        const int N = 100;
+//        double grads[4] = {2, -.5, 2, -.5};
+//        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
+//        double x[5] = {-12, -6.8, 7.2, 2, -12};
+//        double y[5] = {1, 11.4, 4.4, -6, 1};
 
-        for (int i = 0; i < 4 /*NUM_OF_WALLS*/; i++)
+        std::vector<double> grads (N); 
+        std::vector<double> intercepts (N); 
+        std::vector<double> x(N + 1); 
+        std::vector<double> y(N + 1); 
+
+        for (int i = 0; i < N; i++)
+        {
+            grads[i] = uniform_generator<double>(-5.0,5.0);
+            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
+            x[i] = uniform_generator<double>(-5.0,5.0);
+            y[i] = uniform_generator<double>(-5.0,5.0);
+        }
+
+        x.push_back(x[0]);
+        y.push_back(y[0]);
+
+        for (int i = 0; i < N; i++)
         {
             Dinding *d = new Dinding;
             d->id = i;
@@ -241,7 +248,7 @@ namespace MYSLAM {
 
     void Simulator::getNextState()
     {
-        robot->move();
+        robot->moveStraight();
         robot->sense();
     }
 
@@ -259,35 +266,43 @@ namespace MYSLAM {
         Eigen::Vector3d lastSimPose;
         Pose::Ptr lastPose;
 
+        double turn_angle[4] = {90, 90, 90, 100};
+        int turn_time[4] = {12, 24, 36, 48};
+        int turn_direction[4] = {1,1,1,1};
+        int turn_now = 0;
+
+        // first pose
+        mfile   << robot->simPose[0] << " " << robot->simPose[1] << " " << robot->simPose[2] << " " 
+                << robot->truePose[0] << " " << robot->truePose[1] << " " << robot->truePose[2] << std::endl;
+        Pose::Ptr firstPose (new Pose);
+        firstPose->_pose = robot->simPose;
+        graph._poseMap [firstPose->_id] = firstPose;
+        graph._activePoses.push_back (firstPose->_id);
+        lastSimPose = robot->simPose;
+        lastPose = firstPose;
+        getNextState();
+
         for (int frame = 1; frame < MYSLAM::SIM_NUMBER_OF_ITERATIONS; frame++)
         {
             // poses
             Eigen::Vector3d t = robot->truePose;
             Eigen::Vector3d s = robot->simPose;
 
-            mfile   << s[0] << " " << s[1] << " " << s[2] << " " << t[0] << " " << t[1] << " " << t[2] << std::endl;
+            mfile   << s[0] << " " << s[1] << " " << s[2] << " " 
+                    << t[0] << " " << t[1] << " " << t[2] << std::endl;
 
+            SE2 lastodom;
+            lastodom.fromVector (lastSimPose);
+            SE2 currentodom;
+            currentodom.fromVector (s);
+
+            SE2 delta = lastodom.inverse() * currentodom;
+
+            SE2 lastpose;
+            lastpose.fromVector (lastPose->_pose);
             Pose::Ptr pose (new Pose);
-            if (frame == 1)
-            {
-                pose->_pose = s;
-                pose->_poseByModel = t;
-                graph._poseMap [pose->_id] = pose;
-                graph._activePoses.push_back (pose->_id);
-                lastSimPose = s;
-                lastPose = pose;
-                getNextState();
-                continue;
-            }
+            pose->_pose = (lastpose * delta).toVector();
 
-            Eigen::Vector3d delta = s - lastSimPose;
-            double dr = sqrt (delta[0]*delta[0] + delta[1]*delta[1]);
-            double current_heading = lastPose->_pose[2] + delta[2];
-            double dx = dr * cos (current_heading);
-            double dy = dr * sin (current_heading);
-            Eigen::Vector3d incr (dx, dy, delta[2]);
-
-            pose->_pose = lastPose->_pose + incr;
             graph._poseMap [pose->_id] = pose;
             graph._activePoses.push_back (pose->_id);
 
@@ -303,7 +318,7 @@ namespace MYSLAM {
                     w = wall;
                     w->_line.p = d->p;
                     w->_line.q = d->q;
-//                    w->initParams();
+                    w->initParams();
                     dindings.push_back (d);
                     walls.push_back (w);
 
@@ -321,7 +336,7 @@ namespace MYSLAM {
                             w = wall;
                             w->_line.p = d->p;
                             w->_line.q = d->q;
-//                            w->initParams();
+                            w->initParams();
                             dindings.push_back (robot->sensedDinding[i]);
                             walls.push_back (w);
                             break;
@@ -331,30 +346,15 @@ namespace MYSLAM {
 
                 double& xx_ = robot->sensedData[i][0];
                 double& xy_ = robot->sensedData[i][1];
-                double m_, c_;
 
-                if (xy_ != 0)
-                {
-                    m_ = -xx_/xy_;
-                    c_ = (xx_*xx_ + xy_*xy_)/xy_;
-                } else {
-                    m_ = std::numeric_limits<double>::infinity();
-                    c_ = std::numeric_limits<double>::infinity();
-                }
+                double x = pose->_pose[0];
+                double y = pose->_pose[1];
+                double t = pose->_pose[2];
+                double cost = cos(t);
+                double sint = sin(t);
 
-                Eigen::Vector2d mc_ (m_,c_);
-
-                Eigen::Vector2d mc;
-                localToGlobal (mc_, pose, mc);
-
-                double& m = mc[0];
-                double& c = mc[1];
-
-                double xx = (-m*c)/(m*m+1);
-                double xy = c/(m*m+1);
-
-                w->_line.xx[0] = xx;
-                w->_line.xx[1] = xy;
+                w->_line.xx[0] = xx_*cost - xy_*sint + x;
+                w->_line.xx[1] = xx_*sint + xy_*cost + y;
                 w->initParams();
 
                 graph._wallMap [w->_id] = w;
@@ -365,30 +365,20 @@ namespace MYSLAM {
                 graph._activeEdges.push_back (e);
             }
 
-            if (frame % 2 == 0)
+            if (frame % 10 == 0)
             {
                 o.localOptimize();
             }
 
-//            getNextState();
             lastSimPose = s;
             lastPose = pose;
 
-            if (frame < 75)
-            {
-                robot->move();
+            if (frame == turn_time[turn_now]) {
+                robot->turn (turn_direction[turn_now], turn_angle[turn_now] * M_PI/180.0);
                 robot->sense();
-            } else if (frame >= 75 && frame < 85) {
-                robot->turn(0);
-                robot->sense();
-            } else if (frame >= 85 && frame < 120) {
-                robot->move();
-                robot->sense();
-            } else if (frame >= 120 && frame < 127) {
-                robot->turn(0);
-                robot->sense();
+                turn_now++;
             } else {
-                robot->move();
+                robot->moveStraight();
                 robot->sense();
             }
         }
@@ -415,246 +405,147 @@ namespace MYSLAM {
 
     }
 
-    void Simulator::runsimple()
+    void Simulator::runPoint()
     {
-        typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
-        typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+        MYSLAM::Graph graph;
+        Optimizer o(graph);
 
-        g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
-        auto linearSolver = g2o::make_unique<SlamLinearSolver>();
-        linearSolver->setBlockOrdering (false);
-        OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
-                g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
-        o->setAlgorithm (solver);
-        o->setVerbose (true);
+        ofstream mfile;
+        mfile.open ("/home/ism/tmp/sim.dat", ios::out | ios::app);
 
-        // noise
-        double xnoise_var = 1.0;
-        double ynoise_var = 1.0;
-        double pnoise_var = 2.0 * M_PI/180.0;
-        double wnoise_var = 1.0;
+        std::vector<Dinding*> dindings;
+        std::vector<Point::Ptr> points;
 
-        // wall --> y = 2x + 6
-        //      --> m = 2, c =6
-        //      --> xx = -2.4, xy = 1.2
-        double xxnoise = gaussian_generator<double>(0.0, wnoise_var);
-        double xynoise = gaussian_generator<double>(0.0, wnoise_var);
-        double wall[2] = {-2.4, 1.2};
-        double xx = wall[0] + xxnoise;
-        double xy = wall[1] + xynoise;
-        double noisywall[2] = {xx,xy};
+        Eigen::Vector3d lastSimPose;
+        Pose::Ptr lastPose;
 
-        WallVertex* w (new WallVertex);
-        w->setId(3);
-        w->setEstimateDataImpl (noisywall);
-        o->addVertex(w);
+        double turn_angle[4] = {120.0, 100.0, 50.0, 135.0};
+        int turn_time[4] = {15, 18, 25, 27};
+        int turn_direction[4] = {0, 0, 1, 0};
+        int turn_now = 0;
 
-        // 3 poses
-        Eigen::Matrix<double, 3, 3> posepose;
-        posepose << xnoise_var, 0, 0, 0, ynoise_var, 0, 0, 0, pnoise_var;
-
-        SE2 p0 (-2.0,-2.0,M_PI/2);
-        SE2 p1 (-2.0,1.0,M_PI/4);
-        SE2 p2 (1.0,3.0,M_PI/4);
-        SE2* p[3] = {&p0, &p1, &p2};
-
-        SE2 np0, np1, np2;
-        SE2* np[3] = {&np0, &np1, &np2};
-
-        for (int i = 0; i < 3; i++)
+        for (int frame = 1; frame < MYSLAM::SIM_NUMBER_OF_ITERATIONS; frame++)
         {
-            double xnoise = gaussian_generator<double>(0.0, xnoise_var);
-            double ynoise = gaussian_generator<double>(0.0, ynoise_var);
-            double pnoise = gaussian_generator<double>(0.0, pnoise_var);
-            double x = p[i]->translation().x() + xnoise;
-            double y = p[i]->translation().y() + ynoise;
-            double th = p[i]->rotation().angle() + pnoise;
-            Eigen::Vector2d t (x,y);
-            Eigen::Rotation2Dd r (th);
-            np[i]->setTranslation (t);
-            np[i]->setRotation (r);
+            // poses
+            Eigen::Vector3d t = robot->truePose;
+            Eigen::Vector3d s = robot->simPose;
+
+            mfile   << s[0] << " " << s[1] << " " << s[2] << " " << t[0] << " " << t[1] << " " << t[2] << std::endl;
+
+            Pose::Ptr pose (new Pose);
+            if (frame == 1)
+            {
+                pose->_pose = s;
+                graph._poseMap [pose->_id] = pose;
+                graph._activePoses.push_back (pose->_id);
+                lastSimPose = s;
+                lastPose = pose;
+                getNextState();
+                continue;
+            }
+
+            Eigen::Vector3d delta = s - lastSimPose;
+            double dr = sqrt (delta[0]*delta[0] + delta[1]*delta[1]);
+            double current_heading = normalize_angle (lastPose->_pose[2] + delta[2]);
+            double dx = dr * cos (current_heading);
+            double dy = dr * sin (current_heading);
+            Eigen::Vector3d incr (dx, dy, delta[2]);
+
+            pose->_pose = lastPose->_pose + incr;
+            graph._poseMap [pose->_id] = pose;
+            graph._activePoses.push_back (pose->_id);
+
+            for (size_t i = 0; i < robot->sensedDinding.size(); i++)
+            {
+                // asosiasi data
+                Point::Ptr w = NULL;
+                Dinding* d = robot->sensedDinding[i];
+
+                if (dindings.size() == 0)
+                {
+                    Point::Ptr point (new Point);
+                    w = point;
+                    dindings.push_back (d);
+                    points.push_back (w);
+
+                } else {
+                    for (int j = 0; j < dindings.size(); j++)
+                    {
+                        if (d->id == dindings[j]->id)
+                        {
+                            w = points[j];
+                            break;
+                        }
+                        else if (j == dindings.size() - 1)
+                        {
+                            Point::Ptr point (new Point);
+                            w = point;
+                            dindings.push_back (robot->sensedDinding[i]);
+                            points.push_back (w);
+                            break;
+                        }
+                    }
+                }
+
+                double& x_ = robot->sensedData[i][0];
+                double& y_ = robot->sensedData[i][1];
+
+                double x = pose->_pose[0];
+                double y = pose->_pose[1];
+                double t = pose->_pose[2];
+
+
+                w->x = x + x_*cos(t);
+                w->y = y + y_*sin(t);
+
+                graph._pointMap [w->_id] = w;
+                graph._activePoints.insert (w->_id);
+
+                std::tuple<int, int> e (pose->_id, w->_id);
+                graph._posePointMap [e] = robot->sensedData[i];
+                graph._activeEdges.push_back (e);
+            }
+
+            if (frame % 2 == 0)
+            {
+                o.localOptimize();
+            }
+
+//            getNextState();
+            lastSimPose = s;
+            lastPose = pose;
+
+
+            if (frame == turn_time[turn_now]) {
+                robot->turn (turn_direction[turn_now], turn_angle[turn_now] * M_PI/180.0);
+                robot->sensePoint();
+                turn_now++;
+            } else {
+                robot->move();
+                robot->sensePoint();
+
+            }
         }
 
-        PoseVertex* pv0 (new PoseVertex);
-        PoseVertex* pv1 (new PoseVertex);
-        PoseVertex* pv2 (new PoseVertex);
-        pv0->setId(0); pv0->setEstimate (p0); pv0->setModel (p0); //pv0->setFixed (true);
-        pv1->setId(1); pv1->setEstimate (np1); pv1->setModel (p1); 
-        pv2->setId(2); pv2->setEstimate (np2); pv2->setModel (p2);
-        o->addVertex (pv0);
-        o->addVertex (pv1);
-        o->addVertex (pv2);
+//        o.globalOptimize();
 
-        PoseMeasurement* pm0 = new PoseMeasurement;
-        pm0->vertices()[0] = pv0;
-        pm0->vertices()[1] = pv1;
-        pm0->setMeasurement (pv0->estimate().inverse() * pv1->estimate());
-        pm0->information () = posepose.inverse();
-        o->addEdge (pm0);
+        mfile.close();
 
-        PoseMeasurement* pm1 = new PoseMeasurement;
-        pm1->vertices()[0] = pv1;
-        pm1->vertices()[1] = pv2;
-        pm1->setMeasurement (pv1->estimate().inverse() * pv2->estimate());
-        pm1->information () = posepose.inverse();
-        o->addEdge (pm1);
-
-        // wall measurement
-        Eigen::Matrix<double, 2, 2> posewall;
-        posewall << wnoise_var, 0, 0, wnoise_var;
-
-        WallMeasurement* wm0 = new WallMeasurement;
-        wm0->vertices()[0] = pv0;
-        wm0->vertices()[1] = w;
-        double z0[2]; measurement_model (pv0, w, z0);
-        z0[0] += gaussian_generator<double>(0.0, wnoise_var);
-        z0[1] += gaussian_generator<double>(0.0, wnoise_var);
-        wm0->setMeasurementData (z0);
-        wm0->information() = posewall.inverse();
-        o->addEdge (wm0);
-
-        WallMeasurement* wm1 = new WallMeasurement;
-        wm1->vertices()[0] = pv1;
-        wm1->vertices()[1] = w;
-        double z1[2]; measurement_model (pv1, w, z1);
-        z1[0] += gaussian_generator<double>(0.0, wnoise_var);
-        z1[1] += gaussian_generator<double>(0.0, wnoise_var);
-        wm1->setMeasurementData (z1);
-        wm1->information() = posewall.inverse();
-        o->addEdge (wm1);
-
-        WallMeasurement* wm2 = new WallMeasurement;
-        wm2->vertices()[0] = pv2;
-        wm2->vertices()[1] = w;
-        double z2[2]; measurement_model (pv2, w, z2);
-        z2[0] += gaussian_generator<double>(0.0, wnoise_var);
-        z2[1] += gaussian_generator<double>(0.0, wnoise_var);
-        wm2->setMeasurementData (z2);
-        wm2->information() = posewall.inverse();
-        o->addEdge (wm2);
-
-        o->save("/home/ism/tmp/simplesim_before.g2o");
-        o->initializeOptimization();
-        o->optimize(10);
-        o->save("/home/ism/tmp/simplesim_after.g2o");
-    }
-
-    void Simulator::runsimple2()
-    {
-        typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
-        typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
-
-        g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
-        auto linearSolver = g2o::make_unique<SlamLinearSolver>();
-        linearSolver->setBlockOrdering (false);
-        OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
-                g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
-        o->setAlgorithm (solver);
-        o->setVerbose (true);
-
-        // noise
-        double xnoise_var = 1.0;
-        double ynoise_var = 1.0;
-        double pnoise_var = 2.0 * M_PI/180.0;
-
-        double point[2] = {0.0, 0.0};
-        point[0] += gaussian_generator<double>(0.0, xnoise_var);
-        point[1] += gaussian_generator<double>(0.0, ynoise_var);
-
-        VertexPointXY* w (new VertexPointXY);
-        w->setId(3);
-        w->setEstimateDataImpl (point);
-        o->addVertex(w);
-
-        // 3 poses
-        Eigen::Matrix<double, 3, 3> posepose;
-//        posepose << xnoise_var, 0, 0, 0, ynoise_var, 0, 0, 0, pnoise_var;
-        posepose.setIdentity();
-
-        SE2 p0 (-2.0,-2.0,M_PI/2);
-        SE2 p1 (-2.0,1.0,M_PI/4);
-        SE2 p2 (1.0,3.0,M_PI/4);
-        SE2* p[3] = {&p0, &p1, &p2};
-
-        SE2 np0, np1, np2;
-        SE2* np[3] = {&np0, &np1, &np2};
-
-        for (int i = 0; i < 3; i++)
+        ofstream wfile;
+        wfile.open ("/home/ism/tmp/point.dat", std::ios::out | std::ios::app);
+        for (std::map<int, Point::Ptr>::iterator it = graph._pointMap.begin();
+                it != graph._pointMap.end(); it++)
         {
-            double xnoise = gaussian_generator<double>(0.0, xnoise_var);
-            double ynoise = gaussian_generator<double>(0.0, ynoise_var);
-            double pnoise = gaussian_generator<double>(0.0, pnoise_var);
-            double x = p[i]->translation().x() + xnoise;
-            double y = p[i]->translation().y() + ynoise;
-            double th = p[i]->rotation().angle() + pnoise;
-            Eigen::Vector2d t (x,y);
-            Eigen::Rotation2Dd r (th);
-            np[i]->setTranslation (t);
-            np[i]->setRotation (r);
+            wfile << it->second->x << " " << it->second->y << std::endl;
         }
+//        wfile << std::endl;
 
-        VertexSE2* pv0 (new VertexSE2);
-        VertexSE2* pv1 (new VertexSE2);
-        VertexSE2* pv2 (new VertexSE2);
-        pv0->setId(0); pv0->setEstimate (p0); 
-        pv1->setId(1); pv1->setEstimate (np1); 
-        pv2->setId(2); pv2->setEstimate (np2);
-        o->addVertex (pv0);
-        o->addVertex (pv1);
-        o->addVertex (pv2);
+//        for (int i = 0; i < struktur.size(); i++)
+//        {
+//            wfile << struktur[i].id << " " << struktur[i].xx << " " << struktur[i].xy << std::endl;
+//        }
+//        wfile << std::endl;
+        wfile.close();
 
-        EdgeSE2* pm0 = new EdgeSE2;
-        pm0->vertices()[0] = pv0;
-        pm0->vertices()[1] = pv1;
-        pm0->setMeasurement (pv0->estimate().inverse() * pv1->estimate());
-        pm0->information () = posepose.inverse();
-        o->addEdge (pm0);
-
-        EdgeSE2* pm1 = new EdgeSE2;
-        pm1->vertices()[0] = pv1;
-        pm1->vertices()[1] = pv2;
-        pm1->setMeasurement (pv1->estimate().inverse() * pv2->estimate());
-        pm1->information () = posepose.inverse();
-        o->addEdge (pm1);
-
-        // point measurement
-        Eigen::Matrix<double, 2, 2> posepoint;
-//        posepoint << xnoise_var, 0, 0, ynoise_var;
-        posepoint.setIdentity();
-
-        EdgeSE2PointXY* wm0 = new EdgeSE2PointXY;
-        wm0->vertices()[0] = pv0;
-        wm0->vertices()[1] = w;
-        double z0[2]; measurement_model_xy (pv0, w, z0);
-        z0[0] += gaussian_generator<double>(0.0, xnoise_var);
-        z0[1] += gaussian_generator<double>(0.0, ynoise_var);
-        wm0->setMeasurementData (z0);
-        wm0->information() = posepoint.inverse();
-        o->addEdge (wm0);
-
-        EdgeSE2PointXY* wm1 = new EdgeSE2PointXY;
-        wm1->vertices()[0] = pv1;
-        wm1->vertices()[1] = w;
-        double z1[2]; measurement_model_xy (pv1, w, z1);
-        z1[0] += gaussian_generator<double>(0.0, xnoise_var);
-        z1[1] += gaussian_generator<double>(0.0, ynoise_var);
-        wm1->setMeasurementData (z1);
-        wm1->information() = posepoint.inverse();
-        o->addEdge (wm1);
-
-        EdgeSE2PointXY* wm2 = new EdgeSE2PointXY;
-        wm2->vertices()[0] = pv2;
-        wm2->vertices()[1] = w;
-        double z2[2]; measurement_model_xy (pv2, w, z2);
-        z2[0] += gaussian_generator<double>(0.0, xnoise_var);
-        z2[1] += gaussian_generator<double>(0.0, ynoise_var);
-        wm2->setMeasurementData (z2);
-        wm2->information() = posepoint.inverse();
-        o->addEdge (wm2);
-
-        o->save("/home/ism/tmp/simplesim2_before.g2o");
-        o->initializeOptimization();
-        o->optimize(10);
-        o->save("/home/ism/tmp/simplesim2_after.g2o");
     }
 }

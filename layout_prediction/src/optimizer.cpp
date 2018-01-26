@@ -1,6 +1,7 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
+#include "layout_prediction/point.h"
 #include "layout_prediction/angle_measurement.h"
 
 #include <g2o/core/sparse_optimizer.h>
@@ -17,9 +18,8 @@
 #include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 
-#include "isam/wall2d.h"
-#include "isam/pose2d.h"
-#include "isam/pose2d_wall2d_factor.h"
+#include "isam/Slam.h"
+#include "isam/slam2d.h"
 
 using namespace g2o;
 using namespace isam;
@@ -69,24 +69,25 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (false);
+        o->setVerbose (true);
 
         std::vector<int>& activePoses = _graph->_activePoses;
         std::set<int>& activeWalls = _graph->_activeWalls;
+        std::set<int>& lastActiveWalls = _graph->_lastActiveWalls;
         std::vector<std::tuple<int,int> >& activeEdges = _graph->_activeEdges;
         std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
         std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
-//        poseCovMatrix.setIdentity();
-        poseCovMatrix <<    1e-1, 0.0, 0.0,
-                            0.0, 1e-1, 0.0,
-                            0.0, 0.0, 1e-1;
+        poseCovMatrix.setIdentity();
+//        poseCovMatrix <<    2.5e-3, 0.0, 0.0,
+//                            0.0, 1e-4, 0.0,
+//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-//        wallCovMatrix.setIdentity();
-        wallCovMatrix <<    1e-1, 0.0,
-                            0.0, 1e-1;
+        wallCovMatrix.setIdentity();
+//        wallCovMatrix <<    2.5e-3, 0.0,
+//                            0.0, 2.5e-3;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
@@ -96,17 +97,11 @@ namespace MYSLAM {
             double& y = pose->_pose[1];
             double& p = pose->_pose[2];
 
-            double& xmodel = pose->_poseByModel[0]; 
-            double& ymodel = pose->_poseByModel[1]; 
-            double& pmodel = pose->_poseByModel[2]; 
-
             SE2 vse2 (x,y,p); 
-            SE2 vse2_model (xmodel, ymodel, pmodel);
             PoseVertex *v = new PoseVertex; 
             v->setId (pose->_id); 
             v->setEstimate (vse2);
-            v->setModel (vse2_model);
-            v->setFixed (pose->_id == 0 /*|| it == activePoses.begin()*/); 
+            v->setFixed (pose->_id == 0 || it == activePoses.begin()); 
             o->addVertex (v); 
 
             if (it != activePoses.begin())
@@ -114,17 +109,16 @@ namespace MYSLAM {
                 PoseMeasurement* pm = new PoseMeasurement;
                 pm->vertices()[0] = u;
                 pm->vertices()[1] = v;
-//                pm->setMeasurement (u->estimate().inverse() * v->estimate());
-                SE2 mu = *(u->getModel());
-                SE2 mv = *(v->getModel());
-                pm->setMeasurement (mu.inverse() * mv);
+                pm->setMeasurement (u->estimate().inverse() * v->estimate());
                 pm->information () = poseCovMatrix.inverse();
                 o->addEdge (pm);
-
             }
 
             u = v;
         }
+
+//        // Adding last wall to current optimization
+//        bool lastActiveWallsEmpty = _graph->_lastActiveWalls.empty();
 
         for (std::set<int>::iterator it = activeWalls.begin();
                 it != activeWalls.end(); it++)
@@ -139,6 +133,30 @@ namespace MYSLAM {
             v->setEstimateDataImpl (data);
             o->addVertex (v);
 
+//            if (it == activeWalls.begin() && !lastActiveWallsEmpty)
+//            {
+//                Wall* lwall = wallMap[*(_graph->_lastActiveWalls.rbegin())].get();
+//
+//                if (!o->vertex(lwall->_id)) {
+//                    double lxx = lwall->_line.xx[0];
+//                    double lxy = lwall->_line.xx[1];
+//                    double ldata[2] = {lxx,lxy};
+//                    WallVertex *lw = new WallVertex;
+//                    lw->setId (lwall->_id);
+//                    lw->setEstimateDataImpl(ldata);
+//                    lw->setMarginalized (true);
+//                    o->addVertex (lw);
+//
+//                    AngleMeasurement* am = new AngleMeasurement;
+//                    am->vertices()[0] = o->vertex (lwall->_id);
+//                    am->vertices()[1] = o->vertex (*it);
+//                    o->addEdge (am);
+//                    Eigen::Matrix<double, 1, 1> inf;
+//                    inf.setIdentity();
+//                    am->information () = inf;
+//                }
+//            }
+//
 //            for (std::set<int>::iterator jt = activeWalls.begin();
 //                    jt != activeWalls.end(); jt++)
 //            {
@@ -215,6 +233,8 @@ namespace MYSLAM {
 
         int fixPoseForNextIter = activePoses.back();
         activePoses.clear();
+        lastActiveWalls.clear();
+        lastActiveWalls = activeWalls;
         activeWalls.clear();
         activeEdges.clear();
         activePoses.push_back (fixPoseForNextIter);
@@ -250,16 +270,10 @@ namespace MYSLAM {
             double& y = pose->_pose[1];
             double& p = pose->_pose[2];
 
-            double& xmodel = pose->_poseByModel[0]; 
-            double& ymodel = pose->_poseByModel[1]; 
-            double& pmodel = pose->_poseByModel[2]; 
-
             SE2 vse2 (x,y,p);
-            SE2 vse2_model (xmodel, ymodel, pmodel);
             PoseVertex *v = new PoseVertex;
             v->setId (pose->_id);
             v->setEstimate (vse2);
-            v->setModel (vse2_model);
             v->setFixed (pose->_id == 0);
             o->addVertex (v);
 
@@ -274,8 +288,21 @@ namespace MYSLAM {
             }
 
             u = v;
+
+//            // hack
+//            if (std::next(it) == poseMap.end())
+//            {
+//                PoseMeasurement* pm = new PoseMeasurement;
+//                pm->vertices()[0] = v;
+//                pm->vertices()[1] = o->vertex(0);
+//                SE2 zero;
+//                pm->setMeasurement (zero);
+//                pm->information () = poseInfMatrix;
+//                o->addEdge (pm);
+//            }
         }
 
+//        WallVertex* t;
         for (std::map<int, Wall::Ptr>::iterator it = wallMap.begin();
                 it != wallMap.end(); it++)
         {
@@ -289,6 +316,20 @@ namespace MYSLAM {
             v->setEstimateDataImpl (data);
             v->setMarginalized (true);
             o->addVertex (v);
+
+//            if (it != wallMap.begin())
+//            {
+//                AngleMeasurement* am = new AngleMeasurement;
+//                am->vertices()[0] = t;
+//                am->vertices()[1] = v;
+//                am->setMeasurement (std::abs(atan2(v->estimate().y(), v->estimate().x()) - atan2(t->estimate().y(), t->estimate().x())));
+//                Eigen::Matrix<double, 1, 1> inf;
+//                inf <<  1e-2;
+//                am->information () = inf;
+//                o->addEdge (am);
+//            }
+//
+//            t = v;
         }
 
         for (std::map<std::tuple<int,int>, Eigen::Vector2d>::iterator it = poseWallMap.begin();
@@ -307,8 +348,10 @@ namespace MYSLAM {
             o->addEdge (wm);
         }
 
+        o->save ("/home/ism/tmp/mit_strata_center_dataset_before.txt");
         o->initializeOptimization();
         o->optimize(100);
+        o->save ("/home/ism/tmp/mit_strata_center_dataset.txt");
 
 
         std::ofstream posefile;
@@ -343,45 +386,167 @@ namespace MYSLAM {
         }
     }
 
-    void Optimizer::incrementalOptimize(int poseId, std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls)
+    void Optimizer::incrementalOptimize()
     {
         std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
         std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
-
-        Noise noise3 = Information (100. * eye(3));
-        Noise noise2 = Information (100. * eye(2));
-
-        Pose::Ptr poseData = poseMap[poseId];
+//
+//
+ //       Noise noise3 = Information (100. * eye(3));
+//        Noise noise2 = Information (100. * eye(2));
+//
+        Pose::Ptr poseData = poseMap[0];
         double x = poseData->_pose[0];
         double y = poseData->_pose[1];
         double p = poseData->_pose[2];
-
+//
 //        Pose2d_Node *pose_node = new Pose2d_Node();
-//        _slam->add_node (pose_node);
+////        _slam->add_node (pose_node);
 //        _poseNodes.push_back (pose_node);
-
+//
 //        if (poseId == 0)
 //        {
 //            Pose2d origin (x, y, p);
-//            Pose2d_Factor *prior = new Pose2d_Factor (_poseNodes[0], origin, noise3);
-//            _slam->add_factor (prior);
+//            Pose2d_Factor *prior = new Pose2d_Factor (pose_node, origin, noise3);
+////            _slam->add_factor (prior);
 //        }
 //
 //        Pose2d_Pose2d_Factor *constraint = 
 //            new Pose2d_Pose2d_Factor (_poseNodes.back(), _poseNodes.rbegin()[1], poseData->_measurement, noise3);
-//        _slam->add_factor (constraint);
+////        _slam->add_factor (constraint);
+//
 //
 //        for (int i = 0; i < walls.size(); i++)
 //        {
-            Wall2d_Node *wall_node = new Wall2d_Node();
+//          Wall2d_Node *wall_node = new Wall2d_Node();
 //            _slam->add_node (wall_node);
 //
-//            Wall2d measure (poseWallMap[std::tuple<int,int>(poseId,walls[i]->_id)]); 
+//            Wall2d measure (poseWallMap[std::tuple<int,int>(poseId,std::get<0>(walls[i])->_id)]); 
 //            Pose2d_Wall2d_Factor *measurement = 
 //                new Pose2d_Wall2d_Factor (_poseNodes.back(), wall_node, measure, noise2);
 //
-//            _slam->add_factor (measurement);
+////           _slam->add_factor (measurement);
 //        }
+//
+////        _slam->batch_optimization();
+    }
+
+    void Optimizer::globalOptimizePoint()
+    {
+        typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+        typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+
+        g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
+        auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+        linearSolver->setBlockOrdering (false);
+        OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
+                g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+        o->setAlgorithm (solver);
+        o->setVerbose (true);
+
+        std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
+        std::map<int, Point::Ptr>& pointMap = _graph->_pointMap;
+        std::map<std::tuple<int, int>, Eigen::Vector2d>& posePointMap = _graph->_posePointMap;
+
+        Eigen::Matrix<double, 3, 3> poseInfMatrix;
+        poseInfMatrix.setIdentity();
+        Eigen::Matrix<double, 2, 2> pointInfMatrix;
+        pointInfMatrix.setIdentity();
+
+        PoseVertex *u; 
+        for (std::map<int, Pose::Ptr>::iterator it = poseMap.begin(); it != poseMap.end(); it++)
+        {
+            Pose* pose = it->second.get();
+            double& x = pose->_pose[0];
+            double& y = pose->_pose[1];
+            double& p = pose->_pose[2];
+
+            SE2 vse2 (x,y,p);
+            PoseVertex *v = new PoseVertex;
+            v->setId (pose->_id);
+            v->setEstimate (vse2);
+            v->setFixed (pose->_id == 0);
+            o->addVertex (v);
+
+            if (it != poseMap.begin())
+            {
+                PoseMeasurement* pm = new PoseMeasurement;
+                pm->vertices()[0] = u;
+                pm->vertices()[1] = v;
+                pm->setMeasurement (u->estimate().inverse() * v->estimate());
+                pm->information () = poseInfMatrix;
+                o->addEdge (pm);
+            }
+
+            u = v;
+        }
+
+        for (std::map<int, Point::Ptr>::iterator it = pointMap.begin();
+                it != pointMap.end(); it++)
+        {
+            Point* point = it->second.get(); 
+            double& x = point->x;
+            double& y = point->y;
+
+            double data[2] = {x,y};
+            VertexPointXY *v = new VertexPointXY;
+            v->setId (point->_id);
+            v->setEstimateDataImpl (data);
+//            v->setMarginalized (true);
+            o->addVertex (v);
+        }
+
+        for (std::map<std::tuple<int,int>, Eigen::Vector2d>::iterator it = posePointMap.begin();
+                it != posePointMap.end(); it++)
+        {
+            double& x = it->second.x();
+            double& y = it->second.y();
+            double data[2] = {x,y};
+
+            EdgeSE2PointXY* wm = new EdgeSE2PointXY;
+
+            wm->vertices()[0] = o->vertex (std::get<0>(it->first));
+            wm->vertices()[1] = o->vertex (std::get<1>(it->first));
+            wm->setMeasurementData (data);
+            wm->information() = pointInfMatrix;
+            o->addEdge (wm);
+        }
+
+        o->save ("/home/ism/tmp/mit_strata_center_dataset_before.txt");
+        o->initializeOptimization();
+        o->optimize(100);
+        o->save ("/home/ism/tmp/mit_strata_center_dataset.txt");
+
+
+        std::ofstream posefile;
+        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out);
+        for (std::map<int,Pose::Ptr>::iterator it = poseMap.begin();
+                it != poseMap.end(); it++)
+        {
+            int id = it->first;
+            PoseVertex* optv = dynamic_cast<PoseVertex*> (o->vertex (id));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            poseMap[id]->_pose[0] = x;
+            poseMap[id]->_pose[1] = y;
+            poseMap[id]->_pose[2] = p;
+            posefile << x << " " << y << " " << p << std::endl;
+        }
+        posefile.close();
+
+        for (std::map<int,Point::Ptr>::iterator it = pointMap.begin();
+                it != pointMap.end(); it++)
+        {
+            int id = it->first;
+            VertexPointXY* optv = dynamic_cast<VertexPointXY*> (o->vertex (id));
+            double x = optv->estimate().x();
+            double y = optv->estimate().y();
+
+            pointMap[id]->x = x;
+            pointMap[id]->y = y;
+        }
     }
 }

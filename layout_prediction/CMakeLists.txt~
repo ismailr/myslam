@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   pr2_mechanism_controllers
   message_filters
+  isam
 )
 
 ## System dependencies are found with CMake's conventions
@@ -113,7 +114,7 @@ find_package(GLUT)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters
+  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters isam
 #  DEPENDS system_lib
 )
 
@@ -141,6 +142,9 @@ include_directories(
 ## either from message generation or dynamic reconfigure
 # add_dependencies(layout_prediction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
+#add_library (isam STATIC IMPORTED)
+#set_property(TARGET isam PROPERTY IMPORTED LOCATION /usr/local/lib/libisam.a)
+
 ## Declare a C++ executable
 add_executable(layout_prediction 
 	src/layout_prediction.cpp
@@ -167,6 +171,24 @@ add_executable(layout_prediction
     src/slam_interface.cpp
     src/sparse_optimizer_online.cpp
     src/sparse_optimizer_incremental.cpp
+    #    src/isamlib/Node.cpp
+    #    src/isamlib/util.cpp
+    #    src/isamlib/numericalDiff.cpp
+    #    src/isamlib/Pose2d.cpp
+    #    src/isamlib/Pose3d.cpp
+    #    src/isamlib/Optimizer.cpp
+    #    src/isamlib/SparseMatrix.cpp
+    #    src/isamlib/SparseSystem.cpp
+    #    src/isamlib/SparseVector.cpp
+    #    src/isamlib/OrderedSparseMatrix.cpp
+    #    src/isamlib/Anchor.cpp
+    #    src/isamlib/Cholesky.cpp
+    #    src/isamlib/ChowLiuTree.cpp
+    #    src/isamlib/Covariances.cpp
+    #    src/isamlib/GLCReparam.cpp
+    #    src/isamlib/covariance.cpp
+    #    src/isamlib/glc.cpp
+    #    src/isamlib/Slam.cpp
 )
 
 add_executable(simulation
@@ -195,6 +217,24 @@ add_executable(simulation
     src/slam_interface.cpp
     src/sparse_optimizer_online.cpp
     src/sparse_optimizer_incremental.cpp
+    #    src/isamlib/Node.cpp
+    #    src/isamlib/util.cpp
+    #    src/isamlib/numericalDiff.cpp
+    #    src/isamlib/Pose2d.cpp
+    #    src/isamlib/Pose3d.cpp
+    #    src/isamlib/Optimizer.cpp
+    #    src/isamlib/SparseMatrix.cpp
+    #    src/isamlib/SparseSystem.cpp
+    #    src/isamlib/SparseVector.cpp
+    #    src/isamlib/OrderedSparseMatrix.cpp
+    #    src/isamlib/Anchor.cpp
+    #    src/isamlib/Cholesky.cpp
+    #    src/isamlib/ChowLiuTree.cpp
+    #    src/isamlib/Covariances.cpp
+    #    src/isamlib/GLCReparam.cpp
+    #    src/isamlib/covariance.cpp
+    #    src/isamlib/glc.cpp
+    #    src/isamlib/Slam.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -217,8 +257,6 @@ target_link_libraries(layout_prediction
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
-    "/usr/local/lib/libisam.a"
-    "/usr/lib64/libcholmod.so"
 )
 
 target_link_libraries(simulation
@@ -236,8 +274,6 @@ target_link_libraries(simulation
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
-    "/usr/local/lib/libisam.a"
-    "/usr/lib64/libcholmod.so"
 )
 
 add_definitions(-std=c++11)

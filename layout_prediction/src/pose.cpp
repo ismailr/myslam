@@ -69,9 +69,10 @@ bool Pose2::is_detected_wall (int id)
 }
 
 namespace MYSLAM {
-    Pose::Pose(){ 
+    Pose::Pose() : _previousId (-1) { 
         _id = Generator::id++;
         _pose.setZero();
+        _measurement.setZero();
     };
 
     PoseVertex::PoseVertex(){};

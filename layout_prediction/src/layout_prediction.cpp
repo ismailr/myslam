@@ -14,10 +14,6 @@
 #include "layout_prediction/simulator.h"
 #include "layout_prediction/settings.h"
 
-using namespace std;
-using namespace g2o;
-using namespace Eigen;
-
 int main (int argc, char** argv)
 {
     const char *fileconfig = "/home/ism/work/code/ros/src/myslam/layout_prediction/src/myslam.cfg";
@@ -60,9 +56,5 @@ int main (int argc, char** argv)
     sync.registerCallback (boost::bind (&MYSLAM::System::readSensorsData, &system, _1, _2, _3, _4, _5, _6));
 
     ros::spin();
-
-//    Simulator sim;	
-//    sim.run();
-
     return 0;
 }

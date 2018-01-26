@@ -2,16 +2,14 @@
 #define _WALL2D_H_
 
 #include <Eigen/Dense>
-#include "isam/isam.h"
 
-using namespace isam;
 using namespace Eigen;
 
 namespace Eigen {
     typedef Matrix<bool, Dynamic, 1> VectorXb;
 }
 
-namespace MYSLAM {
+namespace isam {
     class Wall2d {
         friend std::ostream& operator<<(std::ostream& out, const Wall2d& p) {
             p.write(out);

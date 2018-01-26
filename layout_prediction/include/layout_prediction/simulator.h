@@ -30,15 +30,18 @@ namespace MYSLAM {
                 std::vector<Eigen::Vector2d> sensedData;
 
                 void move();
-                void turn(int direction);
+                void moveStraight();
+                void turn(int direction, double angle);
                 void sense();
+                void sensePoint();
+
+                double _moveStep;
 
             private:
                 Simulator* _sim;
-                const double xnoise_var = 1e-1, ynoise_var = 1e-1;
-                const double pnoise_var  = 1e-1 * M_PI/180.0;
-                const double wnoise_var = 1e-1;
-                const double RANGE = 10.0;
+                const double xnoise_stdev = 5e-2, ynoise_stdev = 1e-2, pnoise_stdev  = 2.0 * M_PI/180.; 
+                const double wnoise_stdev = 5e-2;
+                const double RANGE = 100.0;
         };
 
         std::vector<Dinding> struktur;
@@ -48,11 +51,9 @@ namespace MYSLAM {
         std::vector<Dinding> getStruktur () const { return struktur; };
 
         void run();
-        void runsimple();
-        void runsimple2();
+        void runPoint();
 
         private:
-        const int NUM_OF_WALLS = 8;
     };
 }
 

@@ -32,41 +32,20 @@ namespace MYSLAM {
             double theta1 = atan2 (w1xy, w1xx);
             double theta2 = atan2 (w2xy, w2xx);
 
-            double delta_theta = normalize_angle (std::abs (theta2 - theta1));
+            double delta_theta = normalize_theta (std::abs (theta2 - theta1));
             delta_theta < 45 * M_PI/180 ? _error(0,0) = theta2 - 0 : _error(0,0) = theta2 - (M_PI/2) ;
 
-            double b0 = 0.0;
-            double b1 = 30.0 * M_PI/180.0;
-            double b2 = 60.0 * M_PI/180.0;
-            double b3 = 90.0 * M_PI/180.0;
-            double b4 = 120.0 * M_PI/180.0;
-            double b5 = 150.0 * M_PI/180.0;
-            double b6 = 180.0 * M_PI/180.0;
-            double b7 = 210.0 * M_PI/180.0;
-            double b8 = 240.0 * M_PI/180.0;
-            double b9 = 270.0 * M_PI/180.0;
-            double b10 = 300.0 * M_PI/180.0;
-            double b11 = 330.0 * M_PI/180.0;
-            double b12 = 360.0 * M_PI/180.0;
+            if (delta_theta > M_PI)
+                delta_theta = delta_theta - M_PI;
 
-            if (delta_theta >= b0 && delta_theta < b1)
-                _error(0,0) = std::abs(theta2 - 0.0);
-            else if (delta_theta >= b1 && delta_theta < b2)
-                _error(0,0) = std::abs(theta2 - 45.0 * M_PI/180);
-            else if (delta_theta >= b2 && delta_theta < b4)
-                _error(0,0) = std::abs(theta2 - 90.0 * M_PI/180);
-            else if (delta_theta >= b4 && delta_theta < b5)
-                _error(0,0) = std::abs(theta2 - 135.0 * M_PI/180);
-            else if (delta_theta >= b5 && delta_theta < b7)
-                _error(0,0) = std::abs(theta2 - 180.0 * M_PI/180);
-            else if (delta_theta >= b7 && delta_theta < b8)
-                _error(0,0) = std::abs(theta2 - 225.0 * M_PI/180);
-            else if (delta_theta >= b8 && delta_theta < b10)
-                _error(0,0) = std::abs(theta2 - 270.0 * M_PI/180);
-            else if (delta_theta >= b10 && delta_theta < b11)
-                _error(0,0) = std::abs(theta2 - 315.0 * M_PI/180);
-            else if (delta_theta >= b11 && delta_theta <= b12)
-                _error(0,0) = std::abs(theta2 - 360.0 * M_PI/180);
+            if (delta_theta < 30 * M_PI/180)
+                _error(0,0) = std::abs(theta2 - theta1) - 0.0;
+            else if (delta_theta > 60 * M_PI/180 && delta_theta < 120 * M_PI/180)
+                _error(0,0) = std::abs(theta2 - theta1) - M_PI/2;
+            else if (delta_theta > 150 * M_PI/180 && delta_theta < M_PI)
+                _error(0,0) = std::abs(theta2 - theta1) - M_PI;
+            else 
+                _error(0,0) = delta_theta;
         }
 
         virtual bool read(std::istream& is);

@@ -237,45 +237,45 @@ namespace MYSLAM {
 
             WallMeasurement();
 
-            void computeError()
-            {
-                const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
-                const WallVertex* l2 = static_cast<const WallVertex*>(_vertices[1]);
-
-                double xx = l2->estimate().x();
-                double xy = l2->estimate().y();
-                double m, c;
-                m = -xx/xy;
-                c = (xx*xx + xy*xy)/xy;
-
-                double x = v1->estimate().translation().x();
-                double y = v1->estimate().translation().y();
-                double p = v1->estimate().rotation().angle();
-
-                double m_, c_;
-                m_ = (-sin(p) + m * cos(p))/(cos(p) + m * sin(p));
-                c_ = (c - y + m * x)/(cos(p) + m * sin(p));
-
-                double xx_, xy_;
-                xx_ = (-m_*c_)/(m_*m_+1);
-                xy_ = c_/(m_*m_+1);
-
-                Eigen::Vector2d _prediction (xx_, xy_);
-                _error = _prediction - _measurement;
-
-                std::ofstream f;
-                f.open ("/home/ism/tmp/error1.dat", std::ios::out|std::ios::app);
-                f << "x = " << x << " y = " << y << " p = " << p << std::endl; 
-                f << "m = " << m << " c = " << c << std::endl; 
-                f << "m' = " << m_ << " c' = " << c_ << std::endl; 
-                f << "xx' = " << xx_ << " xy' = " << xy_ << std::endl;
-                f << "xx = " << l2->estimate().x() << " xy = " << l2->estimate().y() << std::endl;
-                f << "PREDICTION: " << _prediction.transpose() << std::endl;
-                f << "MEASUREMENT: " << _measurement.transpose() << std::endl;
-                f << "ERROR: " << _error.transpose() << std::endl;
-                f << std::endl;
-                f.close();
-            }
+//            void computeError()
+//            {
+//                const PoseVertex* v1 = static_cast<const PoseVertex*>(_vertices[0]);
+//                const WallVertex* l2 = static_cast<const WallVertex*>(_vertices[1]);
+//
+//                double xx = l2->estimate().x();
+//                double xy = l2->estimate().y();
+//                double m, c;
+//                m = -xx/xy;
+//                c = (xx*xx + xy*xy)/xy;
+//
+//                double x = v1->estimate().translation().x();
+//                double y = v1->estimate().translation().y();
+//                double p = v1->estimate().rotation().angle();
+//
+//                double m_, c_;
+//                m_ = (-sin(p) + m * cos(p))/(cos(p) + m * sin(p));
+//                c_ = (c - y + m * x)/(cos(p) + m * sin(p));
+//
+//                double xx_, xy_;
+//                xx_ = (-m_*c_)/(m_*m_+1);
+//                xy_ = c_/(m_*m_+1);
+//
+//                Eigen::Vector2d _prediction (xx_, xy_);
+//                _error = _prediction - _measurement;
+//
+//                std::ofstream f;
+//                f.open ("/home/ism/tmp/error1.dat", std::ios::out|std::ios::app);
+//                f << "x = " << x << " y = " << y << " p = " << p << std::endl; 
+//                f << "m = " << m << " c = " << c << std::endl; 
+//                f << "m' = " << m_ << " c' = " << c_ << std::endl; 
+//                f << "xx' = " << xx_ << " xy' = " << xy_ << std::endl;
+//                f << "xx = " << l2->estimate().x() << " xy = " << l2->estimate().y() << std::endl;
+//                f << "PREDICTION: " << _prediction.transpose() << std::endl;
+//                f << "MEASUREMENT: " << _measurement.transpose() << std::endl;
+//                f << "ERROR: " << _error.transpose() << std::endl;
+//                f << std::endl;
+//                f.close();
+//            }
     };
 }
 #endif

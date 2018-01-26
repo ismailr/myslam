@@ -41,6 +41,9 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+
 #include "vertex_line2d.h"
 
 using namespace g2o;
@@ -271,6 +274,7 @@ namespace MYSLAM {
 
             unsigned long int _id;
             Line _line;
+            cv::Ptr<cv::Mat> _img;
             pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
 
     };

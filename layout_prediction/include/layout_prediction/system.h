@@ -88,7 +88,6 @@ namespace MYSLAM {
             static unsigned long int _frameCounter;
             double _currentTime;
             double _prevTime;
-            int _lastPoseId;
 
             // callback
             void readSensorsData (
@@ -101,6 +100,7 @@ namespace MYSLAM {
                 );
 
             Visualizer* getVisualizer () { return _visualizer; };
+
         private:
             bool _init;
             ros::NodeHandle _rosnodehandle;

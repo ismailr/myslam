@@ -8,6 +8,7 @@ namespace MYSLAM {
     int WALL_DETECTOR_CLOUD_ROW;
     double DATA_ASSOCIATION_THRESHOLD;
     int SIM_NUMBER_OF_ITERATIONS;
+    int TRACKER_METHOD;
 
     void loadConfFile(const char* fileconfig)
     {
@@ -29,6 +30,7 @@ namespace MYSLAM {
           cfg.lookupValue ("wall_detector_cloud_row", WALL_DETECTOR_CLOUD_ROW);
           cfg.lookupValue ("data_association_threshold", DATA_ASSOCIATION_THRESHOLD);
           cfg.lookupValue ("sim_number_of_iterations", SIM_NUMBER_OF_ITERATIONS);
+          cfg.lookupValue ("tracker_method", TRACKER_METHOD);
         } catch (SettingNotFoundException &nfex) {
             cerr << "Configuration not found!" << endl;
         }

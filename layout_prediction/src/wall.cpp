@@ -368,7 +368,7 @@ namespace MYSLAM {
     };
 
 
-    Wall::Wall(){ _id = Generator::id++; };
+    Wall::Wall():_img(new cv::Mat()) { _id = Generator::id++; };
 
     void Wall::updateParams(){
         _line.calcMcFromXx();

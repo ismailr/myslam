@@ -609,15 +609,19 @@ namespace MYSLAM {
         double& xx = w->_line.xx[0];
         double& xy = w->_line.xx[1];
 
-        for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
-                it != _wallMap.end(); it++)
+        std::set<int> walls;
+        walls.insert (_lastActiveWalls.begin(), _lastActiveWalls.end());
+        walls.insert (_activeWalls.begin(), _activeWalls.end());
+
+        for (std::set<int>::iterator it = walls.begin();
+                it != walls.end(); it++)
         {
-            double& xxref = it->second->_line.xx[0];
-            double& xyref = it->second->_line.xx[1];
+            double& xxref = _wallMap[*it]->_line.xx[0];
+            double& xyref = _wallMap[*it]->_line.xx[1];
 
             if (    std::abs(xx-xxref) < MYSLAM::DATA_ASSOCIATION_THRESHOLD 
                     && std::abs(xy-xyref) < MYSLAM::DATA_ASSOCIATION_THRESHOLD)
-                return it->second;
+                return _wallMap[*it];
         }
 
         _wallMap[w->_id] = w;

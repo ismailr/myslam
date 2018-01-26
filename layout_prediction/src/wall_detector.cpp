@@ -7,12 +7,13 @@
 #include <limits>
 
 #include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
+#include <pcl/common/transforms.h>
+#include <pcl/common/distances.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/ModelCoefficients.h>
-#include <pcl/common/distances.h>
-#include <pcl/common/transforms.h>
 #include <pcl/sample_consensus/model_types.h>
 #include <pcl/sample_consensus/method_types.h>
 #include <pcl/segmentation/sac_segmentation.h>
@@ -430,7 +431,6 @@ void WallDetector2::cluster_cloud (PointCloudCluster& cluster, PointCloud& _prep
         ec.setSearchMethod (tree);
         ec.setInputCloud (_preparedCloud.makeShared());
         ec.extract (_pointIndicesCluster);
-
     }
 
     for (PointIndicesCluster::const_iterator it = _pointIndicesCluster.begin(); 
@@ -601,7 +601,6 @@ namespace MYSLAM {
     WallDetector::WallDetector(System& system) : 
         _system (&system), _method (MYSLAM::WALL_DETECTOR_METHOD)
     {
-
     }
 
     void WallDetector::detect(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
@@ -754,12 +753,6 @@ namespace MYSLAM {
                     m_ = coefficients->values[4]/coefficients->values[3];
                 c_ = coefficients->values[1]- (m_ * coefficients->values[0]);
 
-                Eigen::Vector2d xxxy_;
-                double& xx_ = xxxy_[0];
-                double& xy_ = xxxy_[1];
-                xx_ = - (m_ * c_)/(m_ * m_ + 1);
-                xy_ = c_/(m_ * m_ + 1);
-
                 Eigen::Vector2d mc;
                 double& m = mc[0];
                 double& c = mc[1]; 
@@ -771,27 +764,12 @@ namespace MYSLAM {
                 xx = - (m * c)/(m * m + 1);
                 xy = c/(m * m + 1);
 
-//                pcl::PointCloud<pcl::PointXYZ>::Ptr cloudProjected (new pcl::PointCloud<pcl::PointXYZ>);
-//                pcl::ProjectInliers<pcl::PointXYZ> proj;
-//                proj.setModelType (pcl::SACMODEL_LINE);
-//                proj.setInputCloud (inCloud);
-//                proj.setModelCoefficients (coefficients);
-//                proj.filter (*cloudProjected);
-
-//                Eigen::Vector2d p_, q_;
-//                p_.x() = cloudProjected->front().x;
-//                p_.y() = cloudProjected->front().y;
-//                q_.x() = cloudProjected->back().x;
-//                q_.y() = cloudProjected->back().y;
-
                 std::vector<Eigen::Vector3d> pts = extractInliers (inliers, inCloud);
                 Eigen::Vector2d p_, q_;
                 p_.x() = pts.front().x();
                 p_.y() = pts.front().y();
                 q_.x() = pts.back().x();
                 q_.y() = pts.back().y();
-
-//                _system->getVisualizer()->visualizeWallMeasured (p_,q_);
 
                 double& x = pose->_pose[0];
                 double& y = pose->_pose[1];
@@ -805,8 +783,15 @@ namespace MYSLAM {
                 q.x() = q_.x()*cost - q_.y()*sint + x;
                 q.y() = q_.x()*sint + q_.y()*cost + y;
 
-//                _system->getVisualizer()->visualizeWallMeasuredPq (p_,q_, true);
-//                _system->getVisualizer()->visualizeWallMeasuredRt (xx,xy);
+                // measurement
+                Eigen::Vector2d xxxy_;
+                double& xx_ = xxxy_[0];
+                double& xy_ = xxxy_[1];
+//                xx_ = - (m_ * c_)/(m_ * m_ + 1);
+//                xy_ = c_/(m_ * m_ + 1);
+    
+                xx_ = xx*cost + xy*sint - x*cost - y*sint;
+                xy_ = -xx*sint + xy*cost + x*sint - y*cost;
 
                 if (m_ != std::numeric_limits<double>::infinity());
                 {
@@ -819,6 +804,8 @@ namespace MYSLAM {
 
                     std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
                     outWalls.push_back(measurement);
+
+                    _system->getVisualizer()->visualizeWallMeasuredPq(p_,q_, true);
                 }
             }
 
