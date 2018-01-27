@@ -1,7 +1,13 @@
 #ifndef _SIMULATOR_H_
 #define _SIMULATOR_H_
 
+#include <utility>
+
 #include "se2.h"
+#include "layout_prediction/pose.h"
+#include "layout_prediction/wall.h"
+
+#include <Eigen/Core>
 
 using namespace g2o;
 
@@ -19,6 +25,17 @@ namespace MYSLAM {
             Eigen::Vector2d q;
         };
 
+        class Particle
+        {
+            public:
+                Particle();
+
+                std::vector<SE2> path;
+                std::vector<std::pair<Dinding ,Eigen::Matrix2d> > landmarks;
+
+            private:
+        };
+
         class Robot
         {
             public:
@@ -30,10 +47,11 @@ namespace MYSLAM {
                 std::vector<Eigen::Vector2d> sensedData;
 
                 void move();
-                void moveStraight();
+                void sampleMove();
                 void turn(int direction, double angle);
                 void sense();
-                void sensePoint();
+                void update();
+                void observe();
 
                 double _moveStep;
 
@@ -46,12 +64,15 @@ namespace MYSLAM {
 
         std::vector<Dinding> struktur;
         Robot *robot;
+        std::vector<Particle> particles;
+        const int N = 100; // Num of particles
 
         void getNextState();
+        void getNextStatePF();
         std::vector<Dinding> getStruktur () const { return struktur; };
 
         void run();
-        void runPoint();
+        void runPF();
 
         private:
     };

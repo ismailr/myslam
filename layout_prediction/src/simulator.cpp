@@ -50,7 +50,7 @@ template<typename T> T uniform_generator (T min, T max)
 
 namespace MYSLAM {
     Simulator::Robot::Robot(Simulator* sim) 
-        : _sim (sim), _moveStep (0.5) 
+        : _sim (sim), _moveStep (0.5)
     {
         truePose.setZero(); 
         simPose.setZero();
@@ -59,7 +59,7 @@ namespace MYSLAM {
 //        sense();
     }
 
-    void Simulator::Robot::moveStraight() {
+    void Simulator::Robot::move() {
         SE2 trupose;
         trupose.fromVector (truePose);  
 
@@ -76,36 +76,6 @@ namespace MYSLAM {
                 trumove.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
         simpose = simpose * simmove;
         simPose = simpose.toVector();
-    }
-
-    void Simulator::Robot::move()
-    {
-        sensedData.clear();
-        sensedDinding.clear();
-
-        double xtrue = truePose[0];
-        double ytrue = truePose[1];
-        double ptrue = truePose[2];
-        double dx = xtrue;
-        double dy = ytrue;
-        xtrue += _moveStep * cos (ptrue);
-        ytrue += _moveStep * sin (ptrue);
-        dx = xtrue - dx;
-        dy = ytrue - dy;
-        double d = sqrt ((dx*dx) + (dy*dy));
-
-        truePose << xtrue, ytrue, ptrue;
-
-        double noise = gaussian_generator<double>(0.0, xnoise_stdev);
-        d = d + noise;
-
-        double xsim = simPose[0];
-        double ysim = simPose[1];
-        double psim = simPose[2];
-        xsim = xsim + d * cos(psim);
-        ysim = ysim + d * sin(psim);
-
-        simPose << xsim, ysim, psim;
     }
 
     void Simulator::Robot::turn (int direction, double angle)
@@ -168,37 +138,66 @@ namespace MYSLAM {
         }
     }
 
-    void Simulator::Robot::sensePoint()
+    void Simulator::Robot::update ()
     {
-        double x = simPose[0];
-        double y = simPose[1];
-        double p = simPose[2];
-        double cosp = cos(p);
-        double sinp = sin(p);
 
-        // sensor model
-        for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
+    }
+
+    void Simulator::Robot::observe()
+    {
+        for (int i = 0; i < _sim->N; i++)
         {
-            double& lx = (*it).m;
-            double& ly = (*it).c;
+            SE2 pose = _sim->particles[i].path.back(); 
 
-            double xxnoise = gaussian_generator<double>(0.0, wnoise_stdev);
-            double xynoise = gaussian_generator<double>(0.0, wnoise_stdev);
-
-            double x_ = (lx - x) * cosp;
-            double y_ = (ly - y) * sinp;
-
-            Eigen::Vector2d data (x_,y_);
-
-            double r = sqrt (x_*x_ + y_*y_);
-            double angle = normalize_theta (atan2 (y_,x_));
-
-            if (r <= RANGE)
+            for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
             {
-                if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
+                double xxnoise = gaussian_generator<double>(0.0, wnoise_stdev);
+                double xynoise = gaussian_generator<double>(0.0, wnoise_stdev);
+
+                Eigen::Matrix2d cov;
+                double var = wnoise_stdev * wnoise_stdev;
+                cov << var, 0, 0, var;
+
+                Eigen::Vector3d w ((*it).xx,(*it).xy, 1);
+                Eigen::Vector3d w_ = pose.inverse() * w;
+
+                w_[0] += xxnoise;
+                w_[1] += xynoise;
+
+                double r = sqrt (w_[0]*w_[0] + w_[1]*w_[1]);
+                double angle = normalize_theta (atan2 (w_[1],w_[0]));
+
+                if (r <= RANGE)
                 {
-                    sensedDinding.push_back (&(*it));
-                    sensedData.push_back (data);
+                    if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
+                    {
+                        // landmark observed
+                        bool new_landmark = false
+                        
+                        if (_sim->particles[i].landmarks.size() == 0) // first observed
+                            new_landmark = true;
+
+                        for (int j = 0; j < _sim->particles[i].landmarks.size(); j++)
+                        {
+
+                        }
+
+                        // sensor model
+                        Eigen::Vector3d newlandmark = pose * w_;
+                        Dinding d;
+                        d.xx = newlandmark[0];
+                        d.xy = newlandmark[1];
+                        std::pair<Dinding, Eigen::Matrix2d> l;
+                        l.first = d;
+                        l.second = cov;
+                        _sim->particles[i].landmarks.push_back (l);
+
+
+
+                        // if first observed
+                        _sim->particles[i].landmarks.push_back
+
+                    }
                 }
             }
         }
@@ -206,27 +205,27 @@ namespace MYSLAM {
 
     Simulator::Simulator()
     {
-        const int N = 100;
-//        double grads[4] = {2, -.5, 2, -.5};
-//        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
-//        double x[5] = {-12, -6.8, 7.2, 2, -12};
-//        double y[5] = {1, 11.4, 4.4, -6, 1};
+        const int N = 4;
+        double grads[4] = {2, -.5, 2, -.5};
+        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
+        double x[5] = {-12, -6.8, 7.2, 2, -12};
+        double y[5] = {1, 11.4, 4.4, -6, 1};
 
-        std::vector<double> grads (N); 
-        std::vector<double> intercepts (N); 
-        std::vector<double> x(N + 1); 
-        std::vector<double> y(N + 1); 
-
-        for (int i = 0; i < N; i++)
-        {
-            grads[i] = uniform_generator<double>(-5.0,5.0);
-            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
-            x[i] = uniform_generator<double>(-5.0,5.0);
-            y[i] = uniform_generator<double>(-5.0,5.0);
-        }
-
-        x.push_back(x[0]);
-        y.push_back(y[0]);
+//        std::vector<double> grads (N); 
+//        std::vector<double> intercepts (N); 
+//        std::vector<double> x(N + 1); 
+//        std::vector<double> y(N + 1); 
+//
+//        for (int i = 0; i < N; i++)
+//        {
+//            grads[i] = uniform_generator<double>(-5.0,5.0);
+//            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
+//            x[i] = uniform_generator<double>(-5.0,5.0);
+//            y[i] = uniform_generator<double>(-5.0,5.0);
+//        }
+//
+//        x.push_back(x[0]);
+//        y.push_back(y[0]);
 
         for (int i = 0; i < N; i++)
         {
@@ -244,13 +243,31 @@ namespace MYSLAM {
         }
 
         robot = new Robot(this);
+
+        // t = 0
+        for (int i = 0; i < N; i++) {
+            Particle p;
+            SE2 firstpose;
+            p.path.push_back(firstpose);
+            particles.push_back(p);
+            robot->truePose = firstpose.toVector();
+        }
+
+        getNextStatePF();
     }
 
     void Simulator::getNextState()
     {
-        robot->moveStraight();
+        robot->move();
         robot->sense();
     }
+
+    void Simulator::getNextStatePF()
+    {
+        robot->sampleMove();
+        robot->update();
+    }
+
 
     void Simulator::run()
     {
@@ -378,7 +395,7 @@ namespace MYSLAM {
                 robot->sense();
                 turn_now++;
             } else {
-                robot->moveStraight();
+                robot->move();
                 robot->sense();
             }
         }
@@ -405,147 +422,46 @@ namespace MYSLAM {
 
     }
 
-    void Simulator::runPoint()
+    void Simulator::Robot::sampleMove ()
     {
-        MYSLAM::Graph graph;
-        Optimizer o(graph);
+        SE2 trueMove (_moveStep, 0, 0);
 
+        for (int i = 0; i < _sim->N; i++) {
+
+            SE2 lastPose = _sim->particles[i].path.back();
+            SE2 simMove (
+                    trueMove.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
+                    trueMove.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
+                    trueMove.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+            SE2 currentPose = lastPose * simMove;
+            _sim->particles[i].path.push_back (currentPose);
+        }
+    }
+
+    void Simulator::runPF()
+    {
         ofstream mfile;
         mfile.open ("/home/ism/tmp/sim.dat", ios::out | ios::app);
 
         std::vector<Dinding*> dindings;
-        std::vector<Point::Ptr> points;
+        std::vector<Wall::Ptr> walls;
 
-        Eigen::Vector3d lastSimPose;
-        Pose::Ptr lastPose;
-
-        double turn_angle[4] = {120.0, 100.0, 50.0, 135.0};
-        int turn_time[4] = {15, 18, 25, 27};
-        int turn_direction[4] = {0, 0, 1, 0};
+        double turn_angle[4] = {90, 90, 90, 100};
+        int turn_time[4] = {12, 24, 36, 48};
+        int turn_direction[4] = {1,1,1,1};
         int turn_now = 0;
 
-        for (int frame = 1; frame < MYSLAM::SIM_NUMBER_OF_ITERATIONS; frame++)
+        for (int time = 1; time < MYSLAM::SIM_NUMBER_OF_ITERATIONS; time++)
         {
-            // poses
-            Eigen::Vector3d t = robot->truePose;
-            Eigen::Vector3d s = robot->simPose;
-
-            mfile   << s[0] << " " << s[1] << " " << s[2] << " " << t[0] << " " << t[1] << " " << t[2] << std::endl;
-
-            Pose::Ptr pose (new Pose);
-            if (frame == 1)
-            {
-                pose->_pose = s;
-                graph._poseMap [pose->_id] = pose;
-                graph._activePoses.push_back (pose->_id);
-                lastSimPose = s;
-                lastPose = pose;
-                getNextState();
-                continue;
-            }
-
-            Eigen::Vector3d delta = s - lastSimPose;
-            double dr = sqrt (delta[0]*delta[0] + delta[1]*delta[1]);
-            double current_heading = normalize_angle (lastPose->_pose[2] + delta[2]);
-            double dx = dr * cos (current_heading);
-            double dy = dr * sin (current_heading);
-            Eigen::Vector3d incr (dx, dy, delta[2]);
-
-            pose->_pose = lastPose->_pose + incr;
-            graph._poseMap [pose->_id] = pose;
-            graph._activePoses.push_back (pose->_id);
-
-            for (size_t i = 0; i < robot->sensedDinding.size(); i++)
-            {
-                // asosiasi data
-                Point::Ptr w = NULL;
-                Dinding* d = robot->sensedDinding[i];
-
-                if (dindings.size() == 0)
-                {
-                    Point::Ptr point (new Point);
-                    w = point;
-                    dindings.push_back (d);
-                    points.push_back (w);
-
-                } else {
-                    for (int j = 0; j < dindings.size(); j++)
-                    {
-                        if (d->id == dindings[j]->id)
-                        {
-                            w = points[j];
-                            break;
-                        }
-                        else if (j == dindings.size() - 1)
-                        {
-                            Point::Ptr point (new Point);
-                            w = point;
-                            dindings.push_back (robot->sensedDinding[i]);
-                            points.push_back (w);
-                            break;
-                        }
-                    }
-                }
-
-                double& x_ = robot->sensedData[i][0];
-                double& y_ = robot->sensedData[i][1];
-
-                double x = pose->_pose[0];
-                double y = pose->_pose[1];
-                double t = pose->_pose[2];
-
-
-                w->x = x + x_*cos(t);
-                w->y = y + y_*sin(t);
-
-                graph._pointMap [w->_id] = w;
-                graph._activePoints.insert (w->_id);
-
-                std::tuple<int, int> e (pose->_id, w->_id);
-                graph._posePointMap [e] = robot->sensedData[i];
-                graph._activeEdges.push_back (e);
-            }
-
-            if (frame % 2 == 0)
-            {
-                o.localOptimize();
-            }
-
-//            getNextState();
-            lastSimPose = s;
-            lastPose = pose;
-
-
-            if (frame == turn_time[turn_now]) {
-                robot->turn (turn_direction[turn_now], turn_angle[turn_now] * M_PI/180.0);
-                robot->sensePoint();
-                turn_now++;
-            } else {
-                robot->move();
-                robot->sensePoint();
-
-            }
+            // sampling new pose
+            robot->sampleMove();
+            robot->observe();
         }
-
-//        o.globalOptimize();
 
         mfile.close();
+    }
 
-        ofstream wfile;
-        wfile.open ("/home/ism/tmp/point.dat", std::ios::out | std::ios::app);
-        for (std::map<int, Point::Ptr>::iterator it = graph._pointMap.begin();
-                it != graph._pointMap.end(); it++)
-        {
-            wfile << it->second->x << " " << it->second->y << std::endl;
-        }
-//        wfile << std::endl;
-
-//        for (int i = 0; i < struktur.size(); i++)
-//        {
-//            wfile << struktur[i].id << " " << struktur[i].xx << " " << struktur[i].xy << std::endl;
-//        }
-//        wfile << std::endl;
-        wfile.close();
-
+    Simulator::Particle::Particle() {
+    
     }
 }
