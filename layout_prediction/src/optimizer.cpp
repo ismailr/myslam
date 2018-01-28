@@ -81,13 +81,13 @@ namespace MYSLAM {
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
         poseCovMatrix.setIdentity();
-//        poseCovMatrix <<    2.5e-3, 0.0, 0.0,
-//                            0.0, 1e-4, 0.0,
-//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        poseCovMatrix <<    2.5e-3, 0.0, 0.0,
+                            0.0, 1e-4, 0.0,
+                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-        wallCovMatrix.setIdentity();
-//        wallCovMatrix <<    2.5e-3, 0.0,
-//                            0.0, 2.5e-3;
+//        wallCovMatrix.setIdentity();
+        wallCovMatrix <<    2.5e-3, 0.0,
+                            0.0, 2.5e-3;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)

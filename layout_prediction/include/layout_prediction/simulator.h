@@ -32,6 +32,7 @@ namespace MYSLAM {
 
                 std::vector<SE2> path;
                 std::vector<std::pair<Dinding ,Eigen::Matrix2d> > landmarks;
+                double weight;
 
             private:
         };

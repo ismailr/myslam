@@ -60,80 +60,76 @@ namespace MYSLAM {
     }
 
     void Simulator::Robot::move() {
-        SE2 trupose;
-        trupose.fromVector (truePose);  
+        SE2 pose;
+        pose.fromVector (truePose);  
 
-        SE2 trumove (_moveStep, 0.0, 0.0);
-        trupose = trupose * trumove;
-        truePose = trupose.toVector();
+        SE2 move (_moveStep, 0.0, 0.0);
+        pose = pose * move;
+        truePose = pose.toVector();
 
         SE2 simpose;
         simpose.fromVector(simPose);
 
         SE2 simmove (
-                trumove.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
-                trumove.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
-                trumove.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
+                move.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
+                move.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
+                move.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
         simpose = simpose * simmove;
         simPose = simpose.toVector();
     }
 
     void Simulator::Robot::turn (int direction, double angle)
     {
-        sensedData.clear();
-        sensedDinding.clear();
-
         direction == 0 ? angle = angle : angle = -angle;
-        SE2 truturn (_moveStep, 0.0, angle);
+        SE2 turn (_moveStep, 0.0, angle);
 
-        SE2 trupose;
-        trupose.fromVector (truePose);
-        trupose = trupose * truturn;
-        truePose = trupose.toVector();
+        SE2 pose;
+        pose.fromVector (truePose);
+        pose = pose * turn;
+        truePose = pose.toVector();
 
         SE2 simpose;
         simpose.fromVector (simPose);
 
         SE2 simturn (
-                truturn.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
-                truturn.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
-                truturn.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
+                turn.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
+                turn.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
+                turn.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
         simpose = simpose * simturn;
         simPose = simpose.toVector();
     }
 
     void Simulator::Robot::sense()
     {
-        double x = simPose[0];
-        double y = simPose[1];
-        double t = simPose[2];
-        double cost = cos(t);
-        double sint = sin(t);
+        sensedData.clear();
+        sensedDinding.clear();
 
         // sensor model
         for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
         {
-            double xxnoise = gaussian_generator<double>(0.0, wnoise_stdev);
-            double xynoise = gaussian_generator<double>(0.0, wnoise_stdev);
+            double unoise = gaussian_generator<double>(0.0, wnoise_stdev);
+            double vnoise = gaussian_generator<double>(0.0, wnoise_stdev);
 
-            double& xx = (*it).xx;
-            double& xy = (*it).xy;
+            double u = (*it).xx;
+            double v = (*it).xy;
 
-            double xx_ = xx*cost + xy*sint - x*cost - y*sint + xxnoise;
-            double xy_ = -xx*sint + xy*cost + x*sint - y*cost + xynoise;
+            SE2 simpose; simpose.fromVector (simPose);
 
-            Eigen::Vector2d data (xx_, xy_);
+            Eigen::Vector2d xx (u, v);
+            Eigen::Vector2d xx_ = simpose.inverse() * xx;
 
-            double r = sqrt (xx_*xx_ + xy_*xy_);
-            double angle = normalize_theta (atan2 (xy_,xx_));
+            Eigen::Vector2d data (xx_[0] + unoise, xx_[1] + vnoise);
+
+            double r = sqrt (xx_[0]*xx_[0] + xx_[1]*xx_[1]);
+            double angle = normalize_theta (atan2 (xx_[1],xx_[0]));
 
             if (r <= RANGE)
             {
-//                if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
-//                {
+                if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
+                {
                     sensedDinding.push_back (&(*it));
                     sensedData.push_back (data);
-//                }
+                }
             }
         }
     }
@@ -158,8 +154,8 @@ namespace MYSLAM {
                 double var = wnoise_stdev * wnoise_stdev;
                 cov << var, 0, 0, var;
 
-                Eigen::Vector3d w ((*it).xx,(*it).xy, 1);
-                Eigen::Vector3d w_ = pose.inverse() * w;
+                Eigen::Vector2d w ((*it).xx,(*it).xy);
+                Eigen::Vector2d w_ = pose.inverse() * w;
 
                 w_[0] += xxnoise;
                 w_[1] += xynoise;
@@ -172,7 +168,7 @@ namespace MYSLAM {
                     if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
                     {
                         // landmark observed
-                        bool new_landmark = false
+                        bool new_landmark = false;
                         
                         if (_sim->particles[i].landmarks.size() == 0) // first observed
                             new_landmark = true;
@@ -183,7 +179,7 @@ namespace MYSLAM {
                         }
 
                         // sensor model
-                        Eigen::Vector3d newlandmark = pose * w_;
+                        Eigen::Vector2d newlandmark = pose * w_;
                         Dinding d;
                         d.xx = newlandmark[0];
                         d.xy = newlandmark[1];
@@ -195,7 +191,7 @@ namespace MYSLAM {
 
 
                         // if first observed
-                        _sim->particles[i].landmarks.push_back
+//                        _sim->particles[i].landmarks.push_back
 
                     }
                 }
@@ -244,16 +240,6 @@ namespace MYSLAM {
 
         robot = new Robot(this);
 
-        // t = 0
-        for (int i = 0; i < N; i++) {
-            Particle p;
-            SE2 firstpose;
-            p.path.push_back(firstpose);
-            particles.push_back(p);
-            robot->truePose = firstpose.toVector();
-        }
-
-        getNextStatePF();
     }
 
     void Simulator::getNextState()
@@ -283,8 +269,8 @@ namespace MYSLAM {
         Eigen::Vector3d lastSimPose;
         Pose::Ptr lastPose;
 
-        double turn_angle[4] = {90, 90, 90, 100};
-        int turn_time[4] = {12, 24, 36, 48};
+        double turn_angle[4] = {0, 125, 100, 90};
+        int turn_time[4] = {12, 20, 40, 48};
         int turn_direction[4] = {1,1,1,1};
         int turn_now = 0;
 
@@ -382,7 +368,7 @@ namespace MYSLAM {
                 graph._activeEdges.push_back (e);
             }
 
-            if (frame % 10 == 0)
+            if (frame % 2 == 0)
             {
                 o.localOptimize();
             }
@@ -450,6 +436,17 @@ namespace MYSLAM {
         int turn_time[4] = {12, 24, 36, 48};
         int turn_direction[4] = {1,1,1,1};
         int turn_now = 0;
+
+        // t = 0
+        for (int i = 0; i < N; i++) {
+            Particle p;
+            SE2 firstpose;
+            p.path.push_back(firstpose);
+            particles.push_back(p);
+            robot->truePose = firstpose.toVector();
+        }
+
+        getNextStatePF();
 
         for (int time = 1; time < MYSLAM::SIM_NUMBER_OF_ITERATIONS; time++)
         {
