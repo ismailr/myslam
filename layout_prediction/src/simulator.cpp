@@ -145,11 +145,13 @@ namespace MYSLAM {
         Eigen::Matrix2d R;
         double var = wnoise_stdev * wnoise_stdev;
         R << var, 0, 0, var;
-
+                                
         for (int i = 0; i < _sim->N; i++)
         {
             // current pose
             SE2 pose = _sim->particles[i].path.back(); 
+            Eigen::Matrix2d G = *obvJacobian (pose);
+
 
             // iterate over walls
             for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
@@ -184,8 +186,8 @@ namespace MYSLAM {
                             if (jt == _sim->particles[i].landmarks.end()) { new_landmark = true; } else {
                                 // update landmark
                                 Eigen::Matrix2d S = std::get<2>(*jt);
-                                Eigen::Matrix2d G = *obvJacobian (pose);
-                                Eigen::Matrix2d K = S * G * R.inverse();
+                                Eigen::Matrix2d Z = G * S * G.transpose() + R;
+                                Eigen::Matrix2d K = S * G * Z.inverse();
                                 Eigen::Vector2d oldEstimate;
                                 oldEstimate[0] = std::get<1>(*jt).xx;
                                 oldEstimate[1] = std::get<1>(*jt).xy;
@@ -471,8 +473,10 @@ namespace MYSLAM {
         int turn_now = 0;
 
         // t = 0
+        double weight = 1/N; // initial weight
         for (int i = 0; i < N; i++) {
             Particle p;
+            p.weight = weight;
             SE2 firstpose;
             p.path.push_back(firstpose);
             particles.push_back(p);
@@ -512,7 +516,7 @@ namespace MYSLAM {
         double cost = cos(angle);
         double sint = sin(angle);
 
-        Eigen::Matrix2d* jac;
+        Eigen::Matrix2d* jac = new Eigen::Matrix2d; 
         *jac << cost, sint, -sint, cost;
         return jac;
     }
