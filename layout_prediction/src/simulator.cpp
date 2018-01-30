@@ -141,58 +141,75 @@ namespace MYSLAM {
 
     void Simulator::Robot::observe()
     {
+        // observation noise
+        Eigen::Matrix2d R;
+        double var = wnoise_stdev * wnoise_stdev;
+        R << var, 0, 0, var;
+
         for (int i = 0; i < _sim->N; i++)
         {
+            // current pose
             SE2 pose = _sim->particles[i].path.back(); 
 
+            // iterate over walls
             for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
             {
-                double xxnoise = gaussian_generator<double>(0.0, wnoise_stdev);
-                double xynoise = gaussian_generator<double>(0.0, wnoise_stdev);
+                double unoise = gaussian_generator<double>(0.0, wnoise_stdev);
+                double vnoise = gaussian_generator<double>(0.0, wnoise_stdev);
 
-                Eigen::Matrix2d cov;
-                double var = wnoise_stdev * wnoise_stdev;
-                cov << var, 0, 0, var;
+                Eigen::Vector2d globalWall ((*it).xx,(*it).xy);
+                Eigen::Vector2d localWall = pose.inverse() * globalWall;
 
-                Eigen::Vector2d w ((*it).xx,(*it).xy);
-                Eigen::Vector2d w_ = pose.inverse() * w;
+                localWall[0] += unoise;
+                localWall[1] += vnoise;
 
-                w_[0] += xxnoise;
-                w_[1] += xynoise;
-
-                double r = sqrt (w_[0]*w_[0] + w_[1]*w_[1]);
-                double angle = normalize_theta (atan2 (w_[1],w_[0]));
+                double r = sqrt (localWall[0]*localWall[0] + localWall[1]*localWall[1]);
+                double angle = normalize_angle (atan2 (localWall[1],localWall[0]));
 
                 if (r <= RANGE)
                 {
-                    if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI))
+                    if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI)) //landmark observed
                     {
-                        // landmark observed
                         bool new_landmark = false;
                         
-                        if (_sim->particles[i].landmarks.size() == 0) // first observed
+                        if (_sim->particles[i].landmarks.size() == 0) { // first observed
                             new_landmark = true;
+                        } else {
+                            // find in landmarks whether this Dinding already observed
+                            auto jt = find_if ( _sim->particles[i].landmarks.begin(),
+                                                _sim->particles[i].landmarks.end(),
+                                                [&it](const std::tuple<int, Dinding, Eigen::Matrix2d>& e)
+                                                { return std::get<0>(e) == (*it).id; });
 
-                        for (int j = 0; j < _sim->particles[i].landmarks.size(); j++)
-                        {
-
+                            if (jt == _sim->particles[i].landmarks.end()) { new_landmark = true; } else {
+                                // update landmark
+                                Eigen::Matrix2d S = std::get<2>(*jt);
+                                Eigen::Matrix2d G = *obvJacobian (pose);
+                                Eigen::Matrix2d K = S * G * R.inverse();
+                                Eigen::Vector2d oldEstimate;
+                                oldEstimate[0] = std::get<1>(*jt).xx;
+                                oldEstimate[1] = std::get<1>(*jt).xy;
+                                Eigen::Vector2d newEstimate = oldEstimate + K * (localWall - pose.inverse() * oldEstimate);
+                                Eigen::Matrix2d newCov = (Eigen::Matrix2d::Identity() - K * G) * S;
+                                std::get<1>(*jt).xx = newEstimate[0];
+                                std::get<1>(*jt).xy = newEstimate[1];
+                                std::get<2>(*jt) = newCov;
+                            }
                         }
 
-                        // sensor model
-                        Eigen::Vector2d newlandmark = pose * w_;
-                        Dinding d;
-                        d.xx = newlandmark[0];
-                        d.xy = newlandmark[1];
-                        std::pair<Dinding, Eigen::Matrix2d> l;
-                        l.first = d;
-                        l.second = cov;
-                        _sim->particles[i].landmarks.push_back (l);
-
-
-
-                        // if first observed
-//                        _sim->particles[i].landmarks.push_back
-
+                        if (new_landmark) {
+                            //inverse sensor model
+                            Eigen::Vector2d observedWall = pose * localWall;
+                            Dinding d;
+                            d.id = (*it).id;
+                            d.xx = observedWall[0];
+                            d.xy = observedWall[1];
+                            Eigen::Matrix2d jac = *obvJacobian (pose);
+                            jac = jac.transpose() * R.inverse() * jac;
+                            std::tuple<int, Dinding, Eigen::Matrix2d> l 
+                                = std::make_tuple (d.id, d, jac.inverse());
+                            _sim->particles[i].landmarks.push_back (l);
+                        }
                     }
                 }
             }
@@ -424,6 +441,22 @@ namespace MYSLAM {
         }
     }
 
+    void Simulator::Robot::sampleTurn ()
+    {
+        SE2 trueMove (_moveStep, 0, 0);
+
+        for (int i = 0; i < _sim->N; i++) {
+
+            SE2 lastPose = _sim->particles[i].path.back();
+            SE2 simMove (
+                    trueMove.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
+                    trueMove.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
+                    trueMove.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+            SE2 currentPose = lastPose * simMove;
+            _sim->particles[i].path.push_back (currentPose);
+        }
+    }
+
     void Simulator::runPF()
     {
         ofstream mfile;
@@ -460,5 +493,27 @@ namespace MYSLAM {
 
     Simulator::Particle::Particle() {
     
+    }
+
+    Eigen::Matrix2d* Simulator::Robot::obvJacobian (SE2 pose) {
+        // sensor model
+        // g1 = u cos(t) + v sin(t) - x cos(t) - y sin(t)
+        // g2 = -u sin(t) + v cos(t) + x sin(t) - y cos(t)
+
+        // Jacobian Z = | dg1/du    dg1/dv |
+        //              | dg2/du    dg2/dv |
+        //
+        //  dg1/du = cos(t)
+        //  dg1/dv = sin(t)
+        //  dg2/du = - sin(t)
+        //  dg2/dv = cos(t)
+
+        double angle = pose.rotation().angle();
+        double cost = cos(angle);
+        double sint = sin(angle);
+
+        Eigen::Matrix2d* jac;
+        *jac << cost, sint, -sint, cost;
+        return jac;
     }
 }

@@ -31,7 +31,7 @@ namespace MYSLAM {
                 Particle();
 
                 std::vector<SE2> path;
-                std::vector<std::pair<Dinding ,Eigen::Matrix2d> > landmarks;
+                std::vector<std::tuple<int, Dinding ,Eigen::Matrix2d> > landmarks;
                 double weight;
 
             private:
@@ -48,11 +48,15 @@ namespace MYSLAM {
                 std::vector<Eigen::Vector2d> sensedData;
 
                 void move();
-                void sampleMove();
                 void turn(int direction, double angle);
                 void sense();
-                void update();
-                void observe();
+
+                void sampleMove(); // particle filter
+                void sampleTurn(); // particle filter
+                void update(); // particle filter
+                void observe(); // particle filter
+
+                Eigen::Matrix2d* obvJacobian (SE2);
 
                 double _moveStep;
 
@@ -70,6 +74,7 @@ namespace MYSLAM {
 
         void getNextState();
         void getNextStatePF();
+
         std::vector<Dinding> getStruktur () const { return struktur; };
 
         void run();
