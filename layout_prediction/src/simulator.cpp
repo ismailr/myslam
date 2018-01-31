@@ -2,6 +2,7 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <cmath>
 
 #include <g2o/core/sparse_optimizer.h>
 #include <g2o/core/hyper_graph.h>
@@ -146,14 +147,15 @@ namespace MYSLAM {
         double var = wnoise_stdev * wnoise_stdev;
         R << var, 0, 0, var;
                                 
+        double sigma_weight = 0.0; // sum of weights
         for (int i = 0; i < _sim->N; i++)
         {
             // current pose
             SE2 pose = _sim->particles[i].path.back(); 
             Eigen::Matrix2d G = *obvJacobian (pose);
 
-
-            // iterate over walls
+            // observations
+            std::vector<std::tuple<int, Eigen::Vector2d> > observations;
             for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
             {
                 double unoise = gaussian_generator<double>(0.0, wnoise_stdev);
@@ -172,50 +174,70 @@ namespace MYSLAM {
                 {
                     if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI)) //landmark observed
                     {
-                        bool new_landmark = false;
-                        
-                        if (_sim->particles[i].landmarks.size() == 0) { // first observed
-                            new_landmark = true;
-                        } else {
-                            // find in landmarks whether this Dinding already observed
-                            auto jt = find_if ( _sim->particles[i].landmarks.begin(),
-                                                _sim->particles[i].landmarks.end(),
-                                                [&it](const std::tuple<int, Dinding, Eigen::Matrix2d>& e)
-                                                { return std::get<0>(e) == (*it).id; });
-
-                            if (jt == _sim->particles[i].landmarks.end()) { new_landmark = true; } else {
-                                // update landmark
-                                Eigen::Matrix2d S = std::get<2>(*jt);
-                                Eigen::Matrix2d Z = G * S * G.transpose() + R;
-                                Eigen::Matrix2d K = S * G * Z.inverse();
-                                Eigen::Vector2d oldEstimate;
-                                oldEstimate[0] = std::get<1>(*jt).xx;
-                                oldEstimate[1] = std::get<1>(*jt).xy;
-                                Eigen::Vector2d newEstimate = oldEstimate + K * (localWall - pose.inverse() * oldEstimate);
-                                Eigen::Matrix2d newCov = (Eigen::Matrix2d::Identity() - K * G) * S;
-                                std::get<1>(*jt).xx = newEstimate[0];
-                                std::get<1>(*jt).xy = newEstimate[1];
-                                std::get<2>(*jt) = newCov;
-                            }
-                        }
-
-                        if (new_landmark) {
-                            //inverse sensor model
-                            Eigen::Vector2d observedWall = pose * localWall;
-                            Dinding d;
-                            d.id = (*it).id;
-                            d.xx = observedWall[0];
-                            d.xy = observedWall[1];
-                            Eigen::Matrix2d jac = *obvJacobian (pose);
-                            jac = jac.transpose() * R.inverse() * jac;
-                            std::tuple<int, Dinding, Eigen::Matrix2d> l 
-                                = std::make_tuple (d.id, d, jac.inverse());
-                            _sim->particles[i].landmarks.push_back (l);
-                        }
+                        std::tuple<int, Eigen::Vector2d> obs 
+                            = std::make_tuple ((*it).id, localWall);
+                        observations.push_back (obs);
                     }
                 }
             }
+
+            // data association and weight update
+            double weight;
+            for (std::vector<std::tuple<int, Eigen::Vector2d> >::iterator it = observations.begin();
+                    it != observations.end(); it++)
+            {
+                int id = std::get<0>(*it);
+                Eigen::Vector2d z = std::get<1>(*it);
+
+                auto jt = find_if ( _sim->particles[i].landmarks.begin(),
+                                    _sim->particles[i].landmarks.end(),
+                                    [id](const std::tuple<int, Dinding, Eigen::Matrix2d>& e)
+                                    { return std::get<0>(e) == id; });
+
+                if (jt == _sim->particles[i].landmarks.end()) {  // new landmark
+                    // inverse sensor model
+                    Eigen::Vector2d observedWall = pose * z;
+                    Dinding d;
+                    d.id = id;
+                    d.xx = observedWall[0];
+                    d.xy = observedWall[1];
+                    Eigen::Matrix2d jac = *obvJacobian (pose);
+                    jac = jac.transpose() * R.inverse() * jac;
+                    std::tuple<int, Dinding, Eigen::Matrix2d> l 
+                        = std::make_tuple (d.id, d, jac.inverse());
+                    _sim->particles[i].landmarks.push_back (l);
+                } else {                                        // update landmark
+                    Eigen::Vector2d landmark;
+                    landmark << std::get<1>(*jt).xx, std::get<1>(*jt).xy;
+                    Eigen::Vector2d z_hat = pose.inverse() * landmark;
+                    Eigen::Vector2d inov = (z - z_hat);
+
+                    Eigen::Matrix2d S = std::get<2>(*jt);
+                    Eigen::Matrix2d Z = G * S * G.transpose() + R;
+                    Eigen::Matrix2d K = S * G * Z.inverse();
+
+                    Eigen::Vector2d updatedLandmark = landmark + K * inov;
+                    Eigen::Matrix2d updatedCov = (Eigen::Matrix2d::Identity() - K * G) * S;
+
+                    std::get<1>(*jt).xx = updatedLandmark[0];
+                    std::get<1>(*jt).xy = updatedLandmark[1];
+                    std::get<2>(*jt) = updatedCov;
+
+                    double norm = 1/sqrt(std::abs(2*M_PI*Z.determinant()));
+                    double ex = std::exp (-0.5 * inov.transpose() * Z.inverse() * inov);
+                    weight *= norm * ex;
+                }
+            }
+
+            _sim->particles[i].weight = weight;
+            sigma_weight += weight;
         }
+
+        // normalize weights
+        for (int i = 0; i < _sim->particles.size(); i++)
+            _sim->particles[i].weight /= sigma_weight;
+
+        // resampling
     }
 
     Simulator::Simulator()
@@ -490,6 +512,19 @@ namespace MYSLAM {
             // sampling new pose
             robot->sampleMove();
             robot->observe();
+
+            double x = 0.0;
+            double y = 0.0;
+            double t = 0.0;
+
+            for (int i = 0; i < N; i++)
+            {
+                x += particles[i].path.back().translation().x() * particles[i].weight;
+                y += particles[i].path.back().translation().y() * particles[i].weight;
+                t += particles[i].path.back().rotation().angle() * particles[i].weight;
+            }
+
+            mfile << x << " " << y << " " << t << std::endl;
         }
 
         mfile.close();
