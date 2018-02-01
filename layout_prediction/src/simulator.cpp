@@ -135,11 +135,6 @@ namespace MYSLAM {
         }
     }
 
-    void Simulator::Robot::update ()
-    {
-
-    }
-
     void Simulator::Robot::observe()
     {
         // observation noise
@@ -223,9 +218,9 @@ namespace MYSLAM {
                     std::get<1>(*jt).xy = updatedLandmark[1];
                     std::get<2>(*jt) = updatedCov;
 
-                    double norm = 1/sqrt(std::abs(2*M_PI*Z.determinant()));
-                    double ex = std::exp (-0.5 * inov.transpose() * Z.inverse() * inov);
-                    weight *= norm * ex;
+//                    double norm = log10 (1/sqrt(std::abs(2*M_PI*Z.determinant())));
+                    double logprob = -0.5 * inov.transpose() * Z.inverse() * inov;
+                    weight *= logprob;
                 }
             }
 
@@ -446,61 +441,61 @@ namespace MYSLAM {
 
     }
 
-    void Simulator::Robot::sampleMove ()
+    void Simulator::Robot::sampleMove (int direction, double angle)
     {
         SE2 pose; pose.fromVector(truePose);
         SE2 simpose; simpose.fromVector(simPose);
-        SE2 move (_moveStep, 0, 0);
+
+        SE2 move;
+        switch (direction) {
+            case 0: move.setTranslation (Eigen::Vector2d (_moveStep, 0.0));
+                    break;
+            case 1: move.setTranslation (Eigen::Vector2d (_moveStep, 0.0));
+                    move.setRotation (Eigen::Rotation2Dd (angle));
+                    break;
+            case 2: move.setTranslation (Eigen::Vector2d (_moveStep, 0.0));
+                    move.setRotation (Eigen::Rotation2Dd (-angle));
+                    break;
+        }
+
         SE2 simmove ( // odom
             move.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
             move.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
             move.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+//            0.0, 0.0);
 
         pose = pose * move;
         simpose = simpose * simmove;
 
         for (int i = 0; i < _sim->N; i++) {
-            SE2 sampleMove (
-                    simpose.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
-                    simpose.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
-                    simpose.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
-            _sim->particles[i].path.push_back (sampleMove);
+            SE2 lastpose = _sim->particles[i].path.back();
+            SE2 samplemove (
+                simmove.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
+                simmove.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
+                simmove.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+            SE2 samplepose = lastpose * samplemove;
+            _sim->particles[i].path.push_back (samplepose);
         }
 
         truePose = pose.toVector();
         simPose = simpose.toVector();
 
         ofstream mfile;
-        mfile.open ("/home/ism/tmp/true.dat", std::ios::out | std::ios::app);
-        mfile   << pose.translation().x() << " " << pose.translation().y() << " " << pose.rotation().angle() << " "
-                << simpose.translation().x() << " " << simpose.translation().y() << " " << simpose.rotation().angle() << std::endl;
+        mfile.open ("/home/ism/tmp/sim.dat", std::ios::out | std::ios::app);
+        mfile   << simpose.translation().x() << " " 
+                << simpose.translation().y() << " " 
+                << simpose.rotation().angle() << " " 
+                << pose.translation().x() << " " 
+                << pose.translation().y() << " " 
+                << pose.rotation().angle() << std::endl; 
         mfile.close();
-    }
-
-    void Simulator::Robot::sampleTurn ()
-    {
-        SE2 trueMove (_moveStep, 0, 0);
-
-        for (int i = 0; i < _sim->N; i++) {
-
-            SE2 lastPose = _sim->particles[i].path.back();
-            SE2 simMove (
-                    trueMove.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
-                    trueMove.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
-                    trueMove.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
-            SE2 currentPose = lastPose * simMove;
-            _sim->particles[i].path.push_back (currentPose);
-        }
     }
 
     void Simulator::runPF()
     {
-        ofstream mfile;
-        mfile.open ("/home/ism/tmp/sim.dat", ios::out | ios::app);
-
         double turn_angle[4] = {90, 90, 90, 100};
         int turn_time[4] = {12, 24, 36, 48};
-        int turn_direction[4] = {1,1,1,1};
+        int turn_direction[4] = {2,2,2,2};
         int turn_now = 0;
 
         // t = 0
@@ -508,24 +503,31 @@ namespace MYSLAM {
         for (int i = 0; i < N; i++) {
             Particle p;
             p.weight = weight;
-            SE2 firstpose; 
+            SE2 firstpose; firstpose.fromVector(robot->truePose); 
             p.path.push_back(firstpose);
             particles.push_back(p);
-            robot->truePose = firstpose.toVector();
-            robot->simPose = firstpose.toVector();
         }
 
-        getNextStatePF();
-
+        ofstream finalposefile;
+        finalposefile.open ("/home/ism/tmp/finalpose.dat", ios::out | ios::app);
+        ofstream wallfile;
+        wallfile.open ("/home/ism/tmp/wall.dat", ios::out | ios::app);
         for (int time = 1; time < MYSLAM::SIM_NUMBER_OF_ITERATIONS; time++)
         {
-            // sampling new pose
-            robot->sampleMove();
-            robot->observe();
+            if (time == turn_time[turn_now]) {
+                robot->sampleMove (turn_direction[turn_now], turn_angle[turn_now] * M_PI/180.0);
+                robot->observe();
+                turn_now++;
+            } else {
+                robot->sampleMove();
+                robot->observe();
+            }
 
             double x = 0.0;
             double y = 0.0;
             double t = 0.0;
+            double u = 0.0;
+            double v = 0.0;
 
             for (int i = 0; i < N; i++)
             {
@@ -534,11 +536,13 @@ namespace MYSLAM {
                 t += particles[i].path.back().rotation().angle() * particles[i].weight;
             }
 
-            mfile << x << " " << y << " " << t << std::endl;
+            finalposefile << x << " " << y << " " << t << std::endl;
             resample();
+
         }
 
-        mfile.close();
+        finalposefile.close();
+        wallfile.close();
     }
 
     Simulator::Particle::Particle() {

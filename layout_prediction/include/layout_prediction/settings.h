@@ -17,6 +17,7 @@ namespace MYSLAM {
     extern double DATA_ASSOCIATION_THRESHOLD;
     extern int SIM_NUMBER_OF_ITERATIONS;
     extern int TRACKER_METHOD;
+    extern int PF_NUMBER_OF_PARTICLES;
 
     void loadConfFile(const char* fileconfig);
 }

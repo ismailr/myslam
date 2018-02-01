@@ -6,6 +6,7 @@
 #include "se2.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
+#include "layout_prediction/settings.h"
 
 #include <Eigen/Core>
 
@@ -51,9 +52,7 @@ namespace MYSLAM {
                 void turn(int direction, double angle);
                 void sense();
 
-                void sampleMove(); // particle filter
-                void sampleTurn(); // particle filter
-                void update(); // particle filter
+                void sampleMove(int direction = 0, double angle = 0.0); // particle filter
                 void observe(); // particle filter
 
                 Eigen::Matrix2d* obvJacobian (SE2);
@@ -70,7 +69,7 @@ namespace MYSLAM {
         std::vector<Dinding> struktur;
         Robot *robot;
         std::vector<Particle> particles;
-        const int N = 100; // Num of particles
+        int N = MYSLAM::PF_NUMBER_OF_PARTICLES; // Num of particles
 
         void getNextState();
         void getNextStatePF();
