@@ -234,10 +234,8 @@ namespace MYSLAM {
         }
 
         // normalize weights
-        for (int i = 0; i < _sim->particles.size(); i++)
+        for (int i = 0; i < _sim->N; i++)
             _sim->particles[i].weight /= sigma_weight;
-
-        // resampling
     }
 
     Simulator::Simulator()
@@ -292,7 +290,6 @@ namespace MYSLAM {
     void Simulator::getNextStatePF()
     {
         robot->sampleMove();
-        robot->update();
     }
 
 
@@ -451,18 +448,33 @@ namespace MYSLAM {
 
     void Simulator::Robot::sampleMove ()
     {
-        SE2 trueMove (_moveStep, 0, 0);
+        SE2 pose; pose.fromVector(truePose);
+        SE2 simpose; simpose.fromVector(simPose);
+        SE2 move (_moveStep, 0, 0);
+        SE2 simmove ( // odom
+            move.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
+            move.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
+            move.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+
+        pose = pose * move;
+        simpose = simpose * simmove;
 
         for (int i = 0; i < _sim->N; i++) {
-
-            SE2 lastPose = _sim->particles[i].path.back();
-            SE2 simMove (
-                    trueMove.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
-                    trueMove.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
-                    trueMove.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
-            SE2 currentPose = lastPose * simMove;
-            _sim->particles[i].path.push_back (currentPose);
+            SE2 sampleMove (
+                    simpose.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
+                    simpose.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
+                    simpose.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+            _sim->particles[i].path.push_back (sampleMove);
         }
+
+        truePose = pose.toVector();
+        simPose = simpose.toVector();
+
+        ofstream mfile;
+        mfile.open ("/home/ism/tmp/true.dat", std::ios::out | std::ios::app);
+        mfile   << pose.translation().x() << " " << pose.translation().y() << " " << pose.rotation().angle() << " "
+                << simpose.translation().x() << " " << simpose.translation().y() << " " << simpose.rotation().angle() << std::endl;
+        mfile.close();
     }
 
     void Simulator::Robot::sampleTurn ()
@@ -486,23 +498,21 @@ namespace MYSLAM {
         ofstream mfile;
         mfile.open ("/home/ism/tmp/sim.dat", ios::out | ios::app);
 
-        std::vector<Dinding*> dindings;
-        std::vector<Wall::Ptr> walls;
-
         double turn_angle[4] = {90, 90, 90, 100};
         int turn_time[4] = {12, 24, 36, 48};
         int turn_direction[4] = {1,1,1,1};
         int turn_now = 0;
 
         // t = 0
-        double weight = 1/N; // initial weight
+        double weight = 1.0/(double)N; // initial weight
         for (int i = 0; i < N; i++) {
             Particle p;
             p.weight = weight;
-            SE2 firstpose;
+            SE2 firstpose; 
             p.path.push_back(firstpose);
             particles.push_back(p);
             robot->truePose = firstpose.toVector();
+            robot->simPose = firstpose.toVector();
         }
 
         getNextStatePF();
@@ -525,6 +535,7 @@ namespace MYSLAM {
             }
 
             mfile << x << " " << y << " " << t << std::endl;
+            resample();
         }
 
         mfile.close();
@@ -554,5 +565,39 @@ namespace MYSLAM {
         Eigen::Matrix2d* jac = new Eigen::Matrix2d; 
         *jac << cost, sint, -sint, cost;
         return jac;
+    }
+
+    void Simulator::resample() {
+
+        // resampling
+        std::vector<double> cumdist;
+        double cum = 0.0;
+        for (int i = 0; i < N; i++) {
+            cum += particles[i].weight;
+            cumdist.push_back (cum);
+        }
+
+        // copy the particles
+        std::vector<Particle> p (N);
+        p = particles;
+
+        // then clear the original
+        particles.clear();
+
+        // fill with resampling result
+        double new_weight = 1.0/(double) N;
+        for (int i = 0; i < N; i++) {
+            double pick = uniform_generator<double>(0,1);
+
+//            auto jt = std::find_if (cumdist.begin(), cumdist.end(), 
+//                    [pick](const std::vector<double>& e){ return e >= pick; });
+
+            std::vector<double>::iterator jt;
+            jt = std::upper_bound (cumdist.begin(), cumdist.end(), pick);
+
+            int index = std::distance (cumdist.begin(), jt);
+            p[index].weight = new_weight;
+            particles.push_back (p[index]);
+        } 
     }
 }

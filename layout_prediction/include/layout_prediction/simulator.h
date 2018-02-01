@@ -80,6 +80,8 @@ namespace MYSLAM {
         void run();
         void runPF();
 
+        void resample();
+
         private:
     };
 }
