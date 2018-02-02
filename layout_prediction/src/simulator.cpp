@@ -218,9 +218,12 @@ namespace MYSLAM {
                     std::get<1>(*jt).xy = updatedLandmark[1];
                     std::get<2>(*jt) = updatedCov;
 
-//                    double norm = log10 (1/sqrt(std::abs(2*M_PI*Z.determinant())));
-                    double logprob = -0.5 * inov.transpose() * Z.inverse() * inov;
-                    weight *= logprob;
+                    double norm = 1/sqrt(std::abs(2*M_PI*Z.determinant()));
+                    norm == 0 ? norm = 0.0 : norm = log10(norm);
+
+                    double ex = -0.5 * inov.transpose() * Z.inverse() * inov;
+                    double w = norm + ex;
+                    weight += w;
                 }
             }
 
@@ -235,42 +238,52 @@ namespace MYSLAM {
 
     Simulator::Simulator()
     {
-        const int N = 4;
-        double grads[4] = {2, -.5, 2, -.5};
-        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
-        double x[5] = {-12, -6.8, 7.2, 2, -12};
-        double y[5] = {1, 11.4, 4.4, -6, 1};
+        const int N = 100;
+//        double grads[4] = {2, -.5, 2, -.5};
+//        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
+//        double x[5] = {-12, -6.8, 7.2, 2, -12};
+//        double y[5] = {1, 11.4, 4.4, -6, 1};
 
-//        std::vector<double> grads (N); 
-//        std::vector<double> intercepts (N); 
-//        std::vector<double> x(N + 1); 
-//        std::vector<double> y(N + 1); 
-//
-//        for (int i = 0; i < N; i++)
-//        {
-//            grads[i] = uniform_generator<double>(-5.0,5.0);
-//            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
-//            x[i] = uniform_generator<double>(-5.0,5.0);
-//            y[i] = uniform_generator<double>(-5.0,5.0);
-//        }
-//
-//        x.push_back(x[0]);
-//        y.push_back(y[0]);
+        std::vector<double> grads (N); 
+        std::vector<double> intercepts (N); 
+        std::vector<double> xx (N); 
+        std::vector<double> xy (N); 
+        std::vector<double> x(N + 1); 
+        std::vector<double> y(N + 1); 
 
+        for (int i = 0; i < N; i++)
+        {
+            grads[i] = uniform_generator<double>(-5.0,5.0);
+            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
+            xx[i] = uniform_generator<double>(-6.0,0.0);
+            xy[i] = uniform_generator<double>(0.0, 5.0);
+            x[i] = uniform_generator<double>(-5.0,5.0);
+            y[i] = uniform_generator<double>(-5.0,5.0);
+        }
+
+        x.push_back(x[0]);
+        y.push_back(y[0]);
+
+        ofstream wallfile;
+        wallfile.open ("/home/ism/tmp/truewall2.dat", std::ios::out | std::ios::app);
         for (int i = 0; i < N; i++)
         {
             Dinding *d = new Dinding;
             d->id = i;
             d->m = grads[i];
             d->c = intercepts[i];
-            d->xx = -d->m*d->c/(d->m*d->m+1);
-            d->xy = d->c/(d->m*d->m+1);
+//            d->xx = -d->m*d->c/(d->m*d->m+1);
+//            d->xy = d->c/(d->m*d->m+1);
+            d->xx = xx[i];
+            d->xy = xy[i];
             Vector2d p (x[i], y[i]);
             Vector2d q (x[i+1], y[i+1]);
             d->p = p;
             d->q = q;
             struktur.push_back(*d);
+            wallfile << d->xx << " " << d->xy << std::endl;
         }
+        wallfile.close();
 
         robot = new Robot(this);
 
@@ -526,16 +539,17 @@ namespace MYSLAM {
             double x = 0.0;
             double y = 0.0;
             double t = 0.0;
-            double u = 0.0;
-            double v = 0.0;
 
             for (int i = 0; i < N; i++)
             {
-                x += particles[i].path.back().translation().x() * particles[i].weight;
-                y += particles[i].path.back().translation().y() * particles[i].weight;
-                t += particles[i].path.back().rotation().angle() * particles[i].weight;
+                double w = particles[i].weight;
+                x += particles[i].path.back().translation().x() * w;
+                y += particles[i].path.back().translation().y() * w;
+                t += particles[i].path.back().rotation().angle() * w;
             }
 
+//            wallfile << u << " " << v << std::endl;
+            wallfile.close();
             finalposefile << x << " " << y << " " << t << std::endl;
             resample();
 
@@ -582,8 +596,7 @@ namespace MYSLAM {
         }
 
         // copy the particles
-        std::vector<Particle> p (N);
-        p = particles;
+        std::vector<Particle> p = particles;
 
         // then clear the original
         particles.clear();
@@ -599,9 +612,11 @@ namespace MYSLAM {
             std::vector<double>::iterator jt;
             jt = std::upper_bound (cumdist.begin(), cumdist.end(), pick);
 
-            int index = std::distance (cumdist.begin(), jt);
-            p[index].weight = new_weight;
-            particles.push_back (p[index]);
+            if (jt != cumdist.end()) {
+                int index = std::distance (cumdist.begin(), jt);
+                p[index].weight = new_weight;
+                particles.push_back (p[index]);
+            }
         } 
     }
 }
