@@ -147,7 +147,6 @@ namespace MYSLAM {
         {
             // current pose
             SE2 pose = _sim->particles[i].path.back(); 
-            Eigen::Matrix2d G = *obvJacobian (pose);
 
             // observations
             std::vector<std::tuple<int, Eigen::Vector2d> > observations;
@@ -155,24 +154,37 @@ namespace MYSLAM {
             {
                 double unoise = gaussian_generator<double>(0.0, wnoise_stdev);
                 double vnoise = gaussian_generator<double>(0.0, wnoise_stdev);
+                double pnoise = gaussian_generator<double>(0.0, pnoise_stdev);
 
                 Eigen::Vector2d globalWall ((*it).xx,(*it).xy);
-                Eigen::Vector2d localWall = pose.inverse() * globalWall;
+//                Eigen::Vector2d localWall = pose.inverse() * globalWall;
 
-                localWall[0] += unoise;
-                localWall[1] += vnoise;
+                Eigen::Vector2d localWall; 
 
-                double r = sqrt (localWall[0]*localWall[0] + localWall[1]*localWall[1]);
-                double angle = normalize_angle (atan2 (localWall[1],localWall[0]));
+                // sensor model for range-bearing
+                double xx = (*it).xx;
+                double xy = (*it).xy;
+                double x = pose.translation().x();
+                double y = pose.translation().y();
+                double t = pose.rotation().angle();
+                localWall[0] = sqrt ((xx - x)*(xx-x) + (xy-y)*(xy-y)) + unoise; 
+                localWall[1] = atan2 (xy-y,xx-x) - t + pnoise;
+                
+//                localWall[0] += unoise;
+//                localWall[1] += vnoise;
 
+//                double r = sqrt (localWall[0]*localWall[0] + localWall[1]*localWall[1]);
+//                double angle = normalize_angle (atan2 (localWall[1],localWall[0]));
+
+                double& r = localWall[0];
                 if (r <= RANGE)
                 {
-                    if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI)) //landmark observed
-                    {
+//                    if ((angle >= 0.0 && angle < M_PI/2) || (angle > 3*M_PI/2 && angle <= 2*M_PI)) //landmark observed
+//                    {
                         std::tuple<int, Eigen::Vector2d> obs 
                             = std::make_tuple ((*it).id, localWall);
                         observations.push_back (obs);
-                    }
+//                    }
                 }
             }
 
@@ -191,12 +203,16 @@ namespace MYSLAM {
 
                 if (jt == _sim->particles[i].landmarks.end()) {  // new landmark
                     // inverse sensor model
-                    Eigen::Vector2d observedWall = pose * z;
+//                    Eigen::Vector2d observedWall = pose * z;
+                    Eigen::Vector2d observedWall;
+                    observedWall[0] = z[0] * cos (z[1]);
+                    observedWall[1] = z[0] * sin (z[1]);
+
                     Dinding d;
                     d.id = id;
                     d.xx = observedWall[0];
                     d.xy = observedWall[1];
-                    Eigen::Matrix2d jac = *obvJacobian (pose);
+                    Eigen::Matrix2d jac = *obvJacobian (pose, z);
                     jac = jac.transpose() * R.inverse() * jac;
                     std::tuple<int, Dinding, Eigen::Matrix2d> l 
                         = std::make_tuple (d.id, d, jac.inverse());
@@ -208,6 +224,7 @@ namespace MYSLAM {
                     Eigen::Vector2d inov = (z - z_hat);
 
                     Eigen::Matrix2d S = std::get<2>(*jt);
+                    Eigen::Matrix2d G = *obvJacobian (pose, landmark);
                     Eigen::Matrix2d Z = G * S * G.transpose() + R;
                     Eigen::Matrix2d K = S * G * Z.inverse();
 
@@ -255,8 +272,8 @@ namespace MYSLAM {
         {
             grads[i] = uniform_generator<double>(-5.0,5.0);
             intercepts[i] = uniform_generator<double>(-100.0, 100.0);
-            xx[i] = uniform_generator<double>(-6.0,0.0);
-            xy[i] = uniform_generator<double>(0.0, 5.0);
+            xx[i] = uniform_generator<double>(-7.0,1.0);
+            xy[i] = uniform_generator<double>(-1.0, 7.0);
             x[i] = uniform_generator<double>(-5.0,5.0);
             y[i] = uniform_generator<double>(-5.0,5.0);
         }
@@ -473,9 +490,10 @@ namespace MYSLAM {
 
         SE2 simmove ( // odom
             move.translation().x() + gaussian_generator<double> (0.0, xnoise_stdev),
-            move.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
-            move.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
-//            0.0, 0.0);
+//            move.translation().y() + gaussian_generator<double> (0.0, ynoise_stdev),
+//            move.rotation().angle() + gaussian_generator<double> (0.0, pnoise_stdev));
+            0.0, 
+            move.rotation().angle() == 0.0 ? 0.0 : move.rotation().angle() + gaussian_generator<double>(0.0,pnoise_stdev));
 
         pose = pose * move;
         simpose = simpose * simmove;
@@ -563,7 +581,7 @@ namespace MYSLAM {
     
     }
 
-    Eigen::Matrix2d* Simulator::Robot::obvJacobian (SE2 pose) {
+    Eigen::Matrix2d* Simulator::Robot::obvJacobian (SE2 pose, Eigen::Vector2d landmark) {
         // sensor model
         // g1 = u cos(t) + v sin(t) - x cos(t) - y sin(t)
         // g2 = -u sin(t) + v cos(t) + x sin(t) - y cos(t)
@@ -576,12 +594,27 @@ namespace MYSLAM {
         //  dg2/du = - sin(t)
         //  dg2/dv = cos(t)
 
-        double angle = pose.rotation().angle();
-        double cost = cos(angle);
-        double sint = sin(angle);
+//        double angle = pose.rotation().angle();
+//        double cost = cos(angle);
+//        double sint = sin(angle);
+//
+//        Eigen::Matrix2d* jac = new Eigen::Matrix2d; 
+//        *jac << cost, sint, -sint, cost;
+//        return jac;
 
-        Eigen::Matrix2d* jac = new Eigen::Matrix2d; 
-        *jac << cost, sint, -sint, cost;
+        double x = pose.translation().x();
+        double y = pose.translation().y();
+        double t = pose.rotation().angle();
+        double xx = landmark[0];
+        double xy = landmark[1];
+
+        double dx = xx-x;
+        double dy = xy-y;
+        double div = dx*dx + dy*dy;
+
+        Eigen::Matrix2d* jac = new Eigen::Matrix2d;
+        *jac << dx/sqrt(div), dy/sqrt(div), 
+                -dy/div, dx/div;
         return jac;
     }
 
