@@ -16,6 +16,8 @@
 #include <tf/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 
+#include <g2o/types/slam2d/se2.h>
+
 #include "layout_prediction/system.h"
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/pose.h"
@@ -80,6 +82,12 @@ namespace MYSLAM {
             void lineFitting (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, Pose::Ptr& pose, 
                     std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void localToGlobal (Eigen::Vector2d& mc_, Pose::Ptr& pose, Eigen::Vector2d& mc);
+
+            void detectFromMultiplePoses (pcl::PointCloud<pcl::PointXYZ>::Ptr&, std::vector<SE2*>,
+                    std::vector<std::vector<Eigen::Vector2d> >& results);
+            void lineFittingFromMultiplePoses (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
+                    std::vector<SE2*> poses, 
+                    std::vector<std::vector<Eigen::Vector2d> >& results);
 
             std::vector<Eigen::Vector3d> extractInliers (pcl::PointIndices inliers, 
                     pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud);

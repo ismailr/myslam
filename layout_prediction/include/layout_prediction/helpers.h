@@ -1,6 +1,8 @@
 #ifndef __LAYOUT_PREDICTION_HELPERS__
 #define __LAYOUT_PREDICTION_HELPERS__
 
+#include <random>
+
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -9,6 +11,7 @@
 #include "se2.h"
 
 using namespace g2o;
+using namespace std;
 
 struct line {
     double m, c, r, theta;
@@ -64,5 +67,21 @@ class Generator
     public:
         static unsigned long int id;
 };
+
+template<typename T> T gaussian_generator (T mean, T dev)
+{
+    random_device rd;
+    mt19937 mt(rd());
+    normal_distribution<double> dist(mean, dev);
+    return dist(mt);
+}
+
+template<typename T> T uniform_generator (T min, T max)
+{
+    random_device rd;
+    mt19937 mt(rd());
+    uniform_real_distribution<double> dist(min, max);
+    return dist(mt);
+}
 
 #endif

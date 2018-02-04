@@ -19,6 +19,7 @@
 #include "layout_prediction/tracker.h"
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/settings.h"
+#include "layout_prediction/particle_filter.h"
 
 #include <pcl_ros/point_cloud.h>
 #include <pcl_ros/transforms.h>
@@ -325,7 +326,7 @@ namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
     System::System(ros::NodeHandle nh)
-        :_rosnodehandle (nh), _init (true) {
+        :_rosnodehandle (nh), _init (true), _method (BA) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
@@ -334,6 +335,7 @@ namespace MYSLAM {
         _listener = new tf::TransformListener;
         _buffer = new tf2_ros::Buffer;
         _listener2 = new tf2_ros::TransformListener (*_buffer);
+        _pf = new ParticleFilter(*this);
 
 //        _slam = new isam::Slam();
 //        _optimizer = new Optimizer (*this, *_graph, *_slam);
@@ -385,10 +387,10 @@ namespace MYSLAM {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*cloudmsg, *cloud);
 
-        pcl::PointCloud<pcl::PointXYZ> medfilteredCloud;
-        pcl::MedianFilter<pcl::PointXYZ> medfilter; 
-        medfilter.setInputCloud (cloud);
-        medfilter.applyFilter (*cloud);
+//        pcl::PointCloud<pcl::PointXYZ> medfilteredCloud;
+//        pcl::MedianFilter<pcl::PointXYZ> medfilter; 
+//        medfilter.setInputCloud (cloud);
+//        medfilter.applyFilter (*cloud);
 
         try {
             _listener->waitForTransform (   
@@ -422,29 +424,38 @@ namespace MYSLAM {
                 _tracker->trackPoseByScanMatching (cloud, pose, data);
         }
 
-        _graph->_poseMap[pose->_id] = pose;
-        _graph->_activePoses.push_back (pose->_id);
+        if (_method == BA) {
+            _graph->_poseMap[pose->_id] = pose;
+            _graph->_activePoses.push_back (pose->_id);
 
-        // detectwall
-        std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
-        _wallDetector->detect (pose, cloud, walls);
+            // detectwall
+            std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
+            _wallDetector->detect (pose, cloud, walls);
 
-      // data association
-        for (size_t i = 0; i < walls.size(); i++)
-        {
-            Wall::Ptr w = std::get<0>(walls[i]);
-            w = _graph->dataAssociation (w);
-            std::tuple<int, int> m (pose->_id, w->_id);
-            _graph->_poseWallMap[m] = std::get<1>(walls[i]);
-            _graph->_activeWalls.insert (w->_id);
-            _graph->_activeEdges.push_back (m);
-            pose->_detectedWalls.push_back (w->_id);
-        }
+          // data association
+            for (size_t i = 0; i < walls.size(); i++)
+            {
+                Wall::Ptr w = std::get<0>(walls[i]);
+                w = _graph->dataAssociation (w);
+                std::tuple<int, int> m (pose->_id, w->_id);
+                _graph->_poseWallMap[m] = std::get<1>(walls[i]);
+                _graph->_activeWalls.insert (w->_id);
+                _graph->_activeEdges.push_back (m);
+                pose->_detectedWalls.push_back (w->_id);
+            }
 
-        if (System::_frameCounter % 10 == 0)
-        {
-            _optimizer->localOptimize();
-//            _visualizer->visualizeWallOptimizedPq();
+            if (System::_frameCounter % 10 == 0)
+            {
+                _optimizer->localOptimize();
+//                _visualizer->visualizeWallOptimizedPq();
+            }
+        } else if (_method == PF) {
+            _pf->samplePose (pose);
+            _pf->updateWeights (_wallDetector, cloud);
+            // visualize pose and landmarks
+            _pf->resample();
+        } else if (_method == EKF) {
+
         }
 
         _prevTime = _currentTime;

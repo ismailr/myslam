@@ -21,7 +21,7 @@ int main (int argc, char** argv)
 	ros::NodeHandle nh;
 
     MYSLAM::Simulator sim;
-    sim.runPF();
+    sim.run();
 
     return 0;
 }

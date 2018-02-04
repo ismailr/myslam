@@ -29,25 +29,10 @@
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/settings.h"
+#include "layout_prediction/helpers.h"
 
 using namespace Eigen;
 using namespace std;
-
-template<typename T> T gaussian_generator (T mean, T dev)
-{
-    random_device rd;
-    mt19937 mt(rd());
-    normal_distribution<double> dist(mean, dev);
-    return dist(mt);
-}
-
-template<typename T> T uniform_generator (T min, T max)
-{
-    random_device rd;
-    mt19937 mt(rd());
-    uniform_real_distribution<double> dist(min, max);
-    return dist(mt);
-}
 
 namespace MYSLAM {
     Simulator::Robot::Robot(Simulator* sim) 
@@ -255,31 +240,31 @@ namespace MYSLAM {
 
     Simulator::Simulator()
     {
-        const int N = 100;
-//        double grads[4] = {2, -.5, 2, -.5};
-//        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
-//        double x[5] = {-12, -6.8, 7.2, 2, -12};
-//        double y[5] = {1, 11.4, 4.4, -6, 1};
+        const int N = 4;
+        double grads[4] = {2, -.5, 2, -.5};
+        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
+        double x[5] = {-12, -6.8, 7.2, 2, -12};
+        double y[5] = {1, 11.4, 4.4, -6, 1};
 
-        std::vector<double> grads (N); 
-        std::vector<double> intercepts (N); 
-        std::vector<double> xx (N); 
-        std::vector<double> xy (N); 
-        std::vector<double> x(N + 1); 
-        std::vector<double> y(N + 1); 
-
-        for (int i = 0; i < N; i++)
-        {
-            grads[i] = uniform_generator<double>(-5.0,5.0);
-            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
-            xx[i] = uniform_generator<double>(-7.0,1.0);
-            xy[i] = uniform_generator<double>(-1.0, 7.0);
-            x[i] = uniform_generator<double>(-5.0,5.0);
-            y[i] = uniform_generator<double>(-5.0,5.0);
-        }
-
-        x.push_back(x[0]);
-        y.push_back(y[0]);
+//        std::vector<double> grads (N); 
+//        std::vector<double> intercepts (N); 
+//        std::vector<double> xx (N); 
+//        std::vector<double> xy (N); 
+//        std::vector<double> x(N + 1); 
+//        std::vector<double> y(N + 1); 
+//
+//        for (int i = 0; i < N; i++)
+//        {
+//            grads[i] = uniform_generator<double>(-5.0,5.0);
+//            intercepts[i] = uniform_generator<double>(-100.0, 100.0);
+//            xx[i] = uniform_generator<double>(-7.0,1.0);
+//            xy[i] = uniform_generator<double>(-1.0, 7.0);
+//            x[i] = uniform_generator<double>(-5.0,5.0);
+//            y[i] = uniform_generator<double>(-5.0,5.0);
+//        }
+//
+//        x.push_back(x[0]);
+//        y.push_back(y[0]);
 
         ofstream wallfile;
         wallfile.open ("/home/ism/tmp/truewall2.dat", std::ios::out | std::ios::app);
@@ -289,10 +274,10 @@ namespace MYSLAM {
             d->id = i;
             d->m = grads[i];
             d->c = intercepts[i];
-//            d->xx = -d->m*d->c/(d->m*d->m+1);
-//            d->xy = d->c/(d->m*d->m+1);
-            d->xx = xx[i];
-            d->xy = xy[i];
+            d->xx = -d->m*d->c/(d->m*d->m+1);
+            d->xy = d->c/(d->m*d->m+1);
+//            d->xx = xx[i];
+//            d->xy = xy[i];
             Vector2d p (x[i], y[i]);
             Vector2d q (x[i+1], y[i+1]);
             d->p = p;

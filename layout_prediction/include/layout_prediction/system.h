@@ -15,6 +15,8 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/visualizer.h"
+#include "layout_prediction/particle.h"
+#include "layout_prediction/particle_filter.h"
 #include "se2.h"
 
 #include "isam/isam.h"
@@ -80,10 +82,14 @@ namespace MYSLAM {
     class Tracker;
     class Optimizer;
     class Visualizer;
+    class ParticleFilter;
     class System
     {
         public:
             System(ros::NodeHandle nh);
+
+            enum {BA, PF, EKF}; // Bundle Adjustment, Particle Filter, Extended Kalman Filter
+            int _method;
 
             static unsigned long int _frameCounter;
             double _currentTime;
@@ -112,6 +118,7 @@ namespace MYSLAM {
             tf::TransformListener *_listener;
             tf2_ros::TransformListener *_listener2;
             tf2_ros::Buffer *_buffer;
+            ParticleFilter* _pf;
 
             /* ISAM */
             isam::Slam *_slam;

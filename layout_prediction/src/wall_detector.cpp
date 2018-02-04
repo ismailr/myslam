@@ -846,6 +846,86 @@ namespace MYSLAM {
 
         return pts;
     }
+
+    void WallDetector::detectFromMultiplePoses (
+            pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
+            std::vector<SE2*> poses,
+            std::vector<std::vector<Eigen::Vector2d> >& results) {
+
+        pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+        prepareCloud (inCloud, cloud);
+
+        std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudset;
+        clusterCloud (cloud, cloudset);
+
+        for (std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>::iterator it = cloudset.begin();
+                it != cloudset.end(); ++it)
+            lineFittingFromMultiplePoses (*it, poses, results);
+    }
+
+    void WallDetector::lineFittingFromMultiplePoses (
+            pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
+            std::vector<SE2*> poses, 
+            std::vector<std::vector<Eigen::Vector2d> >& results) {
+
+        std::vector<pcl::ModelCoefficients::Ptr> models;
+
+        while(true) // get lines
+        {
+            pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
+            pcl::PointIndices inliers;
+
+            pcl::SACSegmentation<pcl::PointXYZ> seg;
+            seg.setOptimizeCoefficients(true);
+            seg.setModelType(pcl::SACMODEL_LINE);
+            seg.setMethodType(pcl::SAC_RANSAC);
+            seg.setDistanceThreshold(0.1);
+
+            seg.setInputCloud(inCloud);
+            seg.segment(inliers, *coefficients);
+
+            if(inliers.indices.size() == 0)
+            {
+                PCL_ERROR("No inliers.");
+                break;
+            }
+
+            if(inliers.indices.size() > 100)
+                models.push_back (coefficients);
+
+            pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = inCloud->begin();
+            inCloud->erase(cloud_iter, cloud_iter + inliers.indices.back());
+        }
+
+        // calculate walls w.r.t global
+        for (int i = 0; i < poses.size(); i++) {
+
+            double x = poses[i]->translation().x();
+            double y = poses[i]->translation().y();
+            double t = poses[i]->rotation().angle();
+            double sint = sin(t);
+            double cost = cos(t);
+
+            for (int j = 0; j < models.size(); j++) {
+                double m_, c_; 
+                models[j]->values[3] == 0 ? 
+                    m_ = std::numeric_limits<double>::infinity() :
+                    m_ = models[j]->values[4]/models[j]->values[3];
+                c_ = models[j]->values[1]- (m_ * models[j]->values[0]);
+
+                double m, c;
+                m = (sint +  m_ * cost)/(cost - m_ * sint);
+                c = -m * x + y + c_/(cost - m_ * sint);
+
+                double u, v; // w.r.t global
+                u = - (m * c)/(m * m + 1);
+                v = c/(m * m + 1);
+
+                Eigen::Vector2d measurement = poses[i]->inverse() * Eigen::Vector2d (u,v);
+                results[i].push_back (measurement);
+            }
+        }
+    }
 }
 
 

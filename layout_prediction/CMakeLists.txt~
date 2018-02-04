@@ -162,6 +162,8 @@ add_executable(layout_prediction
     src/settings.cpp
     src/optimizer.cpp
     src/visualizer.cpp
+    src/particle.cpp
+    src/particle_filter.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
