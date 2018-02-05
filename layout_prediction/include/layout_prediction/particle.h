@@ -14,6 +14,10 @@ namespace MYSLAM {
     class Particle {
         public:
             Particle();
+            void addLandmark (Vector2d landmark, Matrix2d cov); 
+            void updateLandmark (int id, Vector2d update) { landmarks[id] = update; };
+            void updateCovariance (int id, Matrix2d update) { covariances[id] = update; };
+            void getMeanPose (SE2& meanPose);
 
             double weight;
             SE2 pose;

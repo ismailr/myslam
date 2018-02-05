@@ -337,6 +337,13 @@ namespace MYSLAM {
         _listener2 = new tf2_ros::TransformListener (*_buffer);
         _pf = new ParticleFilter(*this);
 
+        _Q <<   _varX*_varX, 0.0, 0.0,
+                0.0, _varY*_varY, 0.0,
+                0.0, 0.0, _varT*_varT;            
+
+        _R <<   _varU*_varU, 0.0,
+                0.0, _varV*_varV;
+
 //        _slam = new isam::Slam();
 //        _optimizer = new Optimizer (*this, *_graph, *_slam);
     };
@@ -451,7 +458,7 @@ namespace MYSLAM {
             }
         } else if (_method == PF) {
             _pf->samplePose (pose);
-            _pf->updateWeights (_wallDetector, cloud);
+            _pf->updateWeights (_wallDetector, cloud, _R);
             // visualize pose and landmarks
             _pf->resample();
         } else if (_method == EKF) {
