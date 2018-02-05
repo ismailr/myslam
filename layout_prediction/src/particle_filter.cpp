@@ -46,8 +46,7 @@ namespace MYSLAM {
                 double prob = 0.0;
                 long id = -1;
                 Eigen::Matrix2d Z_tmp;
-                Eigen::Vector2d z_tmp;
-                Eigen::Vector2d inov_tmp;
+                Eigen::Vector2d z_tmp, inov_tmp;
 
                 for (int k = 0; k < z[i].size(); k++) {
                     Eigen::Vector2d z_hat = _particles[i].pose.inverse() * lm_iter->second;
@@ -102,5 +101,25 @@ namespace MYSLAM {
         // dz_hat_2/dv = cos(t)
         double t = pose.rotation().angle();
         G << cos(t), sin(t), -sin(t), cos(t);
+    }
+
+    Eigen::Vector2d ParticleFilter::getMeanPose() {
+        double cumweight = 0.0;
+        Eigen::Vector3d cumPose;
+        for (int i = 0; i < N; i++) {
+            cumweight += _particles[i].weight;
+            cumPose += _particles[i].pose.toVector() * _particles[i].weight;
+        }
+
+        return cumPose/cumweight;
+    }
+
+    void ParticleFilter::writeMeanPose() {
+        Eigen::Vector2d mean = getMeanPose();
+
+        ofstream posef;
+        posef.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+        posef << mean.transpose() << std::endl;
+        posef.close();
     }
 }

@@ -9,9 +9,5 @@ namespace MYSLAM {
         landmarks[id] = landmark;
         covariances[id] = cov;
     }
-
-    void Particle::getMeanPose (SE2& meanPose) {
-
-    }
 }
 

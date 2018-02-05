@@ -20,6 +20,8 @@ namespace MYSLAM {
             void dataAssociation (std::vector<std::vector<Eigen::Vector2d> >& z, Eigen::Matrix2d& R);
             void resample();
             void obvJacobian(SE2 pose, Eigen::Vector2d landmark, Eigen::Matrix2d& G);
+            Eigen::Vector2d getMeanPose();
+            void writeMeanPose();
 
             int N; // number of particles
             vector<Particle> _particles;

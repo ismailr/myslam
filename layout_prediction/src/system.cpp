@@ -326,7 +326,7 @@ namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
     System::System(ros::NodeHandle nh)
-        :_rosnodehandle (nh), _init (true), _method (BA) {
+        :_rosnodehandle (nh), _init (true), _method (PF) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
@@ -460,6 +460,7 @@ namespace MYSLAM {
             _pf->samplePose (pose);
             _pf->updateWeights (_wallDetector, cloud, _R);
             // visualize pose and landmarks
+            _pf->writeMeanPose();
             _pf->resample();
         } else if (_method == EKF) {
 
