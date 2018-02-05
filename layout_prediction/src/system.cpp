@@ -372,11 +372,14 @@ namespace MYSLAM {
         Converter c;
         SE2 *t = new SE2();
 
+        std::cout << "SET UP DATA" << std::endl;
+
         if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL 
                 || _tracker->_method == _tracker->USE_PARTICLE_FILTER) {
             datax = action->pose.pose.position.x;
             datay = action->pose.pose.position.y;
             datat = action->pose.pose.orientation.z;
+            std::cout << "USING PF" << std::endl;
         } else {
             if (_tracker->_method == _tracker->USE_ODOMETRY
                 || _tracker->_method == _tracker->USE_SCAN_MATCHING) 
@@ -417,14 +420,17 @@ namespace MYSLAM {
 
         Pose::Ptr pose (new Pose);
 
+        std::cout << "IS IT INIT? " << _init << std::endl;
         if (_init) // set prior
         {
+            std::cout << "INIT" << std::endl;
             pose->_pose = t->toVector();
             _tracker->setPrior (pose);
             _tracker->setFirstPCL (cloud);
             _pf->setInit (pose->_pose);
-            return;
+            std::cout << "DONE INIT" << std::endl;
         } else {
+            std::cout << "TRACKER METHOD: " << _tracker->USE_PARTICLE_FILTER << std::endl;
             if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL)
                 _tracker->trackPoseByConstantVelocityModel (data, pose);
             else if (_tracker->_method == _tracker->USE_ODOMETRY
@@ -435,6 +441,8 @@ namespace MYSLAM {
             else if (_tracker->_method == _tracker->USE_PARTICLE_FILTER)
                 _tracker->trackPoseByParticleFilter (data, _pf);
         }
+
+        std::cout << "BA or PF: " << _method << " " << PF << std::endl;
 
         if (_method == BA) {
             _graph->_poseMap[pose->_id] = pose;
@@ -462,10 +470,14 @@ namespace MYSLAM {
 //                _visualizer->visualizeWallOptimizedPq();
             }
         } else if (_method == PF) {
+            std::cout << "READY TO DO PF " << std::endl;
             _pf->makeObservations (_wallDetector, cloud, _R);
-            _pf->dataAssociations ();
+            std::cout << "DONE MAKE OBSERVATIONS" << std::endl;
+            _pf->dataAssociation ();
+            std::cout << "DONE DATA ASSOC" << std::endl;
             _pf->writeMeanPose();
             _pf->resample();
+            _pf->_z.clear();
         } else if (_method == EKF) {
 
         }

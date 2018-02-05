@@ -83,10 +83,10 @@ namespace MYSLAM {
                     std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void localToGlobal (Eigen::Vector2d& mc_, Pose::Ptr& pose, Eigen::Vector2d& mc);
 
-            void detectFromMultiplePoses (pcl::PointCloud<pcl::PointXYZ>::Ptr&, std::vector<SE2*>,
+            void detectFromMultiplePoses (pcl::PointCloud<pcl::PointXYZ>::Ptr&, std::vector<SE2>&,
                     std::vector<std::vector<Eigen::Vector2d> >& results);
             void lineFittingFromMultiplePoses (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
-                    std::vector<SE2*> poses, 
+                    std::vector<SE2>& poses, 
                     std::vector<std::vector<Eigen::Vector2d> >& results);
 
             std::vector<Eigen::Vector3d> extractInliers (pcl::PointIndices inliers, 

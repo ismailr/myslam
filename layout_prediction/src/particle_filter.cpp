@@ -2,18 +2,20 @@
 #include "layout_prediction/helpers.h"
 
 namespace MYSLAM {
-    ParticleFilter::ParticleFilter(System& sys):_system (&sys) {
-        _R = _systtem->_R;
+    ParticleFilter::ParticleFilter(System& sys):_system (&sys), N(50) {
+        _R = _system->_R;
     }
 
     void ParticleFilter::setInit (Eigen::Vector3d data) {
         double uniform = 1/(double)N;
         for (int i = 0; i < N; i++) {
             SE2 pose; pose.fromVector(data);
-            _particles.push_back(Particle());
-            _particles.back().pose = pose;
-            _particles.back().weight = uniform;
+            Particle p;
+            p.pose = pose;
+            p.weight = uniform;
+            _particles.push_back(p);
         }
+        std::cout << "DONE POPULATE PARTICLES" << std::endl;
     }
 
     void ParticleFilter::samplePose (Pose::Ptr& pose) {
@@ -27,52 +29,86 @@ namespace MYSLAM {
 
     void ParticleFilter::makeObservations (WallDetector* wd, 
             pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, Eigen::Matrix2d& R) {
-        std::vector<SE2*> poses;
-        for (int i = 0; i < N; i++) 
-            poses[i] = &_particles[i].pose;
+        std::cout << "READY TO DISTRIBUTE POSE" << std::endl;
+        std::vector<SE2> poses;
+        std::cout << "NUM OF PARTICLES: " << _particles.size() << std::endl;
+      
+        for (int i = 0; i < N; i++) {
+            std::cout << "PICK PARTICLE NUMBER: " << i << std::endl;
+            std::cout << _particles[i].pose.toVector().transpose() << std::endl;
+            poses.push_back(_particles[i].pose);
+        }
 
+        std::cout << "READY TO DETECT WALLS" << std::endl;
         wd->detectFromMultiplePoses (cloud, poses, _z);
     }
 
     void ParticleFilter::dataAssociation () {
 
-        for (int i = 0; i < N; i++) { 
+        if (_z.empty()) return;
 
+        for (int i = 0; i < N; i++) { 
             std::map<int, Eigen::Vector2d>::iterator lm_iter = _particles[i].landmarks.begin();
             std::map<int, Eigen::Matrix2d>::iterator cov_iter = _particles[i].covariances.begin();
 
-            double prob = 0.0;
-            for (;lm_iter != _particles[i].landmarks.end(); lm_iter++, cov_iter++) { // for each landmark in particles[i]
+            std::cout << "LOOP OVER MEASUREMENTS" << std::endl;
+            std::cout << _z.size() << std::endl;
 
-                Eigen::Vector2d z_hat = _particles[i].pose.inverse() * lm_iter->second;
-                Eigen::Matrix2d G = obvJacobian (_particles[i].pose, lm_iter->second); 
-                Eigen::Matrix2d Z = G * cov_iter->second * G.transpose() + _R;
-                Eigen::Matrix2d ZInv = Z.inverse();
-                double denom = 1/sqrt (2*M_PI*Z.determinant());
+            for (int j = 0; j < _z[i].size(); j++) {
 
-                for (int k = 0; k < _z[i].size(); k++) { // for each measurement z
-                    Eigen::Vector2d inov = _z[i][k] - z_hat;
+                std::cout << "CREATING CACHE" << std::endl;
 
-                    double exp = std::exp (-0.5 * inov.transpose() * ZInv * inov);
+                struct Cache {
+                    Eigen::Matrix2d cov;
+                    Eigen::Matrix2d G;
+                    Eigen::Matrix2d Z;
+                    Eigen::Vector2d lm;
+                    Eigen::Vector2d inov;
+                } cache;
+                std::cout << "DONE" << std::endl;
+                
+                double maxProb = 0.0;
+                int mostLikelyLandmarkId = -1;
+
+                for (;lm_iter != _particles[i].landmarks.end(); lm_iter++, cov_iter++) { 
+                    std::cout << "LOOP OVER LANDMARKS" << std::endl;
+                    Eigen::Vector2d z_hat = _particles[i].pose.inverse() * lm_iter->second;
+                    Eigen::Matrix2d G = obvJacobian (_particles[i].pose, lm_iter->second); 
+                    Eigen::Matrix2d Z = G * cov_iter->second * G.transpose() + _R;
+                    Eigen::Vector2d inov = _z[i][j] - z_hat;
+                    double denom = 1/sqrt (2*M_PI*Z.determinant());
+                    double exp = std::exp (-0.5 * inov.transpose() * Z.inverse() * inov);
                     double p = exp * denom;
-                    _prob[i][k] = p;
+
+                    if (p > maxProb) {
+                        maxProb = p;
+                        mostLikelyLandmarkId = lm_iter->first;
+                        cache.cov = cov_iter->second;
+                        cache.G = G;
+                        cache.Z = Z;
+                        cache.lm = lm_iter->second;
+                        cache.inov = inov;
+                    }
                 }
 
-                if (prob > 0.75) {
+                if (maxProb >= 0.75) {
                     // update landmarks
-                    Eigen::Matrix2d K = cov_iter->second * G.transpose() * Z_tmp.inverse();
-                    Eigen::Vector2d update = lm_iter->second + K * inov_tmp;
-                    Eigen::Matrix2d cov_update = (Eigen::Matrix2d::Identity() - K * G) * cov_iter->second;
-                    _particles[i].updateLandmark (id, update);
-                    _particles[i].updateCovariance (id, cov_update);
+                    Eigen::Matrix2d K = cache.cov * cache.G.transpose() * cache.Z.inverse();
+                    Eigen::Vector2d update = cache.lm + K * cache.inov;
+                    Eigen::Matrix2d cov_update = (Eigen::Matrix2d::Identity() - K * cache.G) * cache.cov;
+                    _particles[i].updateLandmark (mostLikelyLandmarkId, update);
+                    _particles[i].updateCovariance (mostLikelyLandmarkId, cov_update);
 
                 } else {
-                    // add landmarks
-                    Eigen::Vector2d new_landmark = _particles[i].pose * z_tmp;
-                    Eigen::Matrix2d new_cov = (G * R.inverse() * G).inverse();
+                    // new landmarks
+                    std::cout << "ADDING NEW LANDMARK" << std::endl;
+                    Eigen::Vector2d new_landmark = _particles[i].pose * _z[i][j];
+                    std::cout << "DONE" << std::endl;
+                    Eigen::Matrix2d new_cov = 99 * Eigen::Matrix2d::Identity();
                     _particles[i].addLandmark (new_landmark, new_cov);
                 }
             }
+            std::cout << "DONE" << std::endl;
         }
     }
 
@@ -97,23 +133,37 @@ namespace MYSLAM {
         return G;
     }
 
-    Eigen::Vector2d ParticleFilter::getMeanPose() {
-        double cumweight = 0.0;
-        Eigen::Vector3d cumPose;
+    SE2 ParticleFilter::getMeanPose() {
+
+        double sum = 0.0;
         for (int i = 0; i < N; i++) {
-            cumweight += _particles[i].weight;
-            cumPose += _particles[i].pose.toVector() * _particles[i].weight;
+            sum += _particles[i].weight;
         }
 
-        return cumPose/cumweight;
+        // normalize weight
+        for (int i = 0; i < N; i++) {
+            _particles[i].weight /= sum;
+        }
+
+        double sumx = 0.0;
+        double sumy = 0.0;
+        double sumt = 0.0;
+        for (int i = 0; i < N; i++) {
+            double w = _particles[i].weight;
+            sumx += _particles[i].pose.translation().x() * w; 
+            sumy += _particles[i].pose.translation().y() * w;
+            sumt += _particles[i].pose.rotation().angle() * w;
+        }
+
+        return SE2(sumx, sumy, sumt);
     }
 
     void ParticleFilter::writeMeanPose() {
-        Eigen::Vector2d mean = getMeanPose();
+        SE2 mean = getMeanPose();
 
         ofstream posef;
         posef.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
-        posef << mean.transpose() << std::endl;
+        posef << mean.toVector().transpose() << std::endl;
         posef.close();
     }
 }

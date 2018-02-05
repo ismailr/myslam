@@ -41,6 +41,7 @@ class Tracker2
 
 namespace MYSLAM {
     class System;
+    class ParticleFilter;
     class Tracker
     {
         public:
@@ -51,11 +52,11 @@ namespace MYSLAM {
             pcl::PointCloud<pcl::PointXYZ>::Ptr _lastPCL; 
 
             enum {
-                 USE_ODOMETRY;
-                 USE_ODOMETRY_IMU;
-                 USE_CONSTANT_VELOCITY_MODEL;
-                 USE_SCAN_MATCHING;
-                 USE_PARTICLE_FILTER;
+                 USE_ODOMETRY,
+                 USE_ODOMETRY_IMU,
+                 USE_CONSTANT_VELOCITY_MODEL,
+                 USE_SCAN_MATCHING,
+                 USE_PARTICLE_FILTER
             };
 
             int _method;

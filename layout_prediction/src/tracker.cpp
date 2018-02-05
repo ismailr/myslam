@@ -336,9 +336,9 @@ namespace MYSLAM {
 
         for (int i = 0; i < pf->N; i++) {
 
-            double x0 = _pf->_particles[i].pose.translation().x();
-            double y0 = _pf->_particles[i].pose.translation().y();
-            double t0 = _pf->_particles[i].pose.rotation().angle();
+            double x0 = pf->_particles[i].pose.translation().x();
+            double y0 = pf->_particles[i].pose.translation().y();
+            double t0 = pf->_particles[i].pose.rotation().angle();
 
             // motion model
             double x = x0 + (vx * cos(t0) - vy * sin(t0)) * deltaTime;
@@ -349,8 +349,10 @@ namespace MYSLAM {
             double ynoise = gaussian_generator<double>(0.0, _system->_sigY);
             double tnoise = gaussian_generator<double>(0.0, _system->_sigT);
 
-            _pf->particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
-            _pf->particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
+            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
+            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
+
+            std::cout << pf->_particles[i].pose.toVector().transpose() << std::endl;
         }
     }
 }

@@ -849,7 +849,7 @@ namespace MYSLAM {
 
     void WallDetector::detectFromMultiplePoses (
             pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
-            std::vector<SE2*> poses,
+            std::vector<SE2>& poses,
             std::vector<std::vector<Eigen::Vector2d> >& results) {
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
@@ -865,10 +865,12 @@ namespace MYSLAM {
 
     void WallDetector::lineFittingFromMultiplePoses (
             pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
-            std::vector<SE2*> poses, 
+            std::vector<SE2>& poses, 
             std::vector<std::vector<Eigen::Vector2d> >& results) {
 
         std::vector<pcl::ModelCoefficients::Ptr> models;
+
+        std::cout << "LOOPING" << std::endl;
 
         while(true) // get lines
         {
@@ -898,19 +900,23 @@ namespace MYSLAM {
         }
 
         // calculate walls w.r.t global
+        std::cout << "INVERSE SENSOR MODEL" << std::endl;
         for (int i = 0; i < poses.size(); i++) {
 
-            double x = poses[i]->translation().x();
-            double y = poses[i]->translation().y();
-            double t = poses[i]->rotation().angle();
+            double x = poses[i].translation().x();
+            double y = poses[i].translation().y();
+            double t = poses[i].rotation().angle();
             double sint = sin(t);
             double cost = cos(t);
 
+            std::vector<Eigen::Vector2d> res;
             for (int j = 0; j < models.size(); j++) {
+                std::cout << "LOOP OVER DETECTED LINES" << std::endl;
                 double m_, c_; 
                 models[j]->values[3] == 0 ? 
                     m_ = std::numeric_limits<double>::infinity() :
                     m_ = models[j]->values[4]/models[j]->values[3];
+                std::cout << "GRAD: " << m_ << std::endl;
                 c_ = models[j]->values[1]- (m_ * models[j]->values[0]);
 
                 double m, c;
@@ -922,13 +928,12 @@ namespace MYSLAM {
                 v = c/(m * m + 1);
 
                 Eigen::Vector2d measurement = poses[i].inverse() * Eigen::Vector2d (u,v);
-
-
-                // to global
-                Eigen::Vector2d measurement (u,v);
-                Eigen::Vector2d estimation = *poses[i] * measurement;
-                results[i].push_back (estimation);
+                std::cout << measurement.transpose() << std::endl;
+                res.push_back (measurement);
+                std::cout << "DONE" << std::endl;
             }
+            results.push_back(res);
+            res.clear();
         }
     }
 }
