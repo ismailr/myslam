@@ -2,11 +2,19 @@
 #include "layout_prediction/helpers.h"
 
 namespace MYSLAM {
-    ParticleFilter::ParticleFilter(System& sys) :
-        _system (&sys) {
-            for (int i = 0; i < N; i++) 
-                _particles.push_back (Particle());
+    ParticleFilter::ParticleFilter(System& sys):_system (&sys) {
+        _R = _systtem->_R;
+    }
+
+    void ParticleFilter::setInit (Eigen::Vector3d data) {
+        double uniform = 1/(double)N;
+        for (int i = 0; i < N; i++) {
+            SE2 pose; pose.fromVector(data);
+            _particles.push_back(Particle());
+            _particles.back().pose = pose;
+            _particles.back().weight = uniform;
         }
+    }
 
     void ParticleFilter::samplePose (Pose::Ptr& pose) {
         for (int i = 0; i < N; i++) {
@@ -17,53 +25,37 @@ namespace MYSLAM {
         }
     }
 
-    void ParticleFilter::updateWeights (WallDetector* wd, 
+    void ParticleFilter::makeObservations (WallDetector* wd, 
             pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, Eigen::Matrix2d& R) {
         std::vector<SE2*> poses;
         for (int i = 0; i < N; i++) 
             poses[i] = &_particles[i].pose;
 
-        std::vector<std::vector<Eigen::Vector2d> > z;
-        wd->detectFromMultiplePoses (cloud, poses, z);
-        dataAssociation (z, R);
+        wd->detectFromMultiplePoses (cloud, poses, _z);
     }
 
-    void ParticleFilter::dataAssociation (std::vector<std::vector<Eigen::Vector2d> >& z,
-            Eigen::Matrix2d& R) {
-
-        if (_particles[0].landmarks.size() == 0) {
-            // add landmark
-            return;
-        }
+    void ParticleFilter::dataAssociation () {
 
         for (int i = 0; i < N; i++) { 
+
             std::map<int, Eigen::Vector2d>::iterator lm_iter = _particles[i].landmarks.begin();
             std::map<int, Eigen::Matrix2d>::iterator cov_iter = _particles[i].covariances.begin();
-            for (;lm_iter != _particles[i].landmarks.end(); lm_iter++, cov_iter++) {
-                Eigen::Matrix2d G;  
-                obvJacobian (_particles[i].pose, lm_iter->second, G); 
 
-                double prob = 0.0;
-                long id = -1;
-                Eigen::Matrix2d Z_tmp;
-                Eigen::Vector2d z_tmp, inov_tmp;
+            double prob = 0.0;
+            for (;lm_iter != _particles[i].landmarks.end(); lm_iter++, cov_iter++) { // for each landmark in particles[i]
 
-                for (int k = 0; k < z[i].size(); k++) {
-                    Eigen::Vector2d z_hat = _particles[i].pose.inverse() * lm_iter->second;
-                    Eigen::Vector2d inov = z[i][k] - z_hat;
-                    Eigen::Matrix2d Z = G * cov_iter->second * G.transpose() + R;
+                Eigen::Vector2d z_hat = _particles[i].pose.inverse() * lm_iter->second;
+                Eigen::Matrix2d G = obvJacobian (_particles[i].pose, lm_iter->second); 
+                Eigen::Matrix2d Z = G * cov_iter->second * G.transpose() + _R;
+                Eigen::Matrix2d ZInv = Z.inverse();
+                double denom = 1/sqrt (2*M_PI*Z.determinant());
 
-                    double denom = sqrt (2*M_PI*Z.determinant());
-                    double exp = std::exp (-0.5 * inov.transpose() * Z.inverse() * inov);
-                    double p = exp/denom;
+                for (int k = 0; k < _z[i].size(); k++) { // for each measurement z
+                    Eigen::Vector2d inov = _z[i][k] - z_hat;
 
-                    if (p > prob) {
-                        prob = p;
-                        id = lm_iter->first;
-                        Eigen::Matrix2d Z_tmp = Z;
-                        Eigen::Vector2d inov_tmp = inov;
-                        z_tmp = z[i][k];
-                    }
+                    double exp = std::exp (-0.5 * inov.transpose() * ZInv * inov);
+                    double p = exp * denom;
+                    _prob[i][k] = p;
                 }
 
                 if (prob > 0.75) {
@@ -88,7 +80,7 @@ namespace MYSLAM {
 
     }
 
-    void ParticleFilter::obvJacobian(SE2 pose, Eigen::Vector2d landmark, Eigen::Matrix2d& G) {
+    Eigen::Matrix2d ParticleFilter::obvJacobian(SE2 pose, Eigen::Vector2d landmark) {
 
         // sensor model
         // z_hat = h (x, m)
@@ -100,7 +92,9 @@ namespace MYSLAM {
         // dz_hat_2/du = -sin(t)
         // dz_hat_2/dv = cos(t)
         double t = pose.rotation().angle();
+        Eigen::Matrix2d G;
         G << cos(t), sin(t), -sin(t), cos(t);
+        return G;
     }
 
     Eigen::Vector2d ParticleFilter::getMeanPose() {

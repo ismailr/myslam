@@ -12,6 +12,8 @@
 
 #include "layout_prediction/system.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/particle.h"
+#include "layout_prediction/particle_filter.h"
 
 class System2;
 class Graph2;
@@ -48,10 +50,14 @@ namespace MYSLAM {
             SE2 *_lastOdom;
             pcl::PointCloud<pcl::PointXYZ>::Ptr _lastPCL; 
 
-            const int USE_ODOMETRY = 1;
-            const int USE_ODOMETRY_IMU = 2;
-            const int USE_CONSTANT_VELOCITY_MODEL = 3;
-            const int USE_SCAN_MATCHING = 4;
+            enum {
+                 USE_ODOMETRY;
+                 USE_ODOMETRY_IMU;
+                 USE_CONSTANT_VELOCITY_MODEL;
+                 USE_SCAN_MATCHING;
+                 USE_PARTICLE_FILTER;
+            };
+
             int _method;
 
             void setPrior (Pose::Ptr& p) { _lastPose = p; _lastOdom->fromVector(p->_pose); };
@@ -60,6 +66,7 @@ namespace MYSLAM {
             void trackPoseByConstantVelocityModel (double *data, Pose::Ptr& pose);
             void trackPoseByOdometry (double *data, Pose::Ptr& pose);
             void trackPoseByScanMatching (pcl::PointCloud<pcl::PointXYZ>::Ptr& pcl, Pose::Ptr& pose, double *data); 
+            void trackPoseByParticleFilter (double *data, ParticleFilter* pf);
 
         private:
             System *_system;

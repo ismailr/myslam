@@ -921,8 +921,13 @@ namespace MYSLAM {
                 u = - (m * c)/(m * m + 1);
                 v = c/(m * m + 1);
 
-                Eigen::Vector2d measurement = poses[i]->inverse() * Eigen::Vector2d (u,v);
-                results[i].push_back (measurement);
+                Eigen::Vector2d measurement = poses[i].inverse() * Eigen::Vector2d (u,v);
+
+
+                // to global
+                Eigen::Vector2d measurement (u,v);
+                Eigen::Vector2d estimation = *poses[i] * measurement;
+                results[i].push_back (estimation);
             }
         }
     }

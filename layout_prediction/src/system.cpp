@@ -337,12 +337,12 @@ namespace MYSLAM {
         _listener2 = new tf2_ros::TransformListener (*_buffer);
         _pf = new ParticleFilter(*this);
 
-        _Q <<   _varX*_varX, 0.0, 0.0,
-                0.0, _varY*_varY, 0.0,
-                0.0, 0.0, _varT*_varT;            
+        _Q <<   _sigX*_sigX, 0.0, 0.0,
+                0.0, _sigY*_sigY, 0.0,
+                0.0, 0.0, _sigT*_sigT;            
 
-        _R <<   _varU*_varU, 0.0,
-                0.0, _varV*_varV;
+        _R <<   _sigU*_sigU, 0.0,
+                0.0, _sigV*_sigV;
 
 //        _slam = new isam::Slam();
 //        _optimizer = new Optimizer (*this, *_graph, *_slam);
@@ -372,7 +372,8 @@ namespace MYSLAM {
         Converter c;
         SE2 *t = new SE2();
 
-        if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL) {
+        if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL 
+                || _tracker->_method == _tracker->USE_PARTICLE_FILTER) {
             datax = action->pose.pose.position.x;
             datay = action->pose.pose.position.y;
             datat = action->pose.pose.orientation.z;
@@ -421,6 +422,8 @@ namespace MYSLAM {
             pose->_pose = t->toVector();
             _tracker->setPrior (pose);
             _tracker->setFirstPCL (cloud);
+            _pf->setInit (pose->_pose);
+            return;
         } else {
             if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL)
                 _tracker->trackPoseByConstantVelocityModel (data, pose);
@@ -429,6 +432,8 @@ namespace MYSLAM {
                 _tracker->trackPoseByOdometry (data, pose);
             else if (_tracker->_method == _tracker->USE_SCAN_MATCHING)
                 _tracker->trackPoseByScanMatching (cloud, pose, data);
+            else if (_tracker->_method == _tracker->USE_PARTICLE_FILTER)
+                _tracker->trackPoseByParticleFilter (data, _pf);
         }
 
         if (_method == BA) {
@@ -457,9 +462,8 @@ namespace MYSLAM {
 //                _visualizer->visualizeWallOptimizedPq();
             }
         } else if (_method == PF) {
-            _pf->samplePose (pose);
-            _pf->updateWeights (_wallDetector, cloud, _R);
-            // visualize pose and landmarks
+            _pf->makeObservations (_wallDetector, cloud, _R);
+            _pf->dataAssociations ();
             _pf->writeMeanPose();
             _pf->resample();
         } else if (_method == EKF) {

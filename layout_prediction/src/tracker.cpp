@@ -326,4 +326,31 @@ namespace MYSLAM {
         myfile << std::endl;
         myfile.close();
     }
+
+    void Tracker::trackPoseByParticleFilter (double *data, ParticleFilter* pf) {
+        double deltaTime = _system->_currentTime - _system->_prevTime;
+
+        double vx = data[0];
+        double vy = data[1];
+        double w  = data[2];
+
+        for (int i = 0; i < pf->N; i++) {
+
+            double x0 = _pf->_particles[i].pose.translation().x();
+            double y0 = _pf->_particles[i].pose.translation().y();
+            double t0 = _pf->_particles[i].pose.rotation().angle();
+
+            // motion model
+            double x = x0 + (vx * cos(t0) - vy * sin(t0)) * deltaTime;
+            double y = y0 + (vx * sin(t0) + vy * cos(t0)) * deltaTime;
+            double t = t0 + w * deltaTime;
+
+            double xnoise = gaussian_generator<double>(0.0, _system->_sigX);
+            double ynoise = gaussian_generator<double>(0.0, _system->_sigY);
+            double tnoise = gaussian_generator<double>(0.0, _system->_sigT);
+
+            _pf->particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
+            _pf->particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
+        }
+    }
 }

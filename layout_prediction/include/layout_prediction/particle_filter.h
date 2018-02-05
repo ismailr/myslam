@@ -15,16 +15,20 @@ namespace MYSLAM {
     class ParticleFilter {
         public:
             ParticleFilter (System& sys);
+            void setInit (Eigen::Vector3d pose);
             void samplePose (Pose::Ptr& pose);
-            void updateWeights (WallDetector* wd, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, Eigen::Matrix2d& R);
-            void dataAssociation (std::vector<std::vector<Eigen::Vector2d> >& z, Eigen::Matrix2d& R);
+            void makeObservations (WallDetector* wd, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, Eigen::Matrix2d& R);
+            void dataAssociation ();
             void resample();
-            void obvJacobian(SE2 pose, Eigen::Vector2d landmark, Eigen::Matrix2d& G);
+            Eigen::Matrix2d obvJacobian(SE2 pose, Eigen::Vector2d landmark);
             Eigen::Vector2d getMeanPose();
             void writeMeanPose();
 
             int N; // number of particles
             vector<Particle> _particles;
+            vector<vector<Vector2d> > _z; // current measurements
+
+            Matrix2d _R; // measurement noise covariance
 
         private:
             System* _system;
