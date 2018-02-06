@@ -35,7 +35,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Camera
+    SyncSource: ""
 Visualization Manager:
   Class: ""
   Displays:
@@ -117,7 +117,7 @@ Visualization Manager:
       Marker Topic: /wall_measured_pq
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.3
@@ -160,17 +160,17 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.826939
-        Y: 2.41771
-        Z: -2.46266
+        X: -0.570204
+        Y: 1.48626
+        Z: -1.08164
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05
       Name: Current View
       Near Clip Distance: 0.01
-      Pitch: 0.569797
+      Pitch: 1.2598
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 5.85538
+      Yaw: 5.31537
     Saved: ~
 Window Geometry:
   Camera:

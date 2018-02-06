@@ -330,29 +330,69 @@ namespace MYSLAM {
     void Tracker::trackPoseByParticleFilter (double *data, ParticleFilter* pf) {
         double deltaTime = _system->_currentTime - _system->_prevTime;
 
+        SE2 offset (0.275, 0.0, 0.252);
+
         double vx = data[0];
         double vy = data[1];
         double w  = data[2];
+        double v = sqrt (vx*vx + vy*vy);
+
+        Eigen::MatrixXf Q; Q << _system->_sigX*_system->_sigX, 0, 0, _system->_sigT*_system->_sigT;
+        Eigen::VectorXf A(2);
+		A(0) = v;
+		A(1) = w;
+        Eigen::VectorXf C(2);
+
+        int len = A.size();
+
+        //choleksy decomposition
+        Eigen::MatrixXf S = Q.llt().matrixL();
+        Eigen::MatrixXf X = nRandMat::randn(len, 1);
+            
+        C = S * X + A;
+
+		v = C(0);
+		w = C(1);
+
+        vx = v * cos(w);
+        vy = v * sin(w);
+
 
         for (int i = 0; i < pf->N; i++) {
 
-            double x0 = pf->_particles[i].pose.translation().x();
-            double y0 = pf->_particles[i].pose.translation().y();
-            double t0 = pf->_particles[i].pose.rotation().angle();
+            double x = pf->_particles[i].pose.translation().x();
+            double y = pf->_particles[i].pose.translation().y();
+            double t = pf->_particles[i].pose.rotation().angle();
 
             // motion model
-            double x = x0 + (vx * cos(t0) - vy * sin(t0)) * deltaTime;
-            double y = y0 + (vx * sin(t0) + vy * cos(t0)) * deltaTime;
-            double t = t0 + w * deltaTime;
+            x += (vx * cos(t) - vy * sin(t)) * deltaTime;
+            y += (vx * sin(t) + vy * cos(t)) * deltaTime;
+            t += w * deltaTime;
 
-            double xnoise = gaussian_generator<double>(0.0, _system->_sigX);
-            double ynoise = gaussian_generator<double>(0.0, _system->_sigY);
-            double tnoise = gaussian_generator<double>(0.0, _system->_sigT);
+//            double xnoise = gaussian_generator<double>(0.0, _system->_sigX);
+//            double ynoise = gaussian_generator<double>(0.0, _system->_sigY);
+//            double tnoise = gaussian_generator<double>(0.0, _system->_sigT);
 
-            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
-            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
-
-            std::cout << pf->_particles[i].pose.toVector().transpose() << std::endl;
+//            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
+//            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
+            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x, y));
+            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t));
         }
+
+        ofstream mfile;
+        mfile.open ("/home/ism/tmp/action.dat", std::ios::out | std::ios::app);
+
+        double x0 = _lastPose->_pose[0];
+        double y0 = _lastPose->_pose[1];
+        double t0 = _lastPose->_pose[2];
+        double dx = (vx * cos(t0) - vy * sin(t0)) * deltaTime;
+        double dy = (vx * sin(t0) + vy * cos(t0)) * deltaTime;
+        double dt = w * deltaTime;
+        SE2 pose (x0+dx,y0+dy,t0+dt);
+        _lastPose->_pose = pose.toVector();
+
+        mfile << pose.toVector()[0] << " " << pose.toVector()[1] << " " << pose.toVector()[2] << std::endl;
+        mfile.close();
+
     }
 }

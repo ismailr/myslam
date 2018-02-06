@@ -870,8 +870,6 @@ namespace MYSLAM {
 
         std::vector<pcl::ModelCoefficients::Ptr> models;
 
-        std::cout << "LOOPING" << std::endl;
-
         while(true) // get lines
         {
             pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
@@ -892,7 +890,7 @@ namespace MYSLAM {
                 break;
             }
 
-            if(inliers.indices.size() > 100)
+            if(inliers.indices.size() > 30)
                 models.push_back (coefficients);
 
             pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = inCloud->begin();
@@ -900,7 +898,6 @@ namespace MYSLAM {
         }
 
         // calculate walls w.r.t global
-        std::cout << "INVERSE SENSOR MODEL" << std::endl;
         for (int i = 0; i < poses.size(); i++) {
 
             double x = poses[i].translation().x();
@@ -911,12 +908,10 @@ namespace MYSLAM {
 
             std::vector<Eigen::Vector2d> res;
             for (int j = 0; j < models.size(); j++) {
-                std::cout << "LOOP OVER DETECTED LINES" << std::endl;
                 double m_, c_; 
                 models[j]->values[3] == 0 ? 
                     m_ = std::numeric_limits<double>::infinity() :
                     m_ = models[j]->values[4]/models[j]->values[3];
-                std::cout << "GRAD: " << m_ << std::endl;
                 c_ = models[j]->values[1]- (m_ * models[j]->values[0]);
 
                 double m, c;
@@ -928,9 +923,7 @@ namespace MYSLAM {
                 v = c/(m * m + 1);
 
                 Eigen::Vector2d measurement = poses[i].inverse() * Eigen::Vector2d (u,v);
-                std::cout << measurement.transpose() << std::endl;
                 res.push_back (measurement);
-                std::cout << "DONE" << std::endl;
             }
             results.push_back(res);
             res.clear();

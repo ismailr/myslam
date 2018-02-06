@@ -11,6 +11,7 @@
 #include "se2.h"
 
 using namespace g2o;
+using namespace std;
 
 struct line {
     double m, c, r, theta;

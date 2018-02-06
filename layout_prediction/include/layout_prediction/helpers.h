@@ -84,4 +84,9 @@ template<typename T> T uniform_generator (T min, T max)
     return dist(mt);
 }
 
+namespace nRandMat{
+    Eigen::MatrixXf randn(int m, int n);
+    Eigen::MatrixXf rand(int m, int n); 
+}
+
 #endif

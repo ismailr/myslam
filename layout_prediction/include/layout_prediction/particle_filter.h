@@ -16,13 +16,18 @@ namespace MYSLAM {
         public:
             ParticleFilter (System& sys);
             void setInit (Eigen::Vector3d pose);
-            void samplePose (Pose::Ptr& pose);
             void makeObservations (WallDetector* wd, pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud, Eigen::Matrix2d& R);
             void dataAssociation ();
             void resample();
+            void resample2();
             Eigen::Matrix2d obvJacobian(SE2 pose, Eigen::Vector2d landmark);
             SE2 getMeanPose();
             void writeMeanPose();
+
+            void stratified_resample(Eigen::VectorXf w, std::vector<int>& keep, float& Neff);
+            void stratified_random (unsigned long N, std::vector<float>& di);
+            void cumsum (Eigen::VectorXf& w);
+            double unifRand();
 
             int N; // number of particles
             vector<Particle> _particles;
@@ -34,5 +39,4 @@ namespace MYSLAM {
             System* _system;
     };
 }
-
 #endif
