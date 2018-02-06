@@ -179,3 +179,20 @@ namespace nRandMat {
         return x;
     }
 }
+
+double pi_to_pi (double theta) 
+{
+    double angle = theta;
+    if ((angle < (-2*M_PI)) || (angle > (2*M_PI))) {
+        int n = floor(angle/(2 * M_PI));
+        angle = angle - n * (2 * M_PI);
+    }
+
+    if (angle > M_PI)
+        angle = angle - (2 * M_PI);
+
+    if (angle < -M_PI)
+        angle = angle + (2 * M_PI);
+
+    return angle;
+}

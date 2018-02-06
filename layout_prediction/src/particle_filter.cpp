@@ -36,6 +36,7 @@ namespace MYSLAM {
             std::map<int, Eigen::Vector2d>::iterator lm_iter = _particles[i].landmarks.begin();
             std::map<int, Eigen::Matrix2d>::iterator cov_iter = _particles[i].covariances.begin();
 
+            double new_weight = 1.0;
             for (int j = 0; j < _z[i].size(); j++) {
 
                 struct Cache {
@@ -76,6 +77,7 @@ namespace MYSLAM {
                     Eigen::Matrix2d cov_update = (Eigen::Matrix2d::Identity() - K * cache.G) * cache.cov;
                     _particles[i].updateLandmark (mostLikelyLandmarkId, update);
                     _particles[i].updateCovariance (mostLikelyLandmarkId, cov_update);
+                    new_weight *= maxProb;
 
                 } else {
                     // new landmarks
@@ -84,6 +86,7 @@ namespace MYSLAM {
                     _particles[i].addLandmark (new_landmark, new_cov);
                 }
             }
+            _particles[i].weight = new_weight;
         }
     }
 

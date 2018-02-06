@@ -89,4 +89,6 @@ namespace nRandMat{
     Eigen::MatrixXf rand(int m, int n); 
 }
 
+double pi_to_pi (double phi); 
+
 #endif

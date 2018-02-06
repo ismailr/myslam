@@ -96,10 +96,9 @@ namespace MYSLAM {
             double _prevTime;
 
             const double _sigX = 1e-2;
-            const double _sigY = 1e-2;
-            const double _sigT = 2.0 * M_PI/180.0;
-            const double _sigU = 1e-2;
-            const double _sigV = 1e-2;
+            const double _sigV = 0.3;
+            const double _sigT = 3.0 * M_PI/180.0;
+            const double _sigW = 1e-2;
             Eigen::Matrix3d _Q;  // motion noise covariance                  
             Eigen::Matrix2d _R;  // measurement noise covariance
 

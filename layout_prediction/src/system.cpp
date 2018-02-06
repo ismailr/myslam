@@ -338,11 +338,11 @@ namespace MYSLAM {
         _pf = new ParticleFilter(*this);
 
         _Q <<   _sigX*_sigX, 0.0, 0.0,
-                0.0, _sigY*_sigY, 0.0,
+                0.0, _sigX*_sigX, 0.0,
                 0.0, 0.0, _sigT*_sigT;            
 
-        _R <<   _sigU*_sigU, 0.0,
-                0.0, _sigV*_sigV;
+        _R <<   _sigW*_sigW, 0.0,
+                0.0, _sigW*_sigW;
 
 //        _slam = new isam::Slam();
 //        _optimizer = new Optimizer (*this, *_graph, *_slam);

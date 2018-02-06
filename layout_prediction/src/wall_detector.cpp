@@ -890,8 +890,18 @@ namespace MYSLAM {
                 break;
             }
 
-            if(inliers.indices.size() > 30)
+            if(inliers.indices.size() > 100) {
                 models.push_back (coefficients);
+
+                // visualize
+                std::vector<Eigen::Vector3d> pts = extractInliers (inliers, inCloud);
+                Eigen::Vector2d p_, q_;
+                p_.x() = pts.front().x();
+                p_.y() = pts.front().y();
+                q_.x() = pts.back().x();
+                q_.y() = pts.back().y();
+                _system->getVisualizer()->visualizeWallMeasuredPq(p_,q_, true);
+            }
 
             pcl::PointCloud<pcl::PointXYZ>::iterator cloud_iter = inCloud->begin();
             inCloud->erase(cloud_iter, cloud_iter + inliers.indices.back());
@@ -924,6 +934,7 @@ namespace MYSLAM {
 
                 Eigen::Vector2d measurement = poses[i].inverse() * Eigen::Vector2d (u,v);
                 res.push_back (measurement);
+
             }
             results.push_back(res);
             res.clear();

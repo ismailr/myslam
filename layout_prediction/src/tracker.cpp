@@ -335,28 +335,6 @@ namespace MYSLAM {
         double vx = data[0];
         double vy = data[1];
         double w  = data[2];
-        double v = sqrt (vx*vx + vy*vy);
-
-        Eigen::MatrixXf Q; Q << _system->_sigX*_system->_sigX, 0, 0, _system->_sigT*_system->_sigT;
-        Eigen::VectorXf A(2);
-		A(0) = v;
-		A(1) = w;
-        Eigen::VectorXf C(2);
-
-        int len = A.size();
-
-        //choleksy decomposition
-        Eigen::MatrixXf S = Q.llt().matrixL();
-        Eigen::MatrixXf X = nRandMat::randn(len, 1);
-            
-        C = S * X + A;
-
-		v = C(0);
-		w = C(1);
-
-        vx = v * cos(w);
-        vy = v * sin(w);
-
 
         for (int i = 0; i < pf->N; i++) {
 
@@ -369,14 +347,12 @@ namespace MYSLAM {
             y += (vx * sin(t) + vy * cos(t)) * deltaTime;
             t += w * deltaTime;
 
-//            double xnoise = gaussian_generator<double>(0.0, _system->_sigX);
-//            double ynoise = gaussian_generator<double>(0.0, _system->_sigY);
-//            double tnoise = gaussian_generator<double>(0.0, _system->_sigT);
+            double xnoise = gaussian_generator<double>(0.0, _system->_sigX);
+            double ynoise = gaussian_generator<double>(0.0, _system->_sigX);
+            double tnoise = gaussian_generator<double>(0.0, _system->_sigT);
 
-//            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
-//            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
-            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x, y));
-            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t));
+            pf->_particles[i].pose.setTranslation (Eigen::Vector2d (x + xnoise, y + ynoise));
+            pf->_particles[i].pose.setRotation (Eigen::Rotation2Dd (t + tnoise));
         }
 
         ofstream mfile;
