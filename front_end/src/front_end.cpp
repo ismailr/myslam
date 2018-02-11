@@ -7,6 +7,7 @@
 #include <ctime>
 
 #include <sensor_msgs/Image.h>
+#include <nav_msgs/Odometry.h>
 #include <cv_bridge/cv_bridge.h>
 #include <Eigen/Dense>
 
@@ -19,6 +20,7 @@ using namespace cv::saliency;
 
 void depth_cb (const sensor_msgs::Image::Ptr&);
 void image_cb (const sensor_msgs::Image::Ptr&);
+void odom_cb (const nav_msgs::Odometry::Ptr&);
 
 ros::Publisher pub_depth;
 ros::Publisher pub_image;
@@ -38,6 +40,7 @@ int main (int argc, char** argv)
 
 	ros::Subscriber sub_depth = nh.subscribe ("depth", 1, depth_cb);
 	ros::Subscriber sub_image = nh.subscribe ("image", 1, image_cb);
+    ros::Subscriber sub_odom = nh.subscribe ("odom", 1, odom_cb);
 	pub_depth = nh.advertise<sensor_msgs::Image> ("depth_out",1);
 	pub_image = nh.advertise<sensor_msgs::Image> ("rgb_out",1);
 
@@ -178,4 +181,10 @@ void depth_cb (const sensor_msgs::Image::Ptr& depth)
 
     ++indeks ;
     ++keyframe;
+}
+
+void odom_cb (const nav_msgs::Odometry::Ptr& odom)
+{
+    std::cout << "HORE" << std::endl;
+
 }

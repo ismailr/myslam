@@ -15,6 +15,11 @@
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/settings.h"
 #include "layout_prediction/visualizer.h"
+#include "layout_prediction/icp.h"
+
+#include "pointmatcher_ros/point_cloud.h"
+#include "pointmatcher_ros/transform.h"
+#include "/home/ism/work/src/libpointmatcher/pointmatcher/DataPointsFiltersImpl.h"
 
 Tracker2::Tracker2 (System2& system, Graph2& graph) 
     :_system (&system), _graph (&graph), _prevTime (0.0)
@@ -287,44 +292,19 @@ namespace MYSLAM {
 //        _lastPose = pose;
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr _f_lastPCL (new pcl::PointCloud<pcl::PointXYZ>);
-        pcl::ApproximateVoxelGrid<pcl::PointXYZ> filter;
-        filter.setLeafSize (0.2, 0.2, 0.2);
-        filter.setInputCloud (_lastPCL);
-        filter.filter (*_f_lastPCL);
-
-        pcl::NormalDistributionsTransform <pcl::PointXYZ, pcl::PointXYZ> ndt;
-        ndt.setTransformationEpsilon (0.01);
-        ndt.setStepSize (0.1);
-        ndt.setResolution (1.0);
-        ndt.setMaximumIterations (35);
-        ndt.setInputSource (_f_lastPCL);
-        ndt.setInputTarget (pcl);
-
+        filterCloud (*_lastPCL, *_f_lastPCL, 1000);
+        
         Eigen::AngleAxisf init_rotation (dt, Eigen::Vector3f::UnitZ());
         Eigen::Translation3f init_translation (dx, dy, 0);
         Eigen::Matrix4f init_guess = (init_translation * init_rotation).matrix();
 
-        pcl::PointCloud<pcl::PointXYZ>::Ptr outcloud (new pcl::PointCloud<pcl::PointXYZ>);
-        ndt.align (*outcloud, init_guess);
+        Eigen::Matrix4f T = icpAlignment (_f_lastPCL, pcl, init_guess);
 
-        _system->getVisualizer()->visualizeCloud (outcloud);
-
-        Eigen::Matrix4f tr = ndt.getFinalTransformation();
-        double tx = tr(0,3);
-        double ty = tr(1,3);
-        double tt = acos(tr(0,1));
-
-        Eigen::Vector3d incr (tx, ty, tt);
-        pose->_pose = _lastPose->_pose + incr;
+        SE2 TSE2 (T(0,3), T(1,3), atan2 (T(1,0),T(0,0)));
+        SE2 lastPose; lastPose.fromVector (_lastPose->_pose);
+        SE2 curPose = lastPose * TSE2;
+        pose->_pose = curPose.toVector();
         _lastPose = pose;
-        _lastOdom->fromVector (Eigen::Vector3d (d[0], d[1], d[2]));
-
-        ofstream myfile;
-        myfile.open ("/home/ism/tmp/ndt.txt", std::ios::out | std::ios::app);
-        myfile << "TRAN " << tx << " " << ty << " " << tt << std::endl;
-        myfile << "ODOM " << dx << " " << dy << " " << dt << std::endl;
-        myfile << std::endl;
-        myfile.close();
     }
 
     void Tracker::trackPoseByParticleFilter (double *data, ParticleFilter* pf) {
@@ -370,5 +350,49 @@ namespace MYSLAM {
         mfile << pose.toVector()[0] << " " << pose.toVector()[1] << " " << pose.toVector()[2] << std::endl;
         mfile.close();
 
+    }
+
+    void Tracker::trackPoseByPointMatcher (const sensor_msgs::PointCloud2ConstPtr& cloudmsg, Pose::Ptr& pose, double *d) 
+    {
+        typedef PointMatcher<float> PM;
+        typedef PM::DataPoints DP;
+
+        double deltaTime = _system->_currentTime - _system->_prevTime;
+
+        double vx = d[0];
+        double vy = d[1];
+        double w  = d[2];
+        double x0 = _lastPose->_pose[0];
+        double y0 = _lastPose->_pose[1];
+        double t0 = _lastPose->_pose[2];
+
+        // motion model
+        double dx = (vx * cos(t0) - vy * sin(t0)) * deltaTime;
+        double dy = (vx * sin(t0) + vy * cos(t0)) * deltaTime;
+        double dt = w * deltaTime;
+
+        unique_ptr<DP> ref (new DP (PointMatcher_ros::rosMsgToPointMatcherCloud<float> (*(cloudmsg.get()))));
+        unique_ptr<DP> data (new DP (PointMatcher_ros::rosMsgToPointMatcherCloud<float> (*(_lastDP.get()))));
+
+        PM::ICP icp;
+        icp.setDefault();
+        PM::TransformationParameters T = icp (*data, *data);
+
+        DP data_out (*data);
+        icp.transformations.apply (data_out, T);
+
+        std::cout << T << std::endl;
+
+//        Eigen::Vector3d incr (tx, ty, tt);
+//        pose->_pose = _lastPose->_pose + incr;
+//        _lastPose = pose;
+        _lastDP = cloudmsg;
+
+//        ofstream myfile;
+//        myfile.open ("/home/ism/tmp/ndt.txt", std::ios::out | std::ios::app);
+//        myfile << "TRAN " << tx << " " << ty << " " << tt << std::endl;
+//        myfile << "ODOM " << dx << " " << dy << " " << dt << std::endl;
+//        myfile << std::endl;
+//        myfile.close();
     }
 }

@@ -805,7 +805,7 @@ namespace MYSLAM {
                     std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
                     outWalls.push_back(measurement);
 
-                    _system->getVisualizer()->visualizeWallMeasuredPq(p_,q_, true);
+//                    _system->getVisualizer()->visualizeWallMeasuredPq(p_,q_, true);
                 }
             }
 

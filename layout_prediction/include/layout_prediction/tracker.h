@@ -15,6 +15,8 @@
 #include "layout_prediction/particle.h"
 #include "layout_prediction/particle_filter.h"
 
+#include "pointmatcher/PointMatcher.h"
+
 class System2;
 class Graph2;
 
@@ -50,23 +52,28 @@ namespace MYSLAM {
             Pose::Ptr _lastPose;
             SE2 *_lastOdom;
             pcl::PointCloud<pcl::PointXYZ>::Ptr _lastPCL; 
+            sensor_msgs::PointCloud2ConstPtr _lastDP;
 
             enum {
                  USE_ODOMETRY,
                  USE_ODOMETRY_IMU,
                  USE_CONSTANT_VELOCITY_MODEL,
                  USE_SCAN_MATCHING,
-                 USE_PARTICLE_FILTER
+                 USE_PARTICLE_FILTER,
+                 USE_POINT_MATCHER,
+                 USE_GMAPPING
             };
 
             int _method;
 
             void setPrior (Pose::Ptr& p) { _lastPose = p; _lastOdom->fromVector(p->_pose); };
             void setFirstPCL (pcl::PointCloud<pcl::PointXYZ>::Ptr& priorPCL) { _lastPCL = priorPCL; };
+            void setFirstDP (const sensor_msgs::PointCloud2ConstPtr& cloudmsg) { std::cout << "INIT" << std::endl; _lastDP = cloudmsg; };
 
             void trackPoseByConstantVelocityModel (double *data, Pose::Ptr& pose);
             void trackPoseByOdometry (double *data, Pose::Ptr& pose);
             void trackPoseByScanMatching (pcl::PointCloud<pcl::PointXYZ>::Ptr& pcl, Pose::Ptr& pose, double *data); 
+            void trackPoseByPointMatcher (const sensor_msgs::PointCloud2ConstPtr& cloudmsg, Pose::Ptr& pose, double *data);
             void trackPoseByParticleFilter (double *data, ParticleFilter* pf);
 
         private:

@@ -2,6 +2,8 @@
 #include "layout_prediction/settings.h"
 
 namespace MYSLAM {
+    int Visualizer::marker_id = 0;
+
     Visualizer::Visualizer (ros::NodeHandle nh, System& system, Graph& graph)
         : _system (&system), _graph (&graph), _rosnodehandle (nh)
     {
@@ -105,7 +107,7 @@ namespace MYSLAM {
         else
             marker.header.frame_id = "odom_combined";
 
-        marker.id = 0; //marker_id++;
+        marker.id = /* 0;*/ Visualizer::marker_id++;
         marker.type = visualization_msgs::Marker::LINE_LIST;
 
         marker.action = visualization_msgs::Marker::ADD;
@@ -120,8 +122,8 @@ namespace MYSLAM {
         q.x = wq.x();
         q.y = wq.y();
 
-        marker.color.r = 1.0;
-        marker.color.g = 0.0;
+        marker.color.r = 0.0;
+        marker.color.g = 1.0;
         marker.color.b = 0.0;
 
         marker.points.push_back(p);

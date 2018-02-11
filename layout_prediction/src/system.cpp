@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <string>
+#include <fstream>
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -27,6 +28,8 @@
 #include <pcl/point_types.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/median_filter.h>
+
+#include "pointmatcher/PointMatcher.h"
 
 static int marker_id = 0;
 int System2::_framecounter = 1;
@@ -326,7 +329,7 @@ namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
     System::System(ros::NodeHandle nh)
-        :_rosnodehandle (nh), _init (true), _method (PF) {
+        :_rosnodehandle (nh), _init (true), _method (BA) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
@@ -354,7 +357,9 @@ namespace MYSLAM {
             const sensor_msgs::ImageConstPtr& depth,
             const nav_msgs::OdometryConstPtr& odom,
             const nav_msgs::OdometryConstPtr& action,
-            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined)
+            const nav_msgs::OdometryConstPtr& wodom,
+            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined
+            )
     {
 //        _currentTime = ros::Time::now().toSec();
         _currentTime = action->header.stamp.toSec();
@@ -373,7 +378,8 @@ namespace MYSLAM {
         SE2 *t = new SE2();
 
         if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL 
-                || _tracker->_method == _tracker->USE_PARTICLE_FILTER) {
+                || _tracker->_method == _tracker->USE_PARTICLE_FILTER 
+                || _tracker->_method == _tracker->USE_POINT_MATCHER) {
             datax = action->pose.pose.position.x;
             datay = action->pose.pose.position.y;
             datat = action->pose.pose.orientation.z;
@@ -383,6 +389,8 @@ namespace MYSLAM {
                 c.odomToSE2 (odom, *t);
             else if (_tracker->_method == _tracker->USE_ODOMETRY_IMU)
                 c.odomCombinedToSE2 (odomCombined, *t);
+            else if (_tracker->_method == _tracker->USE_GMAPPING)
+                c.odomToSE2 (wodom, *t);
 
             datax = t->translation().x();
             datay = t->translation().y();
@@ -422,6 +430,7 @@ namespace MYSLAM {
             pose->_pose = t->toVector();
             _tracker->setPrior (pose);
             _tracker->setFirstPCL (cloud);
+            _tracker->setFirstDP (cloudmsg);
             _pf->setInit (pose->_pose);
         } else {
             if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL)
@@ -433,6 +442,10 @@ namespace MYSLAM {
                 _tracker->trackPoseByScanMatching (cloud, pose, data);
             else if (_tracker->_method == _tracker->USE_PARTICLE_FILTER)
                 _tracker->trackPoseByParticleFilter (data, _pf);
+            else if (_tracker->_method == _tracker->USE_POINT_MATCHER)
+                _tracker->trackPoseByPointMatcher (cloudmsg, pose, data);
+            else if (_tracker->_method == _tracker->USE_GMAPPING)
+                pose->_pose = t->toVector();
         }
 
         if (_method == BA) {
@@ -458,7 +471,7 @@ namespace MYSLAM {
             if (System::_frameCounter % 10 == 0)
             {
                 _optimizer->localOptimize();
-//                _visualizer->visualizeWallOptimizedPq();
+                _visualizer->visualizeWallOptimizedPq();
             }
         } else if (_method == PF) {
             _pf->makeObservations (_wallDetector, cloud, _R);

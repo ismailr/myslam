@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   pr2_mechanism_controllers
   message_filters
   isam
+  libpointmatcher_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -25,6 +26,7 @@ find_package(CSparse REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenGL)
 find_package(GLUT)
+#find_package(libpointmatcher)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -114,7 +116,7 @@ find_package(GLUT)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters isam
+  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters isam libpointmatcher_ros
 #  DEPENDS system_lib
 )
 
@@ -130,6 +132,7 @@ include_directories(
 	${catkin_INCLUDE_DIRS}
 	${CSPARSE_INCLUDE_DIR}
     ${EIGEN3_INCLUDE_DIR}
+    ${libpointmatcher_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -164,6 +167,7 @@ add_executable(layout_prediction
     src/visualizer.cpp
     src/particle.cpp
     src/particle_filter.cpp
+    src/icp.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
@@ -212,6 +216,7 @@ add_executable(simulation
     src/visualizer.cpp
     src/particle.cpp
     src/particle_filter.cpp
+    src/icp.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
@@ -261,6 +266,7 @@ target_link_libraries(layout_prediction
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
+    ${LIBPOINTMATCHER_LIBRARIES}
 )
 
 target_link_libraries(simulation
@@ -278,6 +284,7 @@ target_link_libraries(simulation
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
+    ${LIBPOINTMATCHER_LIBRARIES}
 )
 
 add_definitions(-std=c++11)

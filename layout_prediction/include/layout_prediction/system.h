@@ -109,6 +109,7 @@ namespace MYSLAM {
                 const sensor_msgs::ImageConstPtr& depth,
                 const nav_msgs::OdometryConstPtr& odom,
                 const nav_msgs::OdometryConstPtr& action,
+                const nav_msgs::OdometryConstPtr& wodom,
                 const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined
                 );
 

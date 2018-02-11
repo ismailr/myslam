@@ -37,6 +37,7 @@ int main (int argc, char** argv)
     message_filters::Subscriber<sensor_msgs::Image> depth_sub (nh, "depth", 1);
     message_filters::Subscriber<nav_msgs::Odometry> odometry_sub (nh, "odometry", 1);
     message_filters::Subscriber<nav_msgs::Odometry> action_sub (nh, "action", 1);
+    message_filters::Subscriber<nav_msgs::Odometry> wodom_sub (nh, "wodom", 1);
     message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> odomcombined_sub (nh, "odomcombined", 1);
 
     typedef message_filters::sync_policies::ApproximateTime
@@ -45,15 +46,19 @@ int main (int argc, char** argv)
             sensor_msgs::Image, 
             nav_msgs::Odometry, 
             nav_msgs::Odometry,
-            geometry_msgs::PoseWithCovarianceStamped> MySyncPolicy;
-    message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (10),    cloud_sub, 
+            nav_msgs::Odometry,
+            geometry_msgs::PoseWithCovarianceStamped
+                > MySyncPolicy;
+    message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (100),   cloud_sub, 
                                                                             rgb_sub, 
                                                                             depth_sub, 
                                                                             odometry_sub, 
                                                                             action_sub,
-                                                                            odomcombined_sub);
+                                                                            wodom_sub,
+                                                                            odomcombined_sub
+                                                                            );
 
-    sync.registerCallback (boost::bind (&MYSLAM::System::readSensorsData, &system, _1, _2, _3, _4, _5, _6));
+    sync.registerCallback (boost::bind (&MYSLAM::System::readSensorsData, &system, _1, _2, _3, _4, _5, _6, _7));
 
     ros::spin();
     return 0;

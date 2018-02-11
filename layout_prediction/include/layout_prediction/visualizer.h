@@ -22,6 +22,7 @@ namespace MYSLAM {
     class Visualizer
     {
         public:
+            static int marker_id;
             Visualizer (ros::NodeHandle, System&, Graph&);
             void visualizeWallOptimizedPq (bool local = false);
             void visualizeWallOptimizedRt (bool local = false);
