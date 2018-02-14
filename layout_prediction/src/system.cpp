@@ -329,7 +329,7 @@ namespace MYSLAM {
     unsigned int long System::_frameCounter = 1;
 
     System::System(ros::NodeHandle nh)
-        :_rosnodehandle (nh), _init (true), _method (BA) {
+        :_rosnodehandle (nh), _init (true), _method (EKF) {
         _tracker = new Tracker(*this);
         _wallDetector = new WallDetector (*this);
         _graph = new Graph (*this);
@@ -339,6 +339,7 @@ namespace MYSLAM {
         _buffer = new tf2_ros::Buffer;
         _listener2 = new tf2_ros::TransformListener (*_buffer);
         _pf = new ParticleFilter(*this);
+        _ekfm = new EKFMapper (*this);
 
         _Q <<   _sigX*_sigX, 0.0, 0.0,
                 0.0, _sigX*_sigX, 0.0,
@@ -353,16 +354,16 @@ namespace MYSLAM {
 
     void System::readSensorsData (
             const sensor_msgs::PointCloud2ConstPtr& cloudmsg, 
-            const sensor_msgs::ImageConstPtr& rgb,
-            const sensor_msgs::ImageConstPtr& depth,
+//            const sensor_msgs::ImageConstPtr& rgb,
+//            const sensor_msgs::ImageConstPtr& depth,
             const nav_msgs::OdometryConstPtr& odom,
-            const nav_msgs::OdometryConstPtr& action,
-            const nav_msgs::OdometryConstPtr& wodom,
-            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined
+//            const nav_msgs::OdometryConstPtr& action,
+            const nav_msgs::OdometryConstPtr& wodom//,
+//            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined
             )
     {
-//        _currentTime = ros::Time::now().toSec();
-        _currentTime = action->header.stamp.toSec();
+        _currentTime = ros::Time::now().toSec();
+//        _currentTime = action->header.stamp.toSec();
 
 //        double vx = action->pose.pose.position.x;
 //        double vy = action->pose.pose.position.y;
@@ -380,17 +381,23 @@ namespace MYSLAM {
         if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL 
                 || _tracker->_method == _tracker->USE_PARTICLE_FILTER 
                 || _tracker->_method == _tracker->USE_POINT_MATCHER) {
-            datax = action->pose.pose.position.x;
-            datay = action->pose.pose.position.y;
-            datat = action->pose.pose.orientation.z;
+//            datax = action->pose.pose.position.x;
+//            datay = action->pose.pose.position.y;
+//            datat = action->pose.pose.orientation.z;
         } else {
             if (_tracker->_method == _tracker->USE_ODOMETRY
                 || _tracker->_method == _tracker->USE_SCAN_MATCHING) 
                 c.odomToSE2 (odom, *t);
-            else if (_tracker->_method == _tracker->USE_ODOMETRY_IMU)
-                c.odomCombinedToSE2 (odomCombined, *t);
-            else if (_tracker->_method == _tracker->USE_GMAPPING)
-                c.odomToSE2 (wodom, *t);
+//            else if (_tracker->_method == _tracker->USE_ODOMETRY_IMU)
+//                c.odomCombinedToSE2 (odomCombined, *t);
+            else if (_tracker->_method == _tracker->USE_GMAPPING) {
+                Eigen::Vector3d o;
+                o <<    wodom->pose.pose.position.x, 
+                        wodom->pose.pose.position.y,
+                        wodom->pose.pose.position.z;
+                t->fromVector(o);
+            }
+
 
             datax = t->translation().x();
             datay = t->translation().y();
@@ -429,9 +436,9 @@ namespace MYSLAM {
         {
             pose->_pose = t->toVector();
             _tracker->setPrior (pose);
-            _tracker->setFirstPCL (cloud);
-            _tracker->setFirstDP (cloudmsg);
-            _pf->setInit (pose->_pose);
+            _tracker->setFirstPCL (cloud); // for scan matching
+            _tracker->setFirstDP (cloudmsg); // for point matcher
+            _pf->setInit (pose->_pose); // for particle filter
         } else {
             if (_tracker->_method == _tracker->USE_CONSTANT_VELOCITY_MODEL)
                 _tracker->trackPoseByConstantVelocityModel (data, pose);
@@ -480,7 +487,73 @@ namespace MYSLAM {
             _pf->resample2();
             _pf->_z.clear();
         } else if (_method == EKF) {
+            _graph->_poseMap[pose->_id] = pose;
 
+            double x = pose->_pose[0];
+            double y = pose->_pose[1];
+            double t = pose->_pose[2];
+
+            SE2 poseSE2 (x, y, t);
+
+            std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
+            _wallDetector->detect (pose, cloud, walls);
+
+            // data association
+            for (size_t i = 0; i < walls.size(); i++)
+            {
+                Eigen::Vector2d z = std::get<1>(walls[i]);
+                Wall::Ptr w;
+                bool newlandmark =_graph->dataAssociationEKF (pose->_id, w, z);
+
+                if (!newlandmark) {
+                    // update landmarks
+                    Eigen::Vector2d z_hat = poseSE2.inverse() * w->_line.xx;
+                    Eigen::Vector2d e = z - z_hat;
+                    Eigen::Matrix2d S = w->cov;
+
+                    // Jacobian
+                    // z_hat_xx = xx*cost + xy*sint - x*cost - y*sint;
+                    // z_hat_xy = -xx*sint + xy*cost + x*sint - y*cost;
+                    // | d(z_hat_xx)/dxx d(z_hat_xx)/dxy | = |  cost sint |
+                    // | d(z_hat_xy)/dxx d(z_hat_xy)/dxy |   | -sint cost |
+                    Eigen::Matrix2d H;
+                    H << cos(t), sin(t), -sin(t), cos(t);
+
+                    // Kalman Gain
+                    // K = S * H^T * (R + H * S * H^T).inverse()
+                    Eigen::Matrix2d K;
+                    K = S * H.transpose() * (_R + H * S * H.transpose()).inverse();
+
+                    // update landmark mean
+                    _graph->_wallMap[w->_id]->_line.xx = w->_line.xx + K * e;
+
+                    // update covariance
+                    _graph->_wallMap[w->_id]->cov = (Eigen::Matrix2d::Identity() - K * H) * S;
+                    _graph->_wallMap[w->_id]->updateParams();
+                } else {
+                    // new landmarks
+                    w = std::get<0>(walls[i]);
+                    _graph->_wallMap[w->_id] = w;
+                }
+                std::tuple<int, int> m (pose->_id, w->_id);
+                _graph->_poseWallMap[m] = z;
+                pose->_detectedWalls.push_back (w->_id);
+                w->_seenBy.insert (pose->_id);
+            }
+
+            std::ofstream wallfile;
+            wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out);
+            std::map<int, Wall::Ptr>::iterator it;
+            for (it = _graph->_wallMap.begin(); it != _graph->_wallMap.end(); it++) {
+                wallfile    << it->second->_line.p.transpose() << " "
+                            << it->second->_line.q.transpose() << std::endl;
+            }
+            wallfile.close();
+
+            std::ofstream posefile;
+            posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+            posefile << pose->_pose.transpose() << std::endl;
+            posefile.close();
         }
 
         _prevTime = _currentTime;

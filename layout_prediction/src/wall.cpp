@@ -353,6 +353,8 @@ namespace MYSLAM {
         double& x = xx[0];
         double& y = xx[1];
 
+        length = sqrt ((px-qx)*(px-qx)+(py-qy)*(py-qy));
+
         Eigen::Vector3d x3d (x, y, 0);
         Eigen::Vector3d p3d (px, py, 0);
         Eigen::Vector3d q3d (qx, qy, 0);
@@ -368,7 +370,10 @@ namespace MYSLAM {
     };
 
 
-    Wall::Wall():_img(new cv::Mat()) { _id = Generator::id++; };
+    Wall::Wall():_img(new cv::Mat()) {
+       _id = Generator::id++;
+       cov = Eigen::Matrix2d::Identity() * 99;
+    };
 
     void Wall::updateParams(){
         _line.calcMcFromXx();

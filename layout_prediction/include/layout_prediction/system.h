@@ -17,6 +17,7 @@
 #include "layout_prediction/visualizer.h"
 #include "layout_prediction/particle.h"
 #include "layout_prediction/particle_filter.h"
+#include "layout_prediction/ekf_mapper.h"
 #include "se2.h"
 
 #include "isam/isam.h"
@@ -83,6 +84,7 @@ namespace MYSLAM {
     class Optimizer;
     class Visualizer;
     class ParticleFilter;
+    class EKFMapper;
     class System
     {
         public:
@@ -105,12 +107,12 @@ namespace MYSLAM {
             // callback
             void readSensorsData (
                 const sensor_msgs::PointCloud2ConstPtr& cloud, 
-                const sensor_msgs::ImageConstPtr& rgb,
-                const sensor_msgs::ImageConstPtr& depth,
+//                const sensor_msgs::ImageConstPtr& rgb,
+//                const sensor_msgs::ImageConstPtr& depth,
                 const nav_msgs::OdometryConstPtr& odom,
-                const nav_msgs::OdometryConstPtr& action,
-                const nav_msgs::OdometryConstPtr& wodom,
-                const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined
+//                const nav_msgs::OdometryConstPtr& action,
+                const nav_msgs::OdometryConstPtr& wodom//,
+//                const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined
                 );
 
             Visualizer* getVisualizer () { return _visualizer; };
@@ -127,6 +129,7 @@ namespace MYSLAM {
             tf2_ros::TransformListener *_listener2;
             tf2_ros::Buffer *_buffer;
             ParticleFilter* _pf;
+            EKFMapper* _ekfm;
 
             /* ISAM */
             isam::Slam *_slam;

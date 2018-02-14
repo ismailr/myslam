@@ -628,4 +628,42 @@ namespace MYSLAM {
 //        _activeWalls.push_back (w->_id);
         return w;
     }
+
+    bool Graph::dataAssociationEKF (int poseid, Wall::Ptr& w, const Eigen::Vector2d& z) {
+
+        SE2 pose; pose.fromVector (_poseMap[poseid]->_pose);
+
+        double pmax = 0.0;
+        int id;
+
+        // maximum likelihood
+        for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
+                it != _wallMap.end(); it++)
+        {
+            // sensor model
+            Wall::Ptr _w = it->second;
+
+            Eigen::Vector2d z_hat = pose.inverse() * _w->_line.xx;
+            Eigen::Vector2d e = z - z_hat;
+
+            double den = 2 * M_PI * sqrt(_w->cov.determinant());
+            double num = std::exp(-0.5 * e.transpose() * _w->cov.inverse() * e);
+            double p = num/den;
+//            double p = std::exp(logp);
+            if (p > pmax) {
+                pmax = p;
+                id = _w->_id;
+            }
+        }
+
+        if (pmax > 0.75) {
+            std::cout << "HIT" << std::endl;
+            w = _wallMap[id];
+            return false;
+           
+        } else {
+            std::cout << "NEW" << std::endl;
+            return true;
+        }
+    }
 }

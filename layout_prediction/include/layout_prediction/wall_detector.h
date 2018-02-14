@@ -75,6 +75,8 @@ namespace MYSLAM {
 
             void detect(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
                     std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
+            void detect2(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
+                    std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void prepareCloud (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
                     pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud);
             void clusterCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 

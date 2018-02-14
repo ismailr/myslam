@@ -251,6 +251,7 @@ namespace MYSLAM {
             Eigen::Vector2d p; // endpoint
             Eigen::Vector2d q; // endpoint
 
+            double length;
             double p2xx, q2xx;
             Eigen::Vector3d ppos, qpos;
 
@@ -276,6 +277,8 @@ namespace MYSLAM {
             Line _line;
             cv::Ptr<cv::Mat> _img;
             pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
+            Eigen::Matrix2d cov;
+            std::set<int> _seenBy;
 
     };
 

@@ -627,6 +627,45 @@ namespace MYSLAM {
         }
     }
 
+    void WallDetector::detect2(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
+            std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls)
+    {
+        typedef std::tuple<Wall::Ptr, Eigen::Vector2d> w;
+        std::vector<std::vector<w> > clusters;
+        std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudset;
+
+        const int width = inCloud->width;
+
+        const int vGridStep = 10;
+        for (int i = 0; i < vGridStep; i++) {
+            int height = static_cast<int>(inCloud->height/(i+1));
+
+            pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+            for(int j = 0; j < width; j++)
+                cloud->push_back(inCloud->at(j,height - 1));
+
+            clusterCloud (cloud, cloudset);
+            std::vector<w> tmp_ws;
+            for (std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>::iterator it = cloudset.begin();
+                    it != cloudset.end(); ++it) {
+                lineFitting (*it, pose, tmp_ws);
+            }
+            if (!tmp_ws.empty())
+                clusters.push_back (tmp_ws);
+
+            tmp_ws.clear();
+            cloudset.clear();
+        }
+
+        for (int i = 0; i < clusters.size(); i++) {
+            std::cout << i << "\t-->\t";
+            for (int j = 0; j < clusters[i].size(); j++) {
+                std::cout << "\t\t" << std::get<0>(clusters[i][j])->_line.xx.transpose() << " " << std::get<0>(clusters[i][j])->_line.length << std::endl;
+            }
+            std::cout << std::endl;
+        }
+    }
+
     void WallDetector::prepareCloud (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
             pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud)
     {
@@ -777,7 +816,7 @@ namespace MYSLAM {
                 double cost = cos(t);
                 double sint = sin(t);
 
-                Eigen::Vector2d p, q;
+                Eigen::Vector2d p, q; // should be shorter --> p = pose * p_;
                 p.x() = p_.x()*cost - p_.y()*sint + x;
                 p.y() = p_.x()*sint + p_.y()*cost + y;
                 q.x() = q_.x()*cost - q_.y()*sint + x;
@@ -790,6 +829,7 @@ namespace MYSLAM {
 //                xx_ = - (m_ * c_)/(m_ * m_ + 1);
 //                xy_ = c_/(m_ * m_ + 1);
     
+                // shorter --> (xx_,xy_) = pose.inverse() * (xx,xy);
                 xx_ = xx*cost + xy*sint - x*cost - y*sint;
                 xy_ = -xx*sint + xy*cost + x*sint - y*cost;
 
@@ -805,7 +845,7 @@ namespace MYSLAM {
                     std::tuple<Wall::Ptr, Eigen::Vector2d> measurement (w, xxxy_);
                     outWalls.push_back(measurement);
 
-//                    _system->getVisualizer()->visualizeWallMeasuredPq(p_,q_, true);
+                    _system->getVisualizer()->visualizeWallMeasuredPq(p_,q_, true);
                 }
             }
 

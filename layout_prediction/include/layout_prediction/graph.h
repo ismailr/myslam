@@ -112,6 +112,7 @@ namespace MYSLAM {
             Graph();
             Graph(System&);
             Wall::Ptr dataAssociation (Wall::Ptr& w);
+            bool dataAssociationEKF (int poseid, Wall::Ptr& w, const Eigen::Vector2d& z);
             Point::Ptr dataAssociationPoint (Point::Ptr& p);
 
             std::map<int, Pose::Ptr> _poseMap;

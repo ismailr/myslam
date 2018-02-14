@@ -177,6 +177,7 @@ add_executable(layout_prediction
     src/slam_interface.cpp
     src/sparse_optimizer_online.cpp
     src/sparse_optimizer_incremental.cpp
+    src/ekf_mapper.cpp
     #    src/isamlib/Node.cpp
     #    src/isamlib/util.cpp
     #    src/isamlib/numericalDiff.cpp
@@ -217,6 +218,7 @@ add_executable(simulation
     src/particle.cpp
     src/particle_filter.cpp
     src/icp.cpp
+    src/ekf_mapper.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp

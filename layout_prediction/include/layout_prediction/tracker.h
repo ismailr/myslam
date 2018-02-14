@@ -68,7 +68,7 @@ namespace MYSLAM {
 
             void setPrior (Pose::Ptr& p) { _lastPose = p; _lastOdom->fromVector(p->_pose); };
             void setFirstPCL (pcl::PointCloud<pcl::PointXYZ>::Ptr& priorPCL) { _lastPCL = priorPCL; };
-            void setFirstDP (const sensor_msgs::PointCloud2ConstPtr& cloudmsg) { std::cout << "INIT" << std::endl; _lastDP = cloudmsg; };
+            void setFirstDP (const sensor_msgs::PointCloud2ConstPtr& cloudmsg) { _lastDP = cloudmsg; };
 
             void trackPoseByConstantVelocityModel (double *data, Pose::Ptr& pose);
             void trackPoseByOdometry (double *data, Pose::Ptr& pose);

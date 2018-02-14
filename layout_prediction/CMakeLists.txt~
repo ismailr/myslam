@@ -216,6 +216,8 @@ add_executable(simulation
     src/visualizer.cpp
     src/particle.cpp
     src/particle_filter.cpp
+    src/icp.cpp
+    src/ekf_mapper.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
