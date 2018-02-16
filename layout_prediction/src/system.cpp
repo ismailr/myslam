@@ -362,6 +362,9 @@ namespace MYSLAM {
 //            const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomCombined
             )
     {
+//        std::ofstream allfile;
+//        allfile.open ("/home/ism/tmp/all.dat", std::ios::out | std::ios::app);
+//        clock_t start = clock();
         _currentTime = ros::Time::now().toSec();
 //        _currentTime = action->header.stamp.toSec();
 
@@ -495,10 +498,21 @@ namespace MYSLAM {
 
             SE2 poseSE2 (x, y, t);
 
+//            std::ofstream wdfile;
+//            wdfile.open ("/home/ism/tmp/t_walldetection.dat", std::ios::out | std::ios::app);
+//            wdfile  << System::_frameCounter << " ";
+
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
+//            clock_t wdstart = clock();
             _wallDetector->detect (pose, cloud, walls);
+//            wdfile << (double)(clock() - wdstart)/CLOCKS_PER_SEC << std::endl;
+//            wdfile.close();
 
             // data association
+//            std::ofstream dafile;
+//            dafile.open ("/home/ism/tmp/t_dataassociation.dat", std::ios::out | std::ios::app);
+//            dafile << _graph->_wallMap.size() << " ";
+//            clock_t start = clock();
             for (size_t i = 0; i < walls.size(); i++)
             {
                 Eigen::Vector2d z = std::get<1>(walls[i]);
@@ -540,25 +554,31 @@ namespace MYSLAM {
                 pose->_detectedWalls.push_back (w->_id);
                 w->_seenBy.insert (pose->_id);
             }
+//            dafile << (double)(clock() - start)/CLOCKS_PER_SEC << std::endl;
+//            dafile.close();
 
-            std::ofstream wallfile;
-            wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out);
-            std::map<int, Wall::Ptr>::iterator it;
-            for (it = _graph->_wallMap.begin(); it != _graph->_wallMap.end(); it++) {
-                wallfile    << it->second->_line.p.transpose() << " "
-                            << it->second->_line.q.transpose() << std::endl;
-            }
-            wallfile.close();
-
-            std::ofstream posefile;
-            posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
-            posefile << pose->_pose.transpose() << std::endl;
-            posefile.close();
+//            std::ofstream wallfile;
+//            wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out);
+//            std::map<int, Wall::Ptr>::iterator it;
+//            for (it = _graph->_wallMap.begin(); it != _graph->_wallMap.end(); it++) {
+//                wallfile    << it->second->_line.p.transpose() << " "
+//                            << it->second->_line.q.transpose() << std::endl;
+//            }
+//            wallfile.close();
+//
+//            std::ofstream posefile;
+//            posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+//            posefile << pose->_pose.transpose() << std::endl;
+//            posefile.close();
         }
 
         _prevTime = _currentTime;
         _init = false;
         System::_frameCounter++;
+
+//        allfile << System::_frameCounter << " ";
+//        allfile << (double)(clock() - start)/CLOCKS_PER_SEC << std::endl;
+//        allfile.close();
 
         _visualizer->visualizeCloud(cloud);
     }

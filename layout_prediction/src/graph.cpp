@@ -631,10 +631,13 @@ namespace MYSLAM {
 
     bool Graph::dataAssociationEKF (int poseid, Wall::Ptr& w, const Eigen::Vector2d& z) {
 
+        if (_wallMap.empty()) return true;
+
         SE2 pose; pose.fromVector (_poseMap[poseid]->_pose);
 
         double pmax = 0.0;
         int id;
+        Eigen::Matrix2d cov;
 
         // maximum likelihood
         for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
@@ -653,10 +656,18 @@ namespace MYSLAM {
             if (p > pmax) {
                 pmax = p;
                 id = _w->_id;
+                cov = _w->cov;
             }
         }
 
-        if (pmax > 0.75) {
+        double stdevx = sqrt (cov(0,0));
+        double stdevy = sqrt (cov(1,1));
+        Eigen::Vector2d stdv (stdevx, stdevy);
+        double den_thres = 2 * M_PI * sqrt (cov.determinant());
+        double num_thres = std::exp (-0.5 * stdv.transpose() * cov.inverse() * stdv);
+        double p_thres = num_thres/den_thres;
+
+        if (pmax > p_thres) {
             std::cout << "HIT" << std::endl;
             w = _wallMap[id];
             return false;
