@@ -513,10 +513,19 @@ namespace MYSLAM {
 //            dafile.open ("/home/ism/tmp/t_dataassociation.dat", std::ios::out | std::ios::app);
 //            dafile << _graph->_wallMap.size() << " ";
 //            clock_t start = clock();
+//
+            // Jacobian
+            // z_hat_xx = xx*cost + xy*sint - x*cost - y*sint;
+            // z_hat_xy = -xx*sint + xy*cost + x*sint - y*cost;
+            // | d(z_hat_xx)/dxx d(z_hat_xx)/dxy | = |  cost sint |
+            // | d(z_hat_xy)/dxx d(z_hat_xy)/dxy |   | -sint cost |
+            Eigen::Matrix2d H;
+            H << cos(t), sin(t), -sin(t), cos(t);
+
             for (size_t i = 0; i < walls.size(); i++)
             {
                 Eigen::Vector2d z = std::get<1>(walls[i]);
-                Wall::Ptr w;
+                Wall::Ptr w = std::get<0>(walls[i]);
                 bool newlandmark =_graph->dataAssociationEKF (pose->_id, w, z);
 
                 if (!newlandmark) {
@@ -524,14 +533,6 @@ namespace MYSLAM {
                     Eigen::Vector2d z_hat = poseSE2.inverse() * w->_line.xx;
                     Eigen::Vector2d e = z - z_hat;
                     Eigen::Matrix2d S = w->cov;
-
-                    // Jacobian
-                    // z_hat_xx = xx*cost + xy*sint - x*cost - y*sint;
-                    // z_hat_xy = -xx*sint + xy*cost + x*sint - y*cost;
-                    // | d(z_hat_xx)/dxx d(z_hat_xx)/dxy | = |  cost sint |
-                    // | d(z_hat_xy)/dxx d(z_hat_xy)/dxy |   | -sint cost |
-                    Eigen::Matrix2d H;
-                    H << cos(t), sin(t), -sin(t), cos(t);
 
                     // Kalman Gain
                     // K = S * H^T * (R + H * S * H^T).inverse()
@@ -551,7 +552,8 @@ namespace MYSLAM {
 //                    _graph->_wallMap[w->_id]->updateSegment (p, q);
                 } else {
                     // new landmarks
-                    w = std::get<0>(walls[i]);
+//                    w = std::get<0>(walls[i]);
+                    w->cov = (H.transpose() * _R.inverse() * H).inverse();
                     _graph->_wallMap[w->_id] = w;
                 }
                 std::tuple<int, int> m (pose->_id, w->_id);

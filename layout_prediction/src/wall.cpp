@@ -373,7 +373,7 @@ namespace MYSLAM {
 
     Wall::Wall():_img(new cv::Mat()) {
        _id = Generator::id++;
-       cov = Eigen::Matrix2d::Identity() * 99;
+//       cov = Eigen::Matrix2d::Identity() * 99;
     };
 
     void Wall::updateParams(){

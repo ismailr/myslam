@@ -635,11 +635,12 @@ namespace MYSLAM {
 
         SE2 pose; pose.fromVector (_poseMap[poseid]->_pose);
 
-        double pmax = 0.0;
+        double pmin = std::numeric_limits<double>::max();
         int id;
         Eigen::Matrix2d cov;
 
-        // maximum likelihood
+        // min log likelihood
+        std::cout << "MEASURED WALL " << (pose * z).transpose() << std::endl;
         for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
                 it != _wallMap.end(); it++)
         {
@@ -649,31 +650,36 @@ namespace MYSLAM {
             Eigen::Vector2d z_hat = pose.inverse() * _w->_line.xx;
             Eigen::Vector2d e = z - z_hat;
 
-            double den = 2 * M_PI * sqrt(_w->cov.determinant());
-            double num = std::exp(-0.5 * e.transpose() * _w->cov.inverse() * e);
-            double p = num/den;
+//            double den = 2 * M_PI * sqrt(_w->cov.determinant());
+//            double num = std::exp(-0.5 * e.transpose() * _w->cov.inverse() * e);
+//            double p = num/den;
+            double p = log(_w->cov.determinant()) + e.transpose() * _w->cov.inverse() * e;
 
-            std::cout << "INOV: " << e.transpose() << std::endl;
-            std::cout << "DEN: " << den << std::endl;
-            std::cout << "NUM: " << num << std::endl;
-            std::cout << "COV: " << _w->cov.inverse() << std::endl;
-            std::cout << "P: " << p << std::endl;
-            std::cout << "PMAX: " << pmax << std::endl;
-            if (p > pmax) {
-                pmax = p;
+            std::cout << "+ " << _w->_line.xx.transpose();
+            if (p < pmin) {
+                std::cout << " ---> CANDIDATE" << std::endl;
+                pmin = p;
                 id = _w->_id;
                 cov = _w->cov;
             }
         }
+        std::cout << std::endl;
 
         double stdevx = sqrt (cov(0,0));
         double stdevy = sqrt (cov(1,1));
-        Eigen::Vector2d stdv (stdevx, stdevy);
-        double den_thres = 2 * M_PI * sqrt (cov.determinant());
-        double num_thres = std::exp (-0.5 * stdv.transpose() * cov.inverse() * stdv);
-        double p_thres = num_thres/den_thres;
+        Eigen::Vector2d stdv (stdevx + w->_line.xx[0], stdevy + w->_line.xx[1]);
+//        double den_thres = 2 * M_PI * sqrt (cov.determinant());
+//        double num_thres = std::exp (-0.5 * stdv.transpose() * cov.inverse() * stdv);
+//        double p_thres = num_thres/den_thres;
+//        double p_thres = log(cov.determinant()) + stdv.transpose() * cov.inverse() * stdv;
+        double p_thres = 1.25 * log(cov.determinant());
 
-        if (pmax > p_thres) {
+        std::cout   << "STD DEV: " << stdevx << " " << stdevy << std::endl;
+        std::cout   << "WINNER: " << _wallMap[id]->_line.xx.transpose() 
+                    << " WITH P: " << pmin << " AND THRESHOLD IS: " << p_thres << std::endl;
+        std::cout << std::endl;
+
+        if (pmin < p_thres) {
             w = _wallMap[id];
             return false;
            
