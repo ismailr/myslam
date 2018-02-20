@@ -32,6 +32,7 @@
 #include <math.h>
 #include <assert.h>
 #include <fstream>
+#include <initializer_list>
 
 #include "g2o/stuff/macros.h"
 
@@ -381,6 +382,65 @@ namespace MYSLAM {
     };
 
     void Wall::initParams(){
+        _line.calcSegment();
+    };
+
+    void Wall::updateSegment(Eigen::Vector2d p, Eigen::Vector2d q) {
+
+        double _px = _line.p[0];
+        double _py = _line.p[1];
+        double _qx = _line.q[0];
+        double _qy = _line.q[1];
+        double px = p[0];
+        double py = p[1];
+        double qx = q[0];
+        double qy = q[1];
+
+        Eigen::Vector2d _l, _r;
+        if (_px < _qx) {
+            _l = _line.p;
+            _r = _line.q;
+        } else {
+            _l = _line.q;
+            _r = _line.p;
+        }
+
+        Eigen::Vector2d l, r;
+        if (px < qx) {
+            l = p;
+            r = q;
+        } else {
+            l = q;
+            r = p;
+        }
+
+        if (l[0] < _l[0]) {
+            _line.p[0] = l[0];
+            _line.p[1] = l[1];
+
+        } else {
+            _line.p[0] = _l[0];
+            _line.p[1] = _l[1];
+        }
+
+        if (r[0] < _r[0]) {
+            _line.q[0] = _r[0];
+            _line.q[1] = _r[1];
+
+        } else {
+            _line.q[0] = r[0];
+            _line.q[1] = r[1];
+        }
+
+        std::ofstream pqfile;
+        pqfile.open ("/home/ism/tmp/pq.dat", std::ios::out | std::ios::app);
+        pqfile  << _px << " " << _py << " " << _qx << " " << _qy << " "
+                << p.transpose() << " " << q.transpose() << std::endl; 
+        pqfile  << _l.transpose() << " " << _r.transpose() << " "
+                << l.transpose() << " " << r.transpose() << std::endl;
+        pqfile << _line.p.transpose() << " " << _line.q.transpose() << std::endl << std::endl;
+        pqfile.close();
+        
         _line.calcSegment();
     };
 

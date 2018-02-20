@@ -464,7 +464,7 @@ namespace MYSLAM {
 
             // detectwall
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
-            _wallDetector->detect (pose, cloud, walls);
+            _wallDetector->detect2 (pose, cloud, walls);
 
           // data association
             for (size_t i = 0; i < walls.size(); i++)
@@ -544,6 +544,11 @@ namespace MYSLAM {
                     // update covariance
                     _graph->_wallMap[w->_id]->cov = (Eigen::Matrix2d::Identity() - K * H) * S;
                     _graph->_wallMap[w->_id]->updateParams();
+
+                    // update segment
+                    Eigen::Vector2d p = std::get<0>(walls[i])->_line.p;
+                    Eigen::Vector2d q = std::get<0>(walls[i])->_line.q;
+//                    _graph->_wallMap[w->_id]->updateSegment (p, q);
                 } else {
                     // new landmarks
                     w = std::get<0>(walls[i]);
@@ -557,19 +562,19 @@ namespace MYSLAM {
 //            dafile << (double)(clock() - start)/CLOCKS_PER_SEC << std::endl;
 //            dafile.close();
 
-//            std::ofstream wallfile;
-//            wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out);
-//            std::map<int, Wall::Ptr>::iterator it;
-//            for (it = _graph->_wallMap.begin(); it != _graph->_wallMap.end(); it++) {
-//                wallfile    << it->second->_line.p.transpose() << " "
-//                            << it->second->_line.q.transpose() << std::endl;
-//            }
-//            wallfile.close();
-//
-//            std::ofstream posefile;
-//            posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
-//            posefile << pose->_pose.transpose() << std::endl;
-//            posefile.close();
+            std::ofstream wallfile;
+            wallfile.open ("/home/ism/tmp/wall.dat", std::ios::out);
+            std::map<int, Wall::Ptr>::iterator it;
+            for (it = _graph->_wallMap.begin(); it != _graph->_wallMap.end(); it++) {
+                wallfile    << it->second->_line.p.transpose() << " "
+                            << it->second->_line.q.transpose() << std::endl;
+            }
+            wallfile.close();
+
+            std::ofstream posefile;
+            posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+            posefile << pose->_pose.transpose() << std::endl;
+            posefile.close();
         }
 
         _prevTime = _currentTime;

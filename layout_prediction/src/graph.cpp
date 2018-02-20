@@ -652,7 +652,13 @@ namespace MYSLAM {
             double den = 2 * M_PI * sqrt(_w->cov.determinant());
             double num = std::exp(-0.5 * e.transpose() * _w->cov.inverse() * e);
             double p = num/den;
-//            double p = std::exp(logp);
+
+            std::cout << "INOV: " << e.transpose() << std::endl;
+            std::cout << "DEN: " << den << std::endl;
+            std::cout << "NUM: " << num << std::endl;
+            std::cout << "COV: " << _w->cov.inverse() << std::endl;
+            std::cout << "P: " << p << std::endl;
+            std::cout << "PMAX: " << pmax << std::endl;
             if (p > pmax) {
                 pmax = p;
                 id = _w->_id;
@@ -668,12 +674,10 @@ namespace MYSLAM {
         double p_thres = num_thres/den_thres;
 
         if (pmax > p_thres) {
-            std::cout << "HIT" << std::endl;
             w = _wallMap[id];
             return false;
            
         } else {
-            std::cout << "NEW" << std::endl;
             return true;
         }
     }

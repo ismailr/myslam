@@ -657,12 +657,26 @@ namespace MYSLAM {
             cloudset.clear();
         }
 
+        std::map<std::tuple<double, double>, std::vector<w> > cluster;
         for (int i = 0; i < clusters.size(); i++) {
-            std::cout << i << "\t-->\t";
             for (int j = 0; j < clusters[i].size(); j++) {
-                std::cout << "\t\t" << std::get<0>(clusters[i][j])->_line.xx.transpose() << " " << std::get<0>(clusters[i][j])->_line.length << std::endl;
+                double _x, _y, x_, y_;
+                _x = std::get<0>(clusters[i][j])->_line.xx[0];
+                _y = std::get<0>(clusters[i][j])->_line.xx[1];
+                
+                x_ = round (_x);
+                y_ = round (_y);
+
+                std::tuple<double, double> wall = std::make_tuple (x_,y_);
+                cluster[wall].push_back (clusters[i][j]);
             }
-            std::cout << std::endl;
+        }
+
+        std::map<std::tuple<double, double>, std::vector<w> >::iterator cit;
+        for (cit = cluster.begin(); cit != cluster.end(); cit++) {
+            if (cit->second.size() >= 2) {
+                outWalls.push_back (cit->second[1]);
+            }
         }
     }
 

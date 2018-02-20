@@ -272,6 +272,7 @@ namespace MYSLAM {
             Wall();
             void initParams ();
             void updateParams ();
+            void updateSegment (Eigen::Vector2d p, Eigen::Vector2d q);
 
             unsigned long int _id;
             Line _line;
