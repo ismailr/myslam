@@ -796,7 +796,7 @@ namespace MYSLAM {
                 break;
             }
 
-            if(inliers.indices.size() > 100)
+            if(inliers.indices.size() > 150)
             {
                 Eigen::Vector2d mc_;
                 double& m_ = mc_[0]; 

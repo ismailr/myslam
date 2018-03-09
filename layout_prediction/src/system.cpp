@@ -464,7 +464,7 @@ namespace MYSLAM {
 
             // detectwall
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
-            _wallDetector->detect2 (pose, cloud, walls);
+            _wallDetector->detect (pose, cloud, walls);
 
           // data association
             for (size_t i = 0; i < walls.size(); i++)
@@ -504,7 +504,7 @@ namespace MYSLAM {
 
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
 //            clock_t wdstart = clock();
-            _wallDetector->detect (pose, cloud, walls);
+            _wallDetector->detect2 (pose, cloud, walls);
 //            wdfile << (double)(clock() - wdstart)/CLOCKS_PER_SEC << std::endl;
 //            wdfile.close();
 
@@ -549,7 +549,7 @@ namespace MYSLAM {
                     // update segment
                     Eigen::Vector2d p = std::get<0>(walls[i])->_line.p;
                     Eigen::Vector2d q = std::get<0>(walls[i])->_line.q;
-//                    _graph->_wallMap[w->_id]->updateSegment (p, q);
+                    _graph->_wallMap[w->_id]->updateSegment (p, q);
                 } else {
                     // new landmarks
 //                    w = std::get<0>(walls[i]);
@@ -588,6 +588,7 @@ namespace MYSLAM {
 //        allfile.close();
 
         _visualizer->visualizeCloud(cloud);
+        _visualizer->visualizeWallOptimizedPq ();
     }
 }
 

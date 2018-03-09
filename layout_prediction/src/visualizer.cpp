@@ -19,7 +19,8 @@ namespace MYSLAM {
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
 
         visualization_msgs::Marker marker;
-        marker.header.frame_id = "odom_combined";
+//        marker.header.frame_id = "odom_combined";
+        marker.header.frame_id = "map";
 
         marker.ns = "wall";
 //        marker.id = 0; //marker_id++;

@@ -248,6 +248,56 @@ add_executable(simulation
     #    src/isamlib/Slam.cpp
 )
 
+add_executable(wall_detection
+    src/wall_detection.cpp
+	src/helpers.cpp
+	src/pose.cpp
+    src/wall.cpp
+    src/tracker.cpp
+    src/wall_detector.cpp
+    src/system.cpp
+    src/graph.cpp
+    src/pose_measurement.cpp
+    src/wall_measurement.cpp
+    src/types_myslam.cpp
+    src/angle_measurement.cpp
+    src/simulator.cpp
+    src/settings.cpp
+    src/optimizer.cpp
+    src/visualizer.cpp
+    src/particle.cpp
+    src/particle_filter.cpp
+    src/icp.cpp
+    src/ekf_mapper.cpp
+    #    src/fitness_measurement.cpp
+    src/g2o/vertex_se2.cpp
+    src/g2o/vertex_line2d.cpp
+    src/g2o/edge_se2.cpp
+    src/g2o/edge_se2_line2d.cpp
+    src/g2o/edge_line2d.cpp
+    src/slam_interface.cpp
+    src/sparse_optimizer_online.cpp
+    src/sparse_optimizer_incremental.cpp
+    #    src/isamlib/Node.cpp
+    #    src/isamlib/util.cpp
+    #    src/isamlib/numericalDiff.cpp
+    #    src/isamlib/Pose2d.cpp
+    #    src/isamlib/Pose3d.cpp
+    #    src/isamlib/Optimizer.cpp
+    #    src/isamlib/SparseMatrix.cpp
+    #    src/isamlib/SparseSystem.cpp
+    #    src/isamlib/SparseVector.cpp
+    #    src/isamlib/OrderedSparseMatrix.cpp
+    #    src/isamlib/Anchor.cpp
+    #    src/isamlib/Cholesky.cpp
+    #    src/isamlib/ChowLiuTree.cpp
+    #    src/isamlib/Covariances.cpp
+    #    src/isamlib/GLCReparam.cpp
+    #    src/isamlib/covariance.cpp
+    #    src/isamlib/glc.cpp
+    #    src/isamlib/Slam.cpp
+)
+
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(layout_prediction_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -272,6 +322,24 @@ target_link_libraries(layout_prediction
 )
 
 target_link_libraries(simulation
+	${catkin_LIBRARIES}
+	${G2O_CORE_LIBRARY}
+	${G2O_STUFF_LIBRARY}
+    ${G2O_SOLVER_CHOLMOD}
+	${G2O_SOLVER_CSPARSE}
+	${G2O_SOLVER_CSPARSE_EXTENSION}
+    ${G2O_TYPES_SLAM3D}
+    ${G2O_TYPES_SLAM2D}
+    ${G2O_OPENGL_HELPER}
+    ${OPENGL_gl_LIBRARY}
+    ${GLUT_LIBRARIES}
+    "/usr/local/lib/libg2o_incremental.so"
+    "/usr/local/lib/libg2o_interactive.so"
+    "/usr/lib64/libconfig++.so"
+    ${LIBPOINTMATCHER_LIBRARIES}
+)
+
+target_link_libraries(wall_detection
 	${catkin_LIBRARIES}
 	${G2O_CORE_LIBRARY}
 	${G2O_STUFF_LIBRARY}

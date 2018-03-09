@@ -638,9 +638,12 @@ namespace MYSLAM {
         double pmin = std::numeric_limits<double>::max();
         int id;
         Eigen::Matrix2d cov;
+        bool candidate = false;
 
         // min log likelihood
-        std::cout << "MEASURED WALL " << (pose * z).transpose() << std::endl;
+//        std::cout << std::endl;
+//        std::cout << "****************************" << std::endl;
+//        std::cout << "MEASURED WALL: " << (pose * z).transpose() << std::endl;
         for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
                 it != _wallMap.end(); it++)
         {
@@ -655,35 +658,41 @@ namespace MYSLAM {
 //            double p = num/den;
             double p = log(_w->cov.determinant()) + e.transpose() * _w->cov.inverse() * e;
 
-            std::cout << "+ " << _w->_line.xx.transpose();
+//            std::cout << "+\t" << _w->_line.xx.transpose();
             if (p < pmin) {
-                std::cout << " ---> CANDIDATE" << std::endl;
+//                std::cout << " ---> CANDIDATE" << std::endl;
                 pmin = p;
                 id = _w->_id;
                 cov = _w->cov;
+                candidate = true;
             }
+//            std::cout << std::endl;
         }
-        std::cout << std::endl;
 
-        double stdevx = sqrt (cov(0,0));
-        double stdevy = sqrt (cov(1,1));
-        Eigen::Vector2d stdv (stdevx + w->_line.xx[0], stdevy + w->_line.xx[1]);
-//        double den_thres = 2 * M_PI * sqrt (cov.determinant());
-//        double num_thres = std::exp (-0.5 * stdv.transpose() * cov.inverse() * stdv);
-//        double p_thres = num_thres/den_thres;
-//        double p_thres = log(cov.determinant()) + stdv.transpose() * cov.inverse() * stdv;
-        double p_thres = 1.25 * log(cov.determinant());
-
-        std::cout   << "STD DEV: " << stdevx << " " << stdevy << std::endl;
-        std::cout   << "WINNER: " << _wallMap[id]->_line.xx.transpose() 
-                    << " WITH P: " << pmin << " AND THRESHOLD IS: " << p_thres << std::endl;
-        std::cout << std::endl;
+        double p_thres = std::numeric_limits<double>::min();
+        if (candidate) {
+            double stdevx = sqrt (cov(0,0));
+            double stdevy = sqrt (cov(1,1));
+            double xmean = _wallMap[id]->_line.xx[0];
+            double ymean = _wallMap[id]->_line.xx[1];
+//            Eigen::Vector2d stdv (0.2 * stdevx - _wallMap[id]->_line.xx[0], 0.2 * stdevy - _wallMap[id]->_line.xx[1]);
+            Eigen::Vector2d stdv (0.1 * xmean, 0.1 * ymean);
+    //        double den_thres = 2 * M_PI * sqrt (cov.determinant());
+    //        double num_thres = std::exp (-0.5 * stdv.transpose() * cov.inverse() * stdv);
+    //        double p_thres = num_thres/den_thres;
+            p_thres = log(cov.determinant()) + stdv.transpose() * cov.inverse() * stdv;
+        }
 
         if (pmin < p_thres) {
             w = _wallMap[id];
+//            std::cout   << "WINNER: " << w->_line.xx.transpose() 
+//                        << " WITH P: " << pmin << " AND THRESHOLD IS: " << p_thres << std::endl;
+//            std::cout << std::endl;
             return false;
            
         } else {
+//            std::cout << "NEW LANDMARK" << std::endl;
+//            std::cout << "****************************" << std::endl;
             return true;
         }
     }
