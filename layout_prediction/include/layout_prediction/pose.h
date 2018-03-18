@@ -39,64 +39,6 @@
 
 using namespace g2o;
 
-class Pose : public BaseVertex<3, SE2>
-{
-    public:
-    typedef std::shared_ptr<Pose> Ptr;
-    typedef std::shared_ptr<const Pose> ConstPtr;
-
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-    Pose();
-
-    virtual void setToOriginImpl() {
-        _estimate = SE2();
-    }
-
-    virtual void oplusImpl(const double* update)
-    {
-        SE2 up(update[0], update[1], update[2]);
-        _estimate *= up;
-    }
-
-    virtual bool read(std::istream& is);
-    virtual bool write(std::ostream& os) const;
-
-    bool operator == (const Pose::Ptr& posePtr) const
-    {
-        if (this->id() == posePtr->id())
-            return true;
-        else
-            return false;
-    }
-};
-
-class Pose2: public VertexSE2
-{
-    public:
-    EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
-
-    std::string nodetype;
-
-    typedef std::shared_ptr<Pose2> Ptr;
-    typedef std::shared_ptr<const Pose2> ConstPtr;
-    Pose2 ();
-
-    void setModel (SE2& t) { _model = &t; };
-    SE2* getModel () const { return _model; };
-
-    void insert_detected_wall (Wall2::Ptr& w) { _detectedWalls.push_back (w); };
-    std::vector<Wall2::Ptr> get_detected_walls () { return _detectedWalls; };
-
-    void insert_detected_wall3 (int);
-    std::vector<int> get_detected_walls3 () const { return _detectedWalls3; };
-    bool is_detected_wall (int);
-
-    private:
-    SE2* _model;
-    std::vector<Wall2::Ptr> _detectedWalls;
-    std::vector<int> _detectedWalls3;
-};
-
 namespace MYSLAM {
     class Pose
     {

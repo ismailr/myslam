@@ -22,6 +22,7 @@ int main (int argc, char** argv)
 
     MYSLAM::Simulator sim;
     sim.run();
+//    sim.generateLandmark ();
 
     return 0;
 }

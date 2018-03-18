@@ -7,12 +7,25 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
 #include "layout_prediction/settings.h"
+#include "layout_prediction/graph.h"
 
 #include <Eigen/Core>
 
 using namespace g2o;
 
 namespace MYSLAM {
+    extern double odomdata[53133];
+    extern double landmark5[10];
+    extern double landmark10[20];
+    extern double landmark20[40];
+    extern double landmark50[100];
+    extern double landmark100[200];
+    extern double landmark200[400];
+    extern double landmark300[600];
+    extern double landmark500[1000];
+    extern double landmark700[1400];
+    extern double landmark1000[2000];
+
     class Simulator
     {
         public:
@@ -48,7 +61,12 @@ namespace MYSLAM {
                 std::vector<Dinding*> sensedDinding;
                 std::vector<Eigen::Vector2d> sensedData;
 
+                // for statistics
+                std::vector<Eigen::Vector3d> truePath;
+                std::vector<int> finalpose;
+
                 void move();
+                void move(int);
                 void turn(int direction, double angle);
                 void sense();
 
@@ -61,9 +79,9 @@ namespace MYSLAM {
 
             private:
                 Simulator* _sim;
-                const double xnoise_stdev = 5e-2, ynoise_stdev = 1e-2, pnoise_stdev  = 2.0 * M_PI/180.; 
-                const double wnoise_stdev = 5e-2;
-                const double RANGE = 10.0;
+                const double xnoise_stdev = 0.01, ynoise_stdev = 0.01, pnoise_stdev  = 2.0 * M_PI/180.; 
+                const double wnoise_stdev = 0.01;
+                const double RANGE = 2.0;
         };
 
         std::vector<Dinding> struktur;
@@ -78,6 +96,8 @@ namespace MYSLAM {
 
         void run();
         void runPF();
+        void generateLandmark ();
+        void calculateRMSE (MYSLAM::Graph&);
 
         void resample();
 

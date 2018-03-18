@@ -27,47 +27,6 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/helpers.h"
 
-Pose::Pose() : BaseVertex<3, SE2>()
-{
-}
-
-bool Pose::read(std::istream& is)
-{
-    Eigen::Vector3d p;
-    is >> p[0] >> p[1] >> p[2];
-    _estimate.fromVector(p);
-    return true;
-}
-
-bool Pose::write(std::ostream& os) const
-{
-    Eigen::Vector3d p = estimate().toVector();
-    os << p[0] << " " << p[1] << " " << p[2];
-    return os.good();
-}
-
-Pose2::Pose2() : VertexSE2()
-{
-    nodetype = "POSE2";
-}
-
-void Pose2::insert_detected_wall3(int id)
-{
-    if (!is_detected_wall(id))
-        _detectedWalls3.push_back (id);
-}
-
-bool Pose2::is_detected_wall (int id)
-{
-    for (int i = 0; i < _detectedWalls3.size(); i++)
-    {
-        if (id == _detectedWalls3[i])
-            return true;
-    }
-
-    return false;
-}
-
 namespace MYSLAM {
     Pose::Pose() : _previousId (-1) { 
         _id = Generator::id++;

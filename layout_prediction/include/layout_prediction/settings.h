@@ -16,6 +16,7 @@ namespace MYSLAM {
     extern int WALL_DETECTOR_CLOUD_ROW;
     extern double DATA_ASSOCIATION_THRESHOLD;
     extern int SIM_NUMBER_OF_ITERATIONS;
+    extern int SIM_NUMBER_OF_LANDMARKS;
     extern int TRACKER_METHOD;
     extern int PF_NUMBER_OF_PARTICLES;
 

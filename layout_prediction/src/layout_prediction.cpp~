@@ -14,6 +14,8 @@
 #include "layout_prediction/simulator.h"
 #include "layout_prediction/settings.h"
 
+#include <thread>
+
 int main (int argc, char** argv)
 {
     const char *fileconfig = "/home/ism/work/code/ros/src/myslam/layout_prediction/src/myslam.cfg";
@@ -24,41 +26,38 @@ int main (int argc, char** argv)
 	ros::init (argc,argv,"layout_prediction");
 	ros::NodeHandle nh;
 
-//    Graph2 graph2;
-//    System2 system2 (nh, graph2);
-//    WallDetector2 wallDetector2 (system2, graph2);
-//    Tracker2 tracker2 (system2, graph2);
-
     MYSLAM::System system (nh);
+    MYSLAM::Tracker *tracker = system.getTracker();
+//    std::thread tracker_thread (&MYSLAM::Tracker::run, tracker);
 
     // Get sensors data
     message_filters::Subscriber<sensor_msgs::PointCloud2> cloud_sub (nh, "cloud", 1);
-//    message_filters::Subscriber<sensor_msgs::Image> rgb_sub (nh, "rgb", 1);
-//    message_filters::Subscriber<sensor_msgs::Image> depth_sub (nh, "depth", 1);
+    message_filters::Subscriber<sensor_msgs::Image> rgb_sub (nh, "rgb", 1);
+    message_filters::Subscriber<sensor_msgs::Image> depth_sub (nh, "depth", 1);
     message_filters::Subscriber<nav_msgs::Odometry> odometry_sub (nh, "odometry", 1);
-//    message_filters::Subscriber<nav_msgs::Odometry> action_sub (nh, "action", 1);
+    message_filters::Subscriber<nav_msgs::Odometry> action_sub (nh, "action", 1);
     message_filters::Subscriber<nav_msgs::Odometry> wodom_sub (nh, "wodom", 1);
-//    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> odomcombined_sub (nh, "odomcombined", 1);
+    message_filters::Subscriber<geometry_msgs::PoseWithCovarianceStamped> odomcombined_sub (nh, "odomcombined", 1);
 
     typedef message_filters::sync_policies::ApproximateTime
         <   sensor_msgs::PointCloud2, 
 //            sensor_msgs::Image, 
 //            sensor_msgs::Image, 
-            nav_msgs::Odometry, 
+            nav_msgs::Odometry//, 
 //            nav_msgs::Odometry,
-            nav_msgs::Odometry//,
+//            nav_msgs::Odometry,
 //            geometry_msgs::PoseWithCovarianceStamped
                 > MySyncPolicy;
     message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (100),   cloud_sub, 
 //                                                                            rgb_sub, 
 //                                                                            depth_sub, 
-                                                                            odometry_sub, 
+                                                                            odometry_sub//, 
 //                                                                            action_sub,
-                                                                            wodom_sub,
+//                                                                            wodom_sub,
 //                                                                            odomcombined_sub
                                                                             );
 
-    sync.registerCallback (boost::bind (&MYSLAM::System::readSensorsData, &system, _1, _2, _3/*, _4, _5, _6, _7*/));
+    sync.registerCallback (boost::bind (&MYSLAM::System::readSensorsData, &system, _1, _2, _3, _4, _5, _6, _7));
 
     ros::spin();
     return 0;

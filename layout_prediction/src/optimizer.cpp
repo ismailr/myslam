@@ -80,14 +80,14 @@ namespace MYSLAM {
         std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
-        poseCovMatrix.setIdentity();
-        poseCovMatrix <<    2.5e-3, 0.0, 0.0,
-                            0.0, 1e-4, 0.0,
+//        poseCovMatrix.setIdentity();
+        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
+                            0.0, 1.0e-4, 0.0,
                             0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
 //        wallCovMatrix.setIdentity();
-        wallCovMatrix <<    2.5e-3, 0.0,
-                            0.0, 2.5e-3;
+        wallCovMatrix <<    1.0e-4, 0.0,
+                            0.0, 1.0e-4;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
