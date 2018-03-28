@@ -1,5 +1,6 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/object.h"
 #include "layout_prediction/wall.h"
 #include "layout_prediction/point.h"
 #include "layout_prediction/angle_measurement.h"
@@ -73,11 +74,16 @@ namespace MYSLAM {
 
         std::vector<int>& activePoses = _graph->_activePoses;
         std::set<int>& activeWalls = _graph->_activeWalls;
+        std::set<int>& activeObjects = _graph->_activeObjects;
         std::set<int>& lastActiveWalls = _graph->_lastActiveWalls;
+        std::set<int>& lastActiveObjects = _graph->_lastActiveObjects;
         std::vector<std::tuple<int,int> >& activeEdges = _graph->_activeEdges;
+        std::vector<std::tuple<int,int> >& activePoseObjectEdges = _graph->_activePoseObjectEdges;
         std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
+        std::map<int, Object::Ptr>& objectMap = _graph->_objectMap;
         std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
+        std::map<std::tuple<int, int>, Eigen::Vector3d>& poseObjectMap = _graph->_poseObjectMap;
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
 //        poseCovMatrix.setIdentity();
@@ -88,6 +94,11 @@ namespace MYSLAM {
 //        wallCovMatrix.setIdentity();
         wallCovMatrix <<    1.0e-4, 0.0,
                             0.0, 1.0e-4;
+        Eigen::Matrix<double, 3, 3> objectCovMatrix;
+//        poseCovMatrix.setIdentity();
+        objectCovMatrix <<    1.0e-4, 0.0, 0.0,
+                            0.0, 1.0e-4, 0.0,
+                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
@@ -170,6 +181,21 @@ namespace MYSLAM {
 //            }
         }
 
+        for (std::set<int>::iterator it = activeObjects.begin();
+                it != activeObjects.end(); it++)
+        {
+            Object* object = objectMap[*it].get(); 
+            double& x = object->_pose[0]; 
+            double& y = object->_pose[1];
+            double& p = object->_pose[2];
+
+            SE2 vse2 (x,y,p); 
+            ObjectVertex *v = new ObjectVertex; 
+            v->setId (object->_id); 
+            v->setEstimate (vse2);
+            o->addVertex (v); 
+        }
+
         for (std::vector<std::tuple<int,int> >::iterator it = activeEdges.begin();
                 it != activeEdges.end(); it++)
         {
@@ -189,6 +215,25 @@ namespace MYSLAM {
 //            rk->setDelta (sqrt(5.99));
 
             o->addEdge (wm);
+        }
+
+        for (std::vector<std::tuple<int,int> >::iterator it = activePoseObjectEdges.begin();
+                it != activePoseObjectEdges.end(); it++)
+        {
+            SE2 data; data.fromVector (poseObjectMap[*it]);
+
+            ObjectMeasurement* om = new ObjectMeasurement;
+
+            om->vertices()[0] = o->vertex (std::get<0>(*it));
+            om->vertices()[1] = o->vertex (std::get<1>(*it));
+            om->setMeasurement (data);
+            om->information() = objectCovMatrix.inverse();
+            
+//            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+//            wm->setRobustKernel (rk);
+//            rk->setDelta (sqrt(5.99));
+
+            o->addEdge (om);
         }
 
         std::ofstream mfile;
@@ -231,12 +276,32 @@ namespace MYSLAM {
             wallMap[*it]->updateParams ();
         }
 
+        std::ofstream objectfile;
+        objectfile.open ("/home/ism/tmp/object.dat", std::ios::out | std::ios::app);
+        for (std::set<int>::iterator it = activeObjects.begin();
+                it != activeObjects.end(); it++)
+        {
+            ObjectVertex* optv = dynamic_cast<ObjectVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            objectMap[*it]->_pose[0] = x;
+            objectMap[*it]->_pose[1] = y;
+            objectMap[*it]->_pose[2] = p;
+        }
+        objectfile.close();
+
         int fixPoseForNextIter = activePoses.back();
         activePoses.clear();
         lastActiveWalls.clear();
         lastActiveWalls = activeWalls;
+        lastActiveObjects.clear();
+        lastActiveObjects = activeObjects;
         activeWalls.clear();
+        activeObjects.clear();
         activeEdges.clear();
+        activePoseObjectEdges.clear();
         activePoses.push_back (fixPoseForNextIter);
     }
 

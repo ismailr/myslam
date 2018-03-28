@@ -27,6 +27,7 @@ namespace MYSLAM {
 
             Pose::Ptr _lastPose;
             SE2 *_lastOdom;
+            SE2 *_measurement;
             pcl::PointCloud<pcl::PointXYZ>::Ptr _lastPCL; 
             sensor_msgs::PointCloud2ConstPtr _lastDP;
 

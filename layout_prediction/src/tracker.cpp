@@ -30,6 +30,7 @@ namespace MYSLAM {
         _buffer = new tf2_ros::Buffer;
         _listener2 = new tf2_ros::TransformListener (*_buffer);
         _lastOdom = new SE2();
+        _measurement = new SE2();
 //        _lastPCL = pcl::PointCloud<pcl::PointXYZ>::Ptr(new pcl::PointCloud<pcl::PointXYZ>);
     };
 
@@ -75,6 +76,9 @@ namespace MYSLAM {
 
     void Tracker::trackPoseByOdometry (double* d, Pose::Ptr& pose)
     {
+        SE2 odom (d[0], d[1], d[2]);
+        *_measurement = _lastOdom->inverse() * odom;
+
         // heading change
         double dt = d[2] - _lastOdom->rotation().angle();
 

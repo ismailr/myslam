@@ -29,8 +29,10 @@
 
 #include "pose.h"
 #include "wall.h"
+#include "object.h"
 #include "pose_measurement.h"
 #include "wall_measurement.h"
+#include "object_measurement.h"
 #include "angle_measurement.h"
 
 #endif

@@ -24,20 +24,26 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/types_myslam.h"
+#ifndef _MYSLAM_OBJECT_MEASUREMENT_H
+#define _MYSLAM_OBJECT_MEASUREMENT_H
 
-#include "g2o/core/factory.h"
-#include "g2o/stuff/macros.h"
+#include <memory>
+#include <math.h>
+#include <fstream>
 
-#include <iostream>
+#include <g2o/core/base_binary_edge.h>
+#include <g2o/types/slam2d/edge_se2.h>
+
+#include "layout_prediction/object.h"
 
 namespace MYSLAM {
-    G2O_REGISTER_TYPE_GROUP(myslam);
-    G2O_REGISTER_TYPE(MYSLAM_POSE, PoseVertex);
-    G2O_REGISTER_TYPE(MYSLAM_WALL, WallVertex);
-    G2O_REGISTER_TYPE(MYSLAM_OBJECT, ObjectVertex);
-    G2O_REGISTER_TYPE(MYSLAM_POSE_MEASUREMENT, PoseMeasurement);
-    G2O_REGISTER_TYPE(MYSLAM_WALL_MEASUREMENT, WallMeasurement);
-    G2O_REGISTER_TYPE(MYSLAM_OBJECT_MEASUREMENT, ObjectMeasurement);
-    G2O_REGISTER_TYPE(MYSLAM_ANGLE_MEASUREMENT, AngleMeasurement);
+    class ObjectMeasurement : public EdgeSE2 
+    {
+        public:
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+            ObjectMeasurement();
+    };
+
 }
+#endif

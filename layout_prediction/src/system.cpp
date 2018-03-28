@@ -2,6 +2,7 @@
 #include <string>
 #include <fstream>
 #include <thread>
+#include <cmath>
 
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud2.h>
@@ -187,8 +188,8 @@ namespace MYSLAM {
                 pose->_detectedWalls.push_back (w->_id);
             }
 
-            if (System::_frameCounter % 30 == 0)
-//            if (_graph->_activeWalls.size() >= 3)
+//            if (System::_frameCounter % 5 == 0)
+            if (_graph->_activeWalls.size() >= 3 && _graph->_activePoses.size() >= 7)
             {
 //                _visualizer->visualizeWallOptimizedPq();
                 std::ofstream lfile;
@@ -316,11 +317,18 @@ namespace MYSLAM {
         proj = cloud->makeShared();
 
         for (int i = 0; i < cloud->size(); i++) {
-            proj->points[i].z = 0.0;
+//            proj->points[i].z = 0.0;
+            if (proj->points[i].z <= 1.5 || proj->points[i].z >= 2.0) {
+                proj->points[i].x = 0.0;
+                proj->points[i].y = 0.0;
+                proj->points[i].z = 0.0; }
+//            else {
+//                proj->points[i].z = 0.0;
+//            }
         }
 
-        _visualizer->visualizeCloud(proj);
-        _visualizer->visualizeWallOptimizedPq ();
+//        _visualizer->visualizeCloud(proj);
+//        _visualizer->visualizeWallOptimizedPq ();
 
     }
 }

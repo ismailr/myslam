@@ -108,7 +108,7 @@ namespace MYSLAM {
         else
             marker.header.frame_id = "odom_combined";
 
-        marker.id = /* 0;*/ Visualizer::marker_id++;
+        marker.id = 0; //Visualizer::marker_id++;
         marker.type = visualization_msgs::Marker::LINE_LIST;
 
         marker.action = visualization_msgs::Marker::ADD;
@@ -134,7 +134,7 @@ namespace MYSLAM {
         _pub_wall_measured_pq.publish(marker);
     }
 
-    void Visualizer::visualizeCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud)
+    void Visualizer::visualizeCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& cloud) 
     {
         _pub_cloud.publish (*cloud);
     }

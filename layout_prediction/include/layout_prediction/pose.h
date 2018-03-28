@@ -36,6 +36,7 @@
 #include "se2.h"
 
 #include "layout_prediction/wall.h"
+#include "layout_prediction/object.h"
 
 using namespace g2o;
 
@@ -53,6 +54,7 @@ namespace MYSLAM {
             Eigen::Matrix<double,3,3> poseCovarianceMatrix;
 
             std::vector<int> _detectedWalls;
+            std::vector<int> _detectedObjects;
     };
 
     class PoseVertex: public VertexSE2

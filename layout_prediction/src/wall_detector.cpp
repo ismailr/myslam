@@ -47,7 +47,7 @@ namespace MYSLAM {
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-        prepareCloud (inCloud, cloud);
+        prepareCloud2 (inCloud, cloud);
 
         std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudset;
         clusterCloud (cloud, cloudset);
@@ -65,6 +65,9 @@ namespace MYSLAM {
             {
             }
         }
+
+        cloud->header.frame_id = inCloud->header.frame_id;
+        _system->getVisualizer()->visualizeCloud (cloud);
     }
 
     void WallDetector::detect2(Pose::Ptr& pose, const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
@@ -130,6 +133,18 @@ namespace MYSLAM {
             for(int i = 0; i < width; i++)
                 outCloud->push_back(inCloud->at(i,height));
         else if (_method == PLANE_FITTING) {}
+    }
+
+    void WallDetector::prepareCloud2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
+            pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud)
+    {
+        for (int i = 0; i < inCloud->size(); i++) {
+            if (inCloud->points[i].z >= 1.5 && inCloud->points[i].z <= 2.0) {
+                pcl::PointXYZ p = inCloud->points[i];
+                p.z = 0.0;
+                outCloud->push_back (p);
+            }
+        }
     }
 
     void WallDetector::clusterCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
@@ -236,7 +251,7 @@ namespace MYSLAM {
                 break;
             }
 
-            if(inliers.indices.size() > 150)
+            if(inliers.indices.size() > 100)
             {
                 Eigen::Vector2d mc_;
                 double& m_ = mc_[0]; 

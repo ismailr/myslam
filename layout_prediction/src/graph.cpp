@@ -68,13 +68,17 @@ namespace MYSLAM {
         double dtmin = std::numeric_limits<double>::max();
         int idmin = w->_id;
 
-        std::cout << "DETECTED WALL: " << w->_line.xx.transpose() << std::endl;
-        std::cout << "SEARCH FOR ASSOCIATION: " << std::endl;
-        for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
-                it != _wallMap.end(); it++)
+        std::set<int> walls;
+        walls.insert (_lastActiveWalls.begin(), _lastActiveWalls.end());
+        walls.insert (_activeWalls.begin(), _activeWalls.end());
+
+//        for (std::map<int, Wall::Ptr>::iterator it = _wallMap.begin();
+//                it != _wallMap.end(); it++)
+        for (std::set<int>::iterator it = walls.begin();
+                it != walls.end(); it++)
         {
-            double& xxref = _wallMap[it->first]->_line.xx[0];
-            double& xyref = _wallMap[it->first]->_line.xx[1];
+            double& xxref = _wallMap[*it]->_line.xx[0];
+            double& xyref = _wallMap[*it]->_line.xx[1];
             double rref = sqrt (xxref*xxref + xyref*xyref);
             double tref = atan2 (xyref,xxref);
 
@@ -84,23 +88,17 @@ namespace MYSLAM {
             if (dr < drmin && dt < dtmin) {
                 drmin = dr;
                 dtmin = dt;
-                idmin = it->first;
+                idmin = *it;
             }
-
-            std::cout << it->first << "\t" << it->second->_line.xx.transpose() << std::endl;
         }
-
 
         if (drmin < _dr_ && dtmin < _dt_) {
             Eigen::Vector2d p = w->_line.p;
             Eigen::Vector2d q = w->_line.q;
             _wallMap[idmin]->updateSegment (p,q);
 
-            std::cout << "FOUND: " << w->_line.xx.transpose() << " ----> " << _wallMap[idmin]->_line.xx.transpose() << std::endl;
             return _wallMap[idmin];
         }
-
-        std::cout << "NOT FOUND" << std::endl;
 
         // new landmark
         _wallMap[w->_id] = w;

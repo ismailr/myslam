@@ -45,6 +45,8 @@ namespace MYSLAM {
                     std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls);
             void prepareCloud (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
                     pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud);
+            void prepareCloud2 (const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
+                    pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud);
             void clusterCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, 
                     std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr>& cloudset);
             void lineFitting (pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud, Pose::Ptr& pose, 

@@ -6,6 +6,7 @@
 #include "se2.h"
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
+#include "layout_prediction/object.h"
 #include "layout_prediction/settings.h"
 #include "layout_prediction/graph.h"
 
@@ -25,6 +26,7 @@ namespace MYSLAM {
     extern double landmark500[1000];
     extern double landmark700[1400];
     extern double landmark1000[2000];
+    extern double objects[30];
 
     class Simulator
     {
@@ -37,6 +39,12 @@ namespace MYSLAM {
             double m, c, xx, xy;
             Eigen::Vector2d p;
             Eigen::Vector2d q;
+        };
+
+        struct Benda
+        {
+            int id;
+            Eigen::Vector3d pose;
         };
 
         class Particle
@@ -60,6 +68,8 @@ namespace MYSLAM {
                 Eigen::Vector3d simPose;
                 std::vector<Dinding*> sensedDinding;
                 std::vector<Eigen::Vector2d> sensedData;
+                std::vector<Benda*> sensedBenda;
+                std::vector<Eigen::Vector3d> sensedDataBenda;
 
                 // for statistics
                 std::vector<Eigen::Vector3d> truePath;
@@ -79,12 +89,13 @@ namespace MYSLAM {
 
             private:
                 Simulator* _sim;
-                const double xnoise_stdev = 0.01, ynoise_stdev = 0.01, pnoise_stdev  = 2.0 * M_PI/180.; 
-                const double wnoise_stdev = 0.01;
-                const double RANGE = 2.0;
+                const double xnoise_stdev = 1.0e-2, ynoise_stdev = 1.0e-2, pnoise_stdev  = 2.0 * M_PI/180.; 
+                const double wnoise_stdev = 1.0e-2;
+                const double RANGE = 5.0;
         };
 
         std::vector<Dinding> struktur;
+        std::vector<Benda> bendabenda;
         Robot *robot;
         std::vector<Particle> particles;
         int N = MYSLAM::PF_NUMBER_OF_PARTICLES; // Num of particles
@@ -93,6 +104,7 @@ namespace MYSLAM {
         void getNextStatePF();
 
         std::vector<Dinding> getStruktur () const { return struktur; };
+        std::vector<Benda> getBendaBenda () const { return bendabenda; };
 
         void run();
         void runPF();

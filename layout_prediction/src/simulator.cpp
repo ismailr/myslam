@@ -103,6 +103,11 @@ namespace MYSLAM {
     {
         sensedData.clear();
         sensedDinding.clear();
+        sensedDataBenda.clear();
+        sensedBenda.clear();
+
+        SE2 simpose; simpose.fromVector (simPose);
+        SE2 truepose; truepose.fromVector (truePose);
 
         // sensor model
         for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
@@ -112,9 +117,6 @@ namespace MYSLAM {
 
             double u = (*it).xx;
             double v = (*it).xy;
-
-            SE2 simpose; simpose.fromVector (simPose);
-            SE2 truepose; truepose.fromVector (truePose);
 
             Eigen::Vector2d xx (u, v);
 //            Eigen::Vector2d xx_ = simpose.inverse() * xx;
@@ -131,6 +133,37 @@ namespace MYSLAM {
                 {
                     sensedDinding.push_back (&(*it));
                     sensedData.push_back (data);
+                }
+            }
+        }
+
+        for (std::vector<Benda>::iterator it = _sim->bendabenda.begin(); it != _sim->bendabenda.end(); it++)
+        {
+            double oxnoise = gaussian_generator<double>(0.0, 1.0e-2);
+            double oynoise = gaussian_generator<double>(0.0, 1.0e-2);
+            double otnoise = gaussian_generator<double>(0.0, 2.0*M_PI/180.0);
+
+            SE2 objectPose; objectPose.fromVector (it->pose);
+
+            SE2 objectMeasurement = truepose.inverse() * objectPose;
+            SE2 objectMeasurementWithNoise (
+                   objectMeasurement.toVector()[0] + oxnoise, 
+                   objectMeasurement.toVector()[1] + oynoise, 
+                   objectMeasurement.toVector()[2] + otnoise); 
+
+            double& omx = objectMeasurementWithNoise.toVector()[0];
+            double& omy = objectMeasurementWithNoise.toVector()[1];
+            double& omt = objectMeasurementWithNoise.toVector()[2];
+
+            double r = sqrt (omx*omx + omy*omy);
+            double angle = normalize_theta (atan2 (omy,omx));
+
+            if (r <= RANGE)
+            {
+                if ((angle >= 0.0 && angle < M_PI/2) || (angle > -2*M_PI && angle <= -M_PI/2))
+                {
+                    sensedBenda.push_back (&(*it));
+                    sensedDataBenda.push_back (objectMeasurementWithNoise.toVector());
                 }
             }
         }
@@ -256,11 +289,11 @@ namespace MYSLAM {
 
     Simulator::Simulator()
     {
-//        const int N = 2;
-//        double grads[4] = {2, -.5, 2, -.5};
-//        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
-//        double x[5] = {-12, -6.8, 7.2, 2, -12};
-//        double y[5] = {1, 11.4, 4.4, -6, 1};
+        const int N = 4;
+        double grads[4] = {2, -.5, 2, -.5};
+        double intercepts[4] = {25.0, 8.0, -10.0, -5.0};
+        double x[5] = {-12, -6.8, 7.2, 2, -12};
+        double y[5] = {1, 11.4, 4.4, -6, 1};
 
 //        std::vector<double> grads (N); 
 //        std::vector<double> intercepts (N); 
@@ -282,39 +315,52 @@ namespace MYSLAM {
 //        x.push_back(x[0]);
 //        y.push_back(y[0]);
 
-        const int N = MYSLAM::SIM_NUMBER_OF_LANDMARKS;
+//        const int N = MYSLAM::SIM_NUMBER_OF_LANDMARKS;
 
         ofstream wallfile;
         wallfile.open ("/home/ism/tmp/truewall2.dat", std::ios::out | std::ios::app);
-        for (int i = 0; i < N * 2; i = i + 2)
+//        for (int i = 0; i < N * 2; i = i + 2)
+        for (int i = 0; i < N; i++)
         {
             Dinding *d = new Dinding;
             d->id = i;
-//            d->m = grads[i];
-//            d->c = intercepts[i];
-//            d->xx = -d->m*d->c/(d->m*d->m+1);
-//            d->xy = d->c/(d->m*d->m+1);
+            d->m = grads[i];
+            d->c = intercepts[i];
+            d->xx = -d->m*d->c/(d->m*d->m+1);
+            d->xy = d->c/(d->m*d->m+1);
 //            d->xx = xx[i];
 //            d->xy = xy[i];
 
-            if      (N == 5)    {d->xx = landmark5[i]; d->xy = landmark5[i+1];}    
-            else if (N == 10)   {d->xx = landmark10[i]; d->xy = landmark10[i+1];}
-            else if (N == 20)   {d->xx = landmark20[i]; d->xy = landmark20[i+1];}
-            else if (N == 50)   {d->xx = landmark50[i]; d->xy = landmark50[i+1];}
-            else if (N == 100)  {d->xx = landmark100[i]; d->xy = landmark100[i+1];}
-            else if (N == 200)  {d->xx = landmark200[i]; d->xy = landmark200[i+1];}
-            else if (N == 300)  {d->xx = landmark300[i]; d->xy = landmark300[i+1];}
-            else if (N == 500)  {d->xx = landmark500[i]; d->xy = landmark500[i+1];}
-            else if (N == 700)  {d->xx = landmark700[i]; d->xy = landmark700[i+1];}
-            else if (N == 1000) {d->xx = landmark1000[i]; d->xy = landmark1000[i+1];}
-//            Vector2d p (x[i], y[i]);
-//            Vector2d q (x[i+1], y[i+1]);
-//            d->p = p;
-//            d->q = q;
+//            if      (N == 5)    {d->xx = landmark5[i]; d->xy = landmark5[i+1];}    
+//            else if (N == 10)   {d->xx = landmark10[i]; d->xy = landmark10[i+1];}
+//            else if (N == 20)   {d->xx = landmark20[i]; d->xy = landmark20[i+1];}
+//            else if (N == 50)   {d->xx = landmark50[i]; d->xy = landmark50[i+1];}
+//            else if (N == 100)  {d->xx = landmark100[i]; d->xy = landmark100[i+1];}
+//            else if (N == 200)  {d->xx = landmark200[i]; d->xy = landmark200[i+1];}
+//            else if (N == 300)  {d->xx = landmark300[i]; d->xy = landmark300[i+1];}
+//            else if (N == 500)  {d->xx = landmark500[i]; d->xy = landmark500[i+1];}
+//            else if (N == 700)  {d->xx = landmark700[i]; d->xy = landmark700[i+1];}
+//            else if (N == 1000) {d->xx = landmark1000[i]; d->xy = landmark1000[i+1];}
+            Vector2d p (x[i], y[i]);
+            Vector2d q (x[i+1], y[i+1]);
+            d->p = p;
+            d->q = q;
             struktur.push_back(*d);
             wallfile << d->xx << " " << d->xy << std::endl;
         }
         wallfile.close();
+
+        int M = 10;
+        ofstream objectfile;
+        objectfile.open ("/home/ism/tmp/trueobject.dat", std::ios::out | std::ios::app);
+        for (int i = 0, j = 0; i < M; i++, j = j + 3) {
+            Benda b;
+            b.id = i;
+            Eigen::Vector3d o (objects[j], objects[j+1], objects[j+2]);
+            bendabenda.push_back (b);
+            objectfile << o.transpose() << std::endl;
+        }
+        objectfile.close();
 
         robot = new Robot(this);
 
@@ -342,6 +388,8 @@ namespace MYSLAM {
 
         std::vector<Dinding*> dindings;
         std::vector<Wall::Ptr> walls;
+        std::vector<Benda*> bendas;
+        std::vector<Object::Ptr> objects;
 
         Eigen::Vector3d lastSimPose;
         Pose::Ptr lastPose;
@@ -461,8 +509,58 @@ namespace MYSLAM {
                 graph._activeEdges.push_back (e);
             }
 
-            if (frame % 30 == 0)
-//            if (graph._activeWalls.size() >= 3)
+            for (size_t i = 0; i < robot->sensedBenda.size(); i++)
+            {
+                // asosiasi data
+                Object::Ptr o = NULL;
+                Benda* b = robot->sensedBenda[i];
+                bool newObject = true;
+
+                if (bendas.size() == 0)
+                {
+                    Object::Ptr object (new Object);
+                    o = object;
+                    bendas.push_back (b);
+                    objects.push_back (o);
+
+                } else {
+                    for (int j = 0; j < bendas.size(); j++)
+                    {
+                        if (b->id == bendas[j]->id)
+                        {
+                            o = objects[j];
+                            newObject = false;
+                            break;
+                        }
+                        else if (j == bendas.size() - 1)
+                        {
+                            Object::Ptr object (new Object);
+                            o = object;
+                            bendas.push_back (b);
+                            objects.push_back (o);
+                            break;
+                        }
+                    }
+                }
+
+                if (newObject) {
+                    Eigen::Vector3d m = robot->sensedDataBenda[i];
+                    SE2 measurement; measurement.fromVector (m); 
+                    SE2 robotPose; robotPose.fromVector (pose->_pose);
+                    SE2 objectPose = robotPose * measurement;
+                    o->_pose = objectPose.toVector();
+                }
+
+                graph._objectMap [o->_id] = o;
+                graph._activeObjects.insert (o->_id);
+
+                std::tuple<int, int> e (pose->_id, o->_id);
+                graph._poseObjectMap [e] = robot->sensedDataBenda[i];
+                graph._activePoseObjectEdges.push_back (e);
+            }
+
+//            if (frame % 5 == 0)
+            if (graph._activeWalls.size() >= 1 && graph._activePoses.size() >= 9 && graph._activeObjects.size() >= 2)
             {
                 o.localOptimize();
             }
@@ -492,8 +590,8 @@ namespace MYSLAM {
         for (std::map<int, Wall::Ptr>::iterator it = graph._wallMap.begin();
                 it != graph._wallMap.end(); it++)
         {
-//            wfile << it->second->_line.p.transpose() << " " << it->second->_line.q.transpose() << std::endl;
-            wfile << it->second->_line.xx.transpose() << std::endl;
+            wfile << it->second->_line.p.transpose() << " " << it->second->_line.q.transpose() << std::endl;
+//            wfile << it->second->_line.xx.transpose() << std::endl;
         }
 //        wfile << std::endl;
 
@@ -503,6 +601,15 @@ namespace MYSLAM {
 //        }
 //        wfile << std::endl;
         wfile.close();
+
+        ofstream ofile;
+        ofile.open ("/home/ism/tmp/object.dat", std::ios::out | std::ios::app);
+        for (std::map<int, Object::Ptr>::iterator it = graph._objectMap.begin();
+                it != graph._objectMap.end(); it++)
+        {
+            ofile << it->second->_pose.transpose() << std::endl;
+        }
+        ofile.close();
     }
 
     void Simulator::Robot::sampleMove (int direction, double angle)
@@ -21358,4 +21465,15 @@ double landmark1000[2000] = {-6.05806,8.56973,
 -8.71213,11.7725,
 };
 
+double objects[30] = {
+    -9.56671, 4.63100, -45.0*M_PI/180.0,
+    -8.04104, 6.43665, -10.0*M_PI/180.0,
+    -4.30076, 9.72672, -135.0*M_PI/180.0,
+    1.33112, 6.77002, -135.0*M_PI/180.0,
+    6.10102, 2.96141, 170.0*M_PI/180.0,
+    -5.17938, 6.36944, 0.0,
+    -5.85131, 1.40006, 0.0,
+    -6.56705, -1.34290, 30.0*M_PI/180.0,
+    -9.14475, 0.883526, 45.0*M_PI/180.0,
+    -8.42901, 2.94965, 0.0};
 }

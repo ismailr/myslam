@@ -24,20 +24,11 @@
 // NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 // SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-#include "layout_prediction/types_myslam.h"
+#include "layout_prediction/object_measurement.h"
 
-#include "g2o/core/factory.h"
-#include "g2o/stuff/macros.h"
-
-#include <iostream>
+using namespace Eigen;
 
 namespace MYSLAM {
-    G2O_REGISTER_TYPE_GROUP(myslam);
-    G2O_REGISTER_TYPE(MYSLAM_POSE, PoseVertex);
-    G2O_REGISTER_TYPE(MYSLAM_WALL, WallVertex);
-    G2O_REGISTER_TYPE(MYSLAM_OBJECT, ObjectVertex);
-    G2O_REGISTER_TYPE(MYSLAM_POSE_MEASUREMENT, PoseMeasurement);
-    G2O_REGISTER_TYPE(MYSLAM_WALL_MEASUREMENT, WallMeasurement);
-    G2O_REGISTER_TYPE(MYSLAM_OBJECT_MEASUREMENT, ObjectMeasurement);
-    G2O_REGISTER_TYPE(MYSLAM_ANGLE_MEASUREMENT, AngleMeasurement);
+    ObjectMeasurement::ObjectMeasurement() : EdgeSE2() {};
 }
+

@@ -168,6 +168,8 @@ add_executable(layout_prediction
     src/particle.cpp
     src/particle_filter.cpp
     src/icp.cpp
+    src/object.cpp
+    src/object_measurement.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
@@ -219,6 +221,8 @@ add_executable(simulation
     src/particle_filter.cpp
     src/icp.cpp
     src/ekf_mapper.cpp
+    src/object.cpp
+    src/object_measurement.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
@@ -269,6 +273,8 @@ add_executable(wall_detection
     src/particle_filter.cpp
     src/icp.cpp
     src/ekf_mapper.cpp
+    src/object.cpp
+    src/object_measurement.cpp
     #    src/fitness_measurement.cpp
     src/g2o/vertex_se2.cpp
     src/g2o/vertex_line2d.cpp
