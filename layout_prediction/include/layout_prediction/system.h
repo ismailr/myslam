@@ -20,8 +20,6 @@
 #include "layout_prediction/ekf_mapper.h"
 #include "se2.h"
 
-#include "isam/isam.h"
-
 namespace MYSLAM {
     class Pose;
     class WallDetector;
@@ -76,9 +74,6 @@ namespace MYSLAM {
             tf2_ros::Buffer *_buffer;
             ParticleFilter* _pf;
             EKFMapper* _ekfm;
-
-            /* ISAM */
-            isam::Slam *_slam;
     };
 }
 

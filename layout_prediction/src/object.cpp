@@ -2,10 +2,11 @@
 #include "layout_prediction/helpers.h"
 
 namespace MYSLAM {
-    Object::Object() {}
+    Object::Object() {
+       _id = Generator::id++;
+    }
 
     ObjectVertex::ObjectVertex() {
-       _id = Generator::id++;
     }
 
 }

@@ -79,8 +79,8 @@ namespace MYSLAM {
     void Simulator::Robot::turn (int direction, double angle)
     {
         direction == 0 ? angle = angle : angle = -angle;
-//        SE2 turn (_moveStep, 0.0, angle);
-        SE2 turn (0.0, 0.0, angle);
+        SE2 turn (_moveStep, 0.0, angle);
+//        SE2 turn (0.0, 0.0, angle);
 
         SE2 pose;
         pose.fromVector (truePose);
@@ -91,9 +91,10 @@ namespace MYSLAM {
         simpose.fromVector (simPose);
 
         SE2 simturn (
-//                turn.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
+                turn.translation().x() + gaussian_generator<double>(0.0, xnoise_stdev),
 //                turn.translation().y() + gaussian_generator<double>(0.0, ynoise_stdev),
-                0.0, 0.0, 
+                0.0, 
+//                0.0, 
                 turn.rotation().angle() + gaussian_generator<double>(0.0, pnoise_stdev));
         simpose = simpose * simturn;
         simPose = simpose.toVector();
@@ -146,6 +147,7 @@ namespace MYSLAM {
             SE2 objectPose; objectPose.fromVector (it->pose);
 
             SE2 objectMeasurement = truepose.inverse() * objectPose;
+
             SE2 objectMeasurementWithNoise (
                    objectMeasurement.toVector()[0] + oxnoise, 
                    objectMeasurement.toVector()[1] + oynoise, 
@@ -357,6 +359,7 @@ namespace MYSLAM {
             Benda b;
             b.id = i;
             Eigen::Vector3d o (objects[j], objects[j+1], objects[j+2]);
+            b.pose = o;
             bendabenda.push_back (b);
             objectfile << o.transpose() << std::endl;
         }
@@ -394,9 +397,9 @@ namespace MYSLAM {
         Eigen::Vector3d lastSimPose;
         Pose::Ptr lastPose;
 
-        double turn_angle[9] =  {90, 90, 85, 95, 90, 90,  45,  45, 135};
-        int turn_time[9] =      {20, 40, 60, 62, 77, 90, 100, 105, 112};
-        int turn_direction[9] = {1 , 1 ,  1,  1,  0,  0,   0,   1,   1};
+        double turn_angle[9] =  {90, 45, 75, 100, 90, 90,  90,  45, 135};
+        int turn_time[9] =      {17, 28, 40,  66, 83, 93,  98, 103, 112};
+        int turn_direction[9] = {1 , 1 ,  1,  1,  1,  1,   0,   0,   1};
         int turn_now = 0;
 
         // first pose
@@ -559,8 +562,22 @@ namespace MYSLAM {
                 graph._activePoseObjectEdges.push_back (e);
             }
 
+            int N = graph._activePoses.size();
+            int M = graph._activeWalls.size();
+            int O = graph._activeObjects.size();
+            int P = graph._activePoseObjectEdges.size();
+            int E = graph._activeEdges.size() + N - 1 + P;
+            int V = 3*N + 2*M + 3*O;
+            std::ofstream lfile;
+            lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
+            lfile   << frame << " " 
+                    << N << " " << M << " " << E << " " << V << std::endl;
+            lfile.close();
+
 //            if (frame % 5 == 0)
+//            if (graph._activeWalls.size() >= 2 && graph._activePoses.size() >= 2)
             if (graph._activeWalls.size() >= 1 && graph._activePoses.size() >= 9 && graph._activeObjects.size() >= 2)
+//            if (E >= V)
             {
                 o.localOptimize();
             }
@@ -21472,8 +21489,8 @@ double objects[30] = {
     1.33112, 6.77002, -135.0*M_PI/180.0,
     6.10102, 2.96141, 170.0*M_PI/180.0,
     -5.17938, 6.36944, 0.0,
-    -5.85131, 1.40006, 0.0,
+    3.81101, -0.621619, M_PI,
     -6.56705, -1.34290, 30.0*M_PI/180.0,
     -9.14475, 0.883526, 45.0*M_PI/180.0,
-    -8.42901, 2.94965, 0.0};
+    0.851700, -4.07258, 135.0*M_PI/180.0};
 }

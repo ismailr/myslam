@@ -81,7 +81,7 @@ Visualization Manager:
       Selectable: true
       Size (Pixels): 3
       Size (m): 0.01
-      Style: Squares
+      Style: Points
       Topic: /filtered_cloud
       Unreliable: false
       Use Fixed Frame: true
@@ -117,7 +117,7 @@ Visualization Manager:
       Marker Topic: /wall_measured_pq
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Alpha: 0.3
@@ -153,16 +153,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 27.2646
+      Distance: 53.8155
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.899695
-        Y: 2.86713
-        Z: -1.08127
+        X: 10.098
+        Y: 6.1512
+        Z: -0.516781
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05
       Name: Current View

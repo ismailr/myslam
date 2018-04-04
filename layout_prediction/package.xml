@@ -53,8 +53,6 @@
   <build_depend>cv_bridge</build_depend>
   <build_depend>message_filters</build_depend>
   <build_depend>pr2_mechanism_controllers</build_depend>
-  <build_depend>isam</build_depend>
-  <build_depend>libpointmatcher_ros</build_depend>
 
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
@@ -68,8 +66,6 @@
   <run_depend>cv_bridge</run_depend>
   <run_depend>message_filters</run_depend>
   <run_depend>pr2_mechanism_controllers</run_depend>
-  <run_depend>isam</run_depend>
-  <run_depend>libpointmatcher_ros</run_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

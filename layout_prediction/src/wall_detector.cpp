@@ -47,7 +47,7 @@ namespace MYSLAM {
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> >& outWalls)
     {
         pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
-        prepareCloud2 (inCloud, cloud);
+        prepareCloud (inCloud, cloud);
 
         std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloudset;
         clusterCloud (cloud, cloudset);

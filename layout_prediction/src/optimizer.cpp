@@ -70,7 +70,7 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (true);
+        o->setVerbose (false);
 
         std::vector<int>& activePoses = _graph->_activePoses;
         std::set<int>& activeWalls = _graph->_activeWalls;
@@ -508,7 +508,7 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (true);
+        o->setVerbose (false);
 
         std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
         std::map<int, Point::Ptr>& pointMap = _graph->_pointMap;

@@ -17,10 +17,6 @@
 #include "layout_prediction/visualizer.h"
 #include "layout_prediction/icp.h"
 
-#include "pointmatcher_ros/point_cloud.h"
-#include "pointmatcher_ros/transform.h"
-#include "/home/ism/work/src/libpointmatcher/pointmatcher/DataPointsFiltersImpl.h"
-
 namespace MYSLAM {
     Tracker::Tracker(System& system)
         : _system (&system), 
@@ -246,46 +242,46 @@ namespace MYSLAM {
 
     void Tracker::trackPoseByPointMatcher (const sensor_msgs::PointCloud2ConstPtr& cloudmsg, Pose::Ptr& pose, double *d) 
     {
-        typedef PointMatcher<float> PM;
-        typedef PM::DataPoints DP;
-
-        double deltaTime = _system->_currentTime - _system->_prevTime;
-
-        double vx = d[0];
-        double vy = d[1];
-        double w  = d[2];
-        double x0 = _lastPose->_pose[0];
-        double y0 = _lastPose->_pose[1];
-        double t0 = _lastPose->_pose[2];
-
-        // motion model
-        double dx = (vx * cos(t0) - vy * sin(t0)) * deltaTime;
-        double dy = (vx * sin(t0) + vy * cos(t0)) * deltaTime;
-        double dt = w * deltaTime;
-
-        unique_ptr<DP> ref (new DP (PointMatcher_ros::rosMsgToPointMatcherCloud<float> (*(cloudmsg.get()))));
-        unique_ptr<DP> data (new DP (PointMatcher_ros::rosMsgToPointMatcherCloud<float> (*(_lastDP.get()))));
-
-        PM::ICP icp;
-        icp.setDefault();
-        PM::TransformationParameters T = icp (*data, *data);
-
-        DP data_out (*data);
-        icp.transformations.apply (data_out, T);
-
-        std::cout << T << std::endl;
-
-//        Eigen::Vector3d incr (tx, ty, tt);
-//        pose->_pose = _lastPose->_pose + incr;
-//        _lastPose = pose;
-        _lastDP = cloudmsg;
-
-//        ofstream myfile;
-//        myfile.open ("/home/ism/tmp/ndt.txt", std::ios::out | std::ios::app);
-//        myfile << "TRAN " << tx << " " << ty << " " << tt << std::endl;
-//        myfile << "ODOM " << dx << " " << dy << " " << dt << std::endl;
-//        myfile << std::endl;
-//        myfile.close();
+//        typedef PointMatcher<float> PM;
+//        typedef PM::DataPoints DP;
+//
+//        double deltaTime = _system->_currentTime - _system->_prevTime;
+//
+//        double vx = d[0];
+//        double vy = d[1];
+//        double w  = d[2];
+//        double x0 = _lastPose->_pose[0];
+//        double y0 = _lastPose->_pose[1];
+//        double t0 = _lastPose->_pose[2];
+//
+//        // motion model
+//        double dx = (vx * cos(t0) - vy * sin(t0)) * deltaTime;
+//        double dy = (vx * sin(t0) + vy * cos(t0)) * deltaTime;
+//        double dt = w * deltaTime;
+//
+//        unique_ptr<DP> ref (new DP (PointMatcher_ros::rosMsgToPointMatcherCloud<float> (*(cloudmsg.get()))));
+//        unique_ptr<DP> data (new DP (PointMatcher_ros::rosMsgToPointMatcherCloud<float> (*(_lastDP.get()))));
+//
+//        PM::ICP icp;
+//        icp.setDefault();
+//        PM::TransformationParameters T = icp (*data, *data);
+//
+//        DP data_out (*data);
+//        icp.transformations.apply (data_out, T);
+//
+//        std::cout << T << std::endl;
+//
+////        Eigen::Vector3d incr (tx, ty, tt);
+////        pose->_pose = _lastPose->_pose + incr;
+////        _lastPose = pose;
+//        _lastDP = cloudmsg;
+//
+////        ofstream myfile;
+////        myfile.open ("/home/ism/tmp/ndt.txt", std::ios::out | std::ios::app);
+////        myfile << "TRAN " << tx << " " << ty << " " << tt << std::endl;
+////        myfile << "ODOM " << dx << " " << dy << " " << dt << std::endl;
+////        myfile << std::endl;
+////        myfile.close();
     }
 
     void Tracker::run () {

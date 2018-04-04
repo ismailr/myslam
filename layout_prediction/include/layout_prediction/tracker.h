@@ -15,8 +15,6 @@
 #include "layout_prediction/particle.h"
 #include "layout_prediction/particle_filter.h"
 
-#include "pointmatcher/PointMatcher.h"
-
 namespace MYSLAM {
     class System;
     class ParticleFilter;

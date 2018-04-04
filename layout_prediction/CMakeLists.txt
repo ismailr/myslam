@@ -15,8 +15,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   pr2_mechanism_controllers
   message_filters
-  isam
-  libpointmatcher_ros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -26,7 +24,6 @@ find_package(CSparse REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(OpenGL)
 find_package(GLUT)
-#find_package(libpointmatcher)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -116,7 +113,7 @@ find_package(GLUT)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters isam libpointmatcher_ros
+  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters 
 #  DEPENDS system_lib
 )
 
@@ -132,7 +129,6 @@ include_directories(
 	${catkin_INCLUDE_DIRS}
 	${CSPARSE_INCLUDE_DIR}
     ${EIGEN3_INCLUDE_DIR}
-    ${libpointmatcher_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -252,58 +248,6 @@ add_executable(simulation
     #    src/isamlib/Slam.cpp
 )
 
-add_executable(wall_detection
-    src/wall_detection.cpp
-	src/helpers.cpp
-	src/pose.cpp
-    src/wall.cpp
-    src/tracker.cpp
-    src/wall_detector.cpp
-    src/system.cpp
-    src/graph.cpp
-    src/pose_measurement.cpp
-    src/wall_measurement.cpp
-    src/types_myslam.cpp
-    src/angle_measurement.cpp
-    src/simulator.cpp
-    src/settings.cpp
-    src/optimizer.cpp
-    src/visualizer.cpp
-    src/particle.cpp
-    src/particle_filter.cpp
-    src/icp.cpp
-    src/ekf_mapper.cpp
-    src/object.cpp
-    src/object_measurement.cpp
-    #    src/fitness_measurement.cpp
-    src/g2o/vertex_se2.cpp
-    src/g2o/vertex_line2d.cpp
-    src/g2o/edge_se2.cpp
-    src/g2o/edge_se2_line2d.cpp
-    src/g2o/edge_line2d.cpp
-    src/slam_interface.cpp
-    src/sparse_optimizer_online.cpp
-    src/sparse_optimizer_incremental.cpp
-    #    src/isamlib/Node.cpp
-    #    src/isamlib/util.cpp
-    #    src/isamlib/numericalDiff.cpp
-    #    src/isamlib/Pose2d.cpp
-    #    src/isamlib/Pose3d.cpp
-    #    src/isamlib/Optimizer.cpp
-    #    src/isamlib/SparseMatrix.cpp
-    #    src/isamlib/SparseSystem.cpp
-    #    src/isamlib/SparseVector.cpp
-    #    src/isamlib/OrderedSparseMatrix.cpp
-    #    src/isamlib/Anchor.cpp
-    #    src/isamlib/Cholesky.cpp
-    #    src/isamlib/ChowLiuTree.cpp
-    #    src/isamlib/Covariances.cpp
-    #    src/isamlib/GLCReparam.cpp
-    #    src/isamlib/covariance.cpp
-    #    src/isamlib/glc.cpp
-    #    src/isamlib/Slam.cpp
-)
-
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(layout_prediction_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
@@ -324,7 +268,6 @@ target_link_libraries(layout_prediction
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
-    ${LIBPOINTMATCHER_LIBRARIES}
 )
 
 target_link_libraries(simulation
@@ -342,25 +285,6 @@ target_link_libraries(simulation
     "/usr/local/lib/libg2o_incremental.so"
     "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
-    ${LIBPOINTMATCHER_LIBRARIES}
-)
-
-target_link_libraries(wall_detection
-	${catkin_LIBRARIES}
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-    ${G2O_SOLVER_CHOLMOD}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_SLAM3D}
-    ${G2O_TYPES_SLAM2D}
-    ${G2O_OPENGL_HELPER}
-    ${OPENGL_gl_LIBRARY}
-    ${GLUT_LIBRARIES}
-    "/usr/local/lib/libg2o_incremental.so"
-    "/usr/local/lib/libg2o_interactive.so"
-    "/usr/lib64/libconfig++.so"
-    ${LIBPOINTMATCHER_LIBRARIES}
 )
 
 add_definitions(-std=c++11)

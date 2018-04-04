@@ -31,8 +31,6 @@
 #include <pcl/common/transforms.h>
 #include <pcl/filters/median_filter.h>
 
-#include "pointmatcher/PointMatcher.h"
-
 static int marker_id = 0;
 
 namespace MYSLAM {
@@ -57,9 +55,6 @@ namespace MYSLAM {
 
         _R <<   _sigW*_sigW, 0.0,
                 0.0, _sigW*_sigW;
-
-//        _slam = new isam::Slam();
-//        _optimizer = new Optimizer (*this, *_graph, *_slam);
     };
 
     void System::readSensorsData (
@@ -188,16 +183,22 @@ namespace MYSLAM {
                 pose->_detectedWalls.push_back (w->_id);
             }
 
+            int N = _graph->_activePoses.size();
+            int M = _graph->_activeWalls.size();
+            int E = _graph->_activeEdges.size();
+            int V = 3*N + 2*M;
+
+            std::ofstream lfile;
+            lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
+            lfile   << System::_frameCounter << " " 
+                    << N << " " << M << " " << E << " " << V << std::endl;
+            lfile.close();
+
+//            if (E >= V)
 //            if (System::_frameCounter % 5 == 0)
-            if (_graph->_activeWalls.size() >= 3 && _graph->_activePoses.size() >= 7)
+            if (_graph->_activeWalls.size() >= 2 && _graph->_activePoses.size() >= 2)
             {
 //                _visualizer->visualizeWallOptimizedPq();
-                std::ofstream lfile;
-                lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
-                lfile   << System::_frameCounter << " " 
-                        << _graph->_activePoses.size() << " "
-                        << _graph->_activeWalls.size() << std::endl;
-                lfile.close();
                 _optimizer->localOptimize();
 
 //                std::ofstream wallfile;
