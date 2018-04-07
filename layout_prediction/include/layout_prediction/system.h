@@ -15,19 +15,11 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/visualizer.h"
-#include "layout_prediction/particle.h"
 #include "layout_prediction/particle_filter.h"
 #include "layout_prediction/ekf_mapper.h"
-#include "se2.h"
+#include <g2o/types/slam2d/se2.h>
 
 namespace MYSLAM {
-    class Pose;
-    class WallDetector;
-    class Tracker;
-    class Optimizer;
-    class Visualizer;
-    class ParticleFilter;
-    class EKFMapper;
     class System
     {
         public:

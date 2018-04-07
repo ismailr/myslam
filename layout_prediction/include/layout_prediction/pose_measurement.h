@@ -28,10 +28,8 @@
 #define _MYSLAM_POSE_MEASUREMENT_H
 
 #include <memory>
-#include <math.h>
 #include <fstream>
 
-#include <g2o/core/base_binary_edge.h>
 #include <g2o/types/slam2d/edge_se2.h>
 
 #include "layout_prediction/pose.h"

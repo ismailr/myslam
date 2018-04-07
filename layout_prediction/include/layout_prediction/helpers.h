@@ -8,7 +8,7 @@
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
 #include <nav_msgs/Odometry.h>
 
-#include "se2.h"
+#include <g2o/types/slam2d/se2.h>
 
 using namespace g2o;
 using namespace std;

@@ -1,12 +1,11 @@
 #ifndef _ANGLE_MEASUREMENT_H_
 #define _ANGLE_MEASUREMENT_H_
 
-#include <algorithm>
-
-#include "g2o/config.h"
-#include "layout_prediction/wall.h"
 #include "g2o/core/base_binary_edge.h"
+
+#include "layout_prediction/wall.h"
 #include "layout_prediction/helpers.h"
+
 
 namespace MYSLAM {
     class AngleMeasurement : public BaseBinaryEdge<1, double, WallVertex, WallVertex>

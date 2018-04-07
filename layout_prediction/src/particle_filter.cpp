@@ -1,3 +1,4 @@
+#include "layout_prediction/system.h"
 #include "layout_prediction/particle_filter.h"
 #include "layout_prediction/helpers.h"
 

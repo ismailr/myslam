@@ -10,14 +10,11 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2/impl/utils.h>
 
-#include "layout_prediction/system.h"
 #include "layout_prediction/pose.h"
-#include "layout_prediction/particle.h"
 #include "layout_prediction/particle_filter.h"
 
 namespace MYSLAM {
     class System;
-    class ParticleFilter;
     class Tracker
     {
         public:

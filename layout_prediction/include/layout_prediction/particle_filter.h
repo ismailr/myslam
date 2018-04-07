@@ -5,13 +5,14 @@
 #include <pcl/point_types.h>
 
 #include "layout_prediction/particle.h"
-#include "layout_prediction/pose.h"
 #include "layout_prediction/wall_detector.h"
+
+#include <g2o/types/slam2d/se2.h>
 
 using namespace std;
 
 namespace MYSLAM {
-    class WallDetector;
+    class System;
     class ParticleFilter {
         public:
             ParticleFilter (System& sys);

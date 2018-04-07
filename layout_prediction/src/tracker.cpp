@@ -10,8 +10,8 @@
 #include <pcl/registration/icp.h>
 #include <pcl/filters/approximate_voxel_grid.h>
 
+#include "layout_prediction/system.h"
 #include "layout_prediction/tracker.h"
-#include "layout_prediction/pose.h"
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/settings.h"
 #include "layout_prediction/visualizer.h"

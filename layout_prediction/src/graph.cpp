@@ -2,24 +2,9 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
-#include <string>
 #include <limits>
 
-
-#include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/block_solver.h>
-#include <g2o/core/factory.h>
-#include <g2o/core/optimization_algorithm_factory.h>
-#include <g2o/core/optimization_algorithm_gauss_newton.h>
-#include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/core/robust_kernel_impl.h>
-#include <g2o/solvers/csparse/linear_solver_csparse.h>
-#include <g2o/solvers/dense/linear_solver_dense.h>
-#include <g2o/solvers/cholmod/linear_solver_cholmod.h>
-#include <g2o/types/slam2d/parameter_se2_offset.h>
-
 #include "layout_prediction/graph.h"
-#include "layout_prediction/wall.h"
 #include "layout_prediction/settings.h"
 
 using namespace g2o;
@@ -29,31 +14,6 @@ namespace MYSLAM {
     Graph::Graph(System& system):_system (&system) {};
 
     Wall::Ptr Graph::dataAssociation (Wall::Ptr& w)
-    {
-        double& xx = w->_line.xx[0];
-        double& xy = w->_line.xx[1];
-
-        std::set<int> walls;
-        walls.insert (_lastActiveWalls.begin(), _lastActiveWalls.end());
-        walls.insert (_activeWalls.begin(), _activeWalls.end());
-
-        for (std::set<int>::iterator it = walls.begin();
-                it != walls.end(); it++)
-        {
-            double& xxref = _wallMap[*it]->_line.xx[0];
-            double& xyref = _wallMap[*it]->_line.xx[1];
-
-            if (    std::abs(xx-xxref) < MYSLAM::DATA_ASSOCIATION_THRESHOLD 
-                    && std::abs(xy-xyref) < MYSLAM::DATA_ASSOCIATION_THRESHOLD)
-                return _wallMap[*it];
-        }
-
-        _wallMap[w->_id] = w;
-//        _activeWalls.push_back (w->_id);
-        return w;
-    }
-
-    Wall::Ptr Graph::dataAssociation2 (Wall::Ptr& w)
     {
         double _dr_ = 1.0;
         double _dt_ = 10.0 * M_PI/180.0;

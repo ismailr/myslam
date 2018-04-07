@@ -1,8 +1,6 @@
 #include <ros/ros.h>
+#include <pcl_ros/point_cloud.h>
 
-#include "layout_prediction/wall_detector.h"
-#include "layout_prediction/system.h"
-#include "layout_prediction/tracker.h"
 #include "layout_prediction/settings.h"
 #include "layout_prediction/simulator.h"
 

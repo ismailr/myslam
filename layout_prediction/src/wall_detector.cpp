@@ -25,16 +25,13 @@
 #include <pcl/features/normal_3d.h>
 #include <pcl/kdtree/kdtree.h>
 
-
 #include <tf/transform_listener.h>
 #include <tf/transform_datatypes.h>
 
 #include "layout_prediction/system.h"
-#include "layout_prediction/helpers.h"
 #include "layout_prediction/wall_detector.h"
-#include "layout_prediction/pose.h"
-#include "layout_prediction/graph.h"
 #include "layout_prediction/wall_measurement.h"
+#include "layout_prediction/helpers.h"
 #include "layout_prediction/settings.h"
 
 namespace MYSLAM {

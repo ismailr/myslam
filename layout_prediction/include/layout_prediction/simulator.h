@@ -3,10 +3,8 @@
 
 #include <utility>
 
-#include "se2.h"
-#include "layout_prediction/pose.h"
-#include "layout_prediction/wall.h"
-#include "layout_prediction/object.h"
+#include <g2o/types/slam2d/se2.h>
+
 #include "layout_prediction/settings.h"
 #include "layout_prediction/graph.h"
 

@@ -1,10 +1,10 @@
 #ifndef _EKF_MAPPER_H_
 #define _EKF_MAPPER_H_
 
-#include "layout_prediction/system.h"
 #include "layout_prediction/wall.h"
 
 namespace MYSLAM {
+    class System;
     class EKFMapper {
         public:
             EKFMapper(System& sys);

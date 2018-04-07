@@ -164,36 +164,14 @@ add_executable(layout_prediction
     src/particle.cpp
     src/particle_filter.cpp
     src/icp.cpp
+    src/ekf_mapper.cpp
     src/object.cpp
     src/object_measurement.cpp
-    #    src/fitness_measurement.cpp
-    src/g2o/vertex_se2.cpp
-    src/g2o/vertex_line2d.cpp
-    src/g2o/edge_se2.cpp
-    src/g2o/edge_se2_line2d.cpp
-    src/g2o/edge_line2d.cpp
-    src/slam_interface.cpp
-    src/sparse_optimizer_online.cpp
-    src/sparse_optimizer_incremental.cpp
-    src/ekf_mapper.cpp
-    #    src/isamlib/Node.cpp
-    #    src/isamlib/util.cpp
-    #    src/isamlib/numericalDiff.cpp
-    #    src/isamlib/Pose2d.cpp
-    #    src/isamlib/Pose3d.cpp
-    #    src/isamlib/Optimizer.cpp
-    #    src/isamlib/SparseMatrix.cpp
-    #    src/isamlib/SparseSystem.cpp
-    #    src/isamlib/SparseVector.cpp
-    #    src/isamlib/OrderedSparseMatrix.cpp
-    #    src/isamlib/Anchor.cpp
-    #    src/isamlib/Cholesky.cpp
-    #    src/isamlib/ChowLiuTree.cpp
-    #    src/isamlib/Covariances.cpp
-    #    src/isamlib/GLCReparam.cpp
-    #    src/isamlib/covariance.cpp
-    #    src/isamlib/glc.cpp
-    #    src/isamlib/Slam.cpp
+    #    src/g2o/vertex_se2.cpp
+    #    src/g2o/vertex_line2d.cpp
+    #    src/g2o/edge_se2.cpp
+    #    src/g2o/edge_se2_line2d.cpp
+    #    src/g2o/edge_line2d.cpp
 )
 
 add_executable(simulation
@@ -219,33 +197,11 @@ add_executable(simulation
     src/ekf_mapper.cpp
     src/object.cpp
     src/object_measurement.cpp
-    #    src/fitness_measurement.cpp
-    src/g2o/vertex_se2.cpp
-    src/g2o/vertex_line2d.cpp
-    src/g2o/edge_se2.cpp
-    src/g2o/edge_se2_line2d.cpp
-    src/g2o/edge_line2d.cpp
-    src/slam_interface.cpp
-    src/sparse_optimizer_online.cpp
-    src/sparse_optimizer_incremental.cpp
-    #    src/isamlib/Node.cpp
-    #    src/isamlib/util.cpp
-    #    src/isamlib/numericalDiff.cpp
-    #    src/isamlib/Pose2d.cpp
-    #    src/isamlib/Pose3d.cpp
-    #    src/isamlib/Optimizer.cpp
-    #    src/isamlib/SparseMatrix.cpp
-    #    src/isamlib/SparseSystem.cpp
-    #    src/isamlib/SparseVector.cpp
-    #    src/isamlib/OrderedSparseMatrix.cpp
-    #    src/isamlib/Anchor.cpp
-    #    src/isamlib/Cholesky.cpp
-    #    src/isamlib/ChowLiuTree.cpp
-    #    src/isamlib/Covariances.cpp
-    #    src/isamlib/GLCReparam.cpp
-    #    src/isamlib/covariance.cpp
-    #    src/isamlib/glc.cpp
-    #    src/isamlib/Slam.cpp
+    #    src/g2o/vertex_se2.cpp
+    #    src/g2o/vertex_line2d.cpp
+    #    src/g2o/edge_se2.cpp
+    #    src/g2o/edge_se2_line2d.cpp
+    #    src/g2o/edge_line2d.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -265,8 +221,6 @@ target_link_libraries(layout_prediction
     ${G2O_OPENGL_HELPER}
     ${OPENGL_gl_LIBRARY}
     ${GLUT_LIBRARIES}
-    "/usr/local/lib/libg2o_incremental.so"
-    "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
 )
 
@@ -282,8 +236,6 @@ target_link_libraries(simulation
     ${G2O_OPENGL_HELPER}
     ${OPENGL_gl_LIBRARY}
     ${GLUT_LIBRARIES}
-    "/usr/local/lib/libg2o_incremental.so"
-    "/usr/local/lib/libg2o_interactive.so"
     "/usr/lib64/libconfig++.so"
 )
 

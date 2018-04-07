@@ -4,59 +4,29 @@
 #include "layout_prediction/wall.h"
 #include "layout_prediction/point.h"
 #include "layout_prediction/angle_measurement.h"
+#include "layout_prediction/pose_measurement.h"
+#include "layout_prediction/wall_measurement.h"
+#include "layout_prediction/object_measurement.h"
 
 #include <g2o/core/sparse_optimizer.h>
-#include <g2o/core/hyper_graph.h>
 #include <g2o/core/block_solver.h>
-#include <g2o/core/factory.h>
-#include <g2o/core/optimization_algorithm_factory.h>
+#include <g2o/core/robust_kernel_impl.h>
 #include <g2o/core/optimization_algorithm_gauss_newton.h>
 #include <g2o/core/optimization_algorithm_levenberg.h>
-#include <g2o/core/robust_kernel_impl.h>
-#include <g2o/types/slam2d/vertex_point_xy.h>  
-#include <g2o/types/slam2d/vertex_se2.h>  
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
-#include <g2o/solvers/dense/linear_solver_dense.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 
-#include "isam/Slam.h"
-#include "isam/slam2d.h"
-
 using namespace g2o;
-using namespace isam;
 
 namespace MYSLAM {
     Optimizer::Optimizer (System& system, Graph& graph)
        : _system (&system), _graph (&graph)
     {
-        _incOptimizer = new SparseOptimizerIncremental;
-        _incOptimizer->setVerbose (true);
-
-        _slamInterface = new SlamInterface (_incOptimizer);
-        _slamInterface->setUpdateGraphEachN (10);
-        _slamInterface->setBatchSolveEachN (100);
-    }
-
-    Optimizer::Optimizer (System& system, Graph& graph, isam::Slam& slam)
-       : _system (&system), _graph (&graph), _slam (&slam)
-    {
-        _incOptimizer = new SparseOptimizerIncremental;
-        _incOptimizer->setVerbose (true);
-
-        _slamInterface = new SlamInterface (_incOptimizer);
-        _slamInterface->setUpdateGraphEachN (10);
-        _slamInterface->setBatchSolveEachN (100);
     }
 
     Optimizer::Optimizer (Graph& graph)
        : _graph (&graph)
     {
-        _incOptimizer = new SparseOptimizerIncremental;
-        _incOptimizer->setVerbose (true);
-
-        _slamInterface = new SlamInterface (_incOptimizer);
-        _slamInterface->setUpdateGraphEachN (10);
-        _slamInterface->setBatchSolveEachN (100);
     }
 
     void Optimizer::localOptimize()
@@ -449,52 +419,6 @@ namespace MYSLAM {
             wallMap[id]->_line.xx[1] = xy;
             wallMap[id]->updateParams ();
         }
-    }
-
-    void Optimizer::incrementalOptimize()
-    {
-        std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
-        std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
-        std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
-//
-//
- //       Noise noise3 = Information (100. * eye(3));
-//        Noise noise2 = Information (100. * eye(2));
-//
-        Pose::Ptr poseData = poseMap[0];
-        double x = poseData->_pose[0];
-        double y = poseData->_pose[1];
-        double p = poseData->_pose[2];
-//
-//        Pose2d_Node *pose_node = new Pose2d_Node();
-////        _slam->add_node (pose_node);
-//        _poseNodes.push_back (pose_node);
-//
-//        if (poseId == 0)
-//        {
-//            Pose2d origin (x, y, p);
-//            Pose2d_Factor *prior = new Pose2d_Factor (pose_node, origin, noise3);
-////            _slam->add_factor (prior);
-//        }
-//
-//        Pose2d_Pose2d_Factor *constraint = 
-//            new Pose2d_Pose2d_Factor (_poseNodes.back(), _poseNodes.rbegin()[1], poseData->_measurement, noise3);
-////        _slam->add_factor (constraint);
-//
-//
-//        for (int i = 0; i < walls.size(); i++)
-//        {
-//          Wall2d_Node *wall_node = new Wall2d_Node();
-//            _slam->add_node (wall_node);
-//
-//            Wall2d measure (poseWallMap[std::tuple<int,int>(poseId,std::get<0>(walls[i])->_id)]); 
-//            Pose2d_Wall2d_Factor *measurement = 
-//                new Pose2d_Wall2d_Factor (_poseNodes.back(), wall_node, measure, noise2);
-//
-////           _slam->add_factor (measurement);
-//        }
-//
-////        _slam->batch_optimization();
     }
 
     void Optimizer::globalOptimizePoint()

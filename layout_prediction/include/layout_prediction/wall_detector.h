@@ -1,10 +1,6 @@
 #ifndef _WALL_DETECTOR_H_
 #define _WALL_DETECTOR_H_
 
-#include <queue>
-#include <mutex>
-#include <set>
-
 #include <ros/ros.h>
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
@@ -18,15 +14,13 @@
 
 #include <g2o/types/slam2d/se2.h>
 
-#include "layout_prediction/system.h"
 #include "layout_prediction/helpers.h"
 #include "layout_prediction/pose.h"
+#include "layout_prediction/wall.h"
 #include "layout_prediction/graph.h"
 
 
 namespace MYSLAM {
-    class Graph;
-    class Wall;
     class System;
     class WallDetector
     {

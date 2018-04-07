@@ -13,12 +13,10 @@
 #include <pcl/point_cloud.h>
 #include <pcl/point_types.h>
 
-#include "layout_prediction/system.h"
 #include "layout_prediction/graph.h"
-#include "layout_prediction/wall.h"
-#include "layout_prediction/pose.h"
 
 namespace MYSLAM {
+    class System;
     class Visualizer
     {
         public:

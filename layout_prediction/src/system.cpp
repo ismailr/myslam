@@ -175,7 +175,7 @@ namespace MYSLAM {
             for (size_t i = 0; i < walls.size(); i++)
             {
                 Wall::Ptr w = std::get<0>(walls[i]);
-                w = _graph->dataAssociation2 (w);
+                w = _graph->dataAssociation (w);
                 std::tuple<int, int> m (pose->_id, w->_id);
                 _graph->_poseWallMap[m] = std::get<1>(walls[i]);
                 _graph->_activeWalls.insert (w->_id);

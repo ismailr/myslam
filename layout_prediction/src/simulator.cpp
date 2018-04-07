@@ -24,7 +24,6 @@
 #include "layout_prediction/pose.h"
 #include "layout_prediction/wall.h"
 #include "layout_prediction/point.h"
-#include "layout_prediction/graph.h"
 #include "layout_prediction/wall_measurement.h"
 #include "layout_prediction/pose_measurement.h"
 #include "layout_prediction/optimizer.h"
