@@ -13,17 +13,6 @@
 using namespace g2o;
 
 namespace MYSLAM {
-    extern double odomdata[53133];
-    extern double landmark5[10];
-    extern double landmark10[20];
-    extern double landmark20[40];
-    extern double landmark50[100];
-    extern double landmark100[200];
-    extern double landmark200[400];
-    extern double landmark300[600];
-    extern double landmark500[1000];
-    extern double landmark700[1400];
-    extern double landmark1000[2000];
     extern double objects[30];
 
     class Simulator
@@ -37,6 +26,8 @@ namespace MYSLAM {
             double m, c, xx, xy;
             Eigen::Vector2d p;
             Eigen::Vector2d q;
+
+            void calcMC();
         };
 
         struct Benda
@@ -73,8 +64,10 @@ namespace MYSLAM {
                 std::vector<Eigen::Vector3d> truePath;
                 std::vector<int> finalpose;
 
+                double nearestLandmark;
+
                 void move();
-                void move(int);
+                void moveWithPrediction();
                 void turn(int direction, double angle);
                 void sense();
 
@@ -89,7 +82,7 @@ namespace MYSLAM {
                 Simulator* _sim;
                 const double xnoise_stdev = 1.0e-2, ynoise_stdev = 1.0e-2, pnoise_stdev  = 2.0 * M_PI/180.; 
                 const double wnoise_stdev = 1.0e-2;
-                const double RANGE = 3.0;
+                const double RANGE = 5.0;
         };
 
         std::vector<Dinding> struktur;
@@ -97,6 +90,10 @@ namespace MYSLAM {
         Robot *robot;
         std::vector<Particle> particles;
         int N = MYSLAM::PF_NUMBER_OF_PARTICLES; // Num of particles
+        SE2 M; //general rotation
+
+        double roomwidth;
+        double roomlength;
 
         void getNextState();
         void getNextStatePF();
@@ -107,6 +104,8 @@ namespace MYSLAM {
         void run();
         void runPF();
         void generateLandmark ();
+        void generateObjects (int);
+        void generateRoom ();
         void calculateRMSE (MYSLAM::Graph&);
 
         void resample();

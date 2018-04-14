@@ -206,14 +206,14 @@ namespace MYSLAM {
             o->addEdge (om);
         }
 
-        std::ofstream mfile;
-        mfile.open ("/home/ism/tmp/data.g2o", std::ios::out | std::ios::app);
-        o->save(mfile);
+//        std::ofstream mfile;
+//        mfile.open ("/home/ism/tmp/data.g2o", std::ios::out | std::ios::app);
+//        o->save(mfile);
         o->initializeOptimization();
         o->optimize(10);
-        o->save(mfile);
-        mfile << std::endl << std::endl;
-        mfile.close();
+//        o->save(mfile);
+//        mfile << std::endl << std::endl;
+//        mfile.close();
 
         std::ofstream posefile;
         posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
@@ -246,8 +246,6 @@ namespace MYSLAM {
             wallMap[*it]->updateParams ();
         }
 
-        std::ofstream objectfile;
-        objectfile.open ("/home/ism/tmp/object.dat", std::ios::out | std::ios::app);
         for (std::set<int>::iterator it = activeObjects.begin();
                 it != activeObjects.end(); it++)
         {
@@ -260,7 +258,6 @@ namespace MYSLAM {
             objectMap[*it]->_pose[1] = y;
             objectMap[*it]->_pose[2] = p;
         }
-        objectfile.close();
 
         int fixPoseForNextIter = activePoses.back();
         activePoses.clear();

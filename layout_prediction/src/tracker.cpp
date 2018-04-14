@@ -98,15 +98,22 @@ namespace MYSLAM {
 
         double dx = dr * cos (current_heading);
         double dy = dr * sin (current_heading);
+//        double dx = dr * cos (_lastOdom->rotation().angle());
+//        double dy = dr * sin (_lastOdom->rotation().angle());
         Eigen::Vector3d incr (dx, dy, dt);
+
+//        std::cout << ": " << _measurement->toVector().transpose() << std::endl;
+//        std::cout << ": " << incr.transpose() << std::endl << std::endl;
 
         pose->_pose = _lastPose->_pose + incr;
         _lastPose = pose;
-        _lastOdom->fromVector (Eigen::Vector3d (d[0], d[1], d[2]));
+//        _lastOdom->fromVector (Eigen::Vector3d (d[0], d[1], d[2]));
+        *_lastOdom = odom;
 
         ofstream odomfile;
         odomfile.open ("/home/ism/tmp/odom.dat", std::ios::out | std::ios::app);
         odomfile << d[0] << " " << d[1] << " " << d[2] << std::endl;
+//        odomfile << pose->_pose.transpose() << std::endl;
         odomfile.close();
     }
 

@@ -20,6 +20,7 @@ int main (int argc, char** argv)
 
     MYSLAM::Simulator sim;
     sim.run();
+//    sim.generateRoom();
 //    sim.generateLandmark ();
 
     return 0;

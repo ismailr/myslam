@@ -28,7 +28,7 @@ namespace MYSLAM {
             std::map<int, Point::Ptr> _pointMap;
 
             // for loop closure
-            std::vector<Pose::Ptr> _poseList;
+            std::vector<int> _poseList;
 
             // measurement
             std::map<std::tuple<int, int>, Eigen::Vector3d> _posePoseMap;

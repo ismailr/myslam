@@ -21,8 +21,8 @@ namespace MYSLAM {
             unsigned long int _id;
             Eigen::Vector3d _pose;
 
-            std::vector<int> _detectedWalls;
-            std::vector<int> _detectedObjects;
+            std::set<int> _detectedWalls;
+            std::set<int> _detectedObjects;
     };
 
     class PoseVertex: public VertexSE2

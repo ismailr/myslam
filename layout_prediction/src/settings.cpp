@@ -9,6 +9,7 @@ namespace MYSLAM {
     double DATA_ASSOCIATION_THRESHOLD;
     int SIM_NUMBER_OF_ITERATIONS;
     int SIM_NUMBER_OF_LANDMARKS;
+    int SIM_NUMBER_OF_OBJECTS;
     int TRACKER_METHOD;
     int PF_NUMBER_OF_PARTICLES;
 
@@ -33,6 +34,7 @@ namespace MYSLAM {
           cfg.lookupValue ("data_association_threshold", DATA_ASSOCIATION_THRESHOLD);
           cfg.lookupValue ("sim_number_of_iterations", SIM_NUMBER_OF_ITERATIONS);
           cfg.lookupValue ("sim_number_of_landmarks", SIM_NUMBER_OF_LANDMARKS);
+          cfg.lookupValue ("sim_number_of_objects", SIM_NUMBER_OF_OBJECTS);
           cfg.lookupValue ("tracker_method", TRACKER_METHOD);
           cfg.lookupValue ("pf_number_of_particles", PF_NUMBER_OF_PARTICLES);
         } catch (SettingNotFoundException &nfex) {

@@ -166,6 +166,7 @@ namespace MYSLAM {
         if (_method == BA) {
             _graph->_poseMap[pose->_id] = pose;
             _graph->_activePoses.push_back (pose->_id);
+            _graph->_poseList.push_back (pose->_id);
 
             // detectwall
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;
@@ -180,7 +181,8 @@ namespace MYSLAM {
                 _graph->_poseWallMap[m] = std::get<1>(walls[i]);
                 _graph->_activeWalls.insert (w->_id);
                 _graph->_activeEdges.push_back (m);
-                pose->_detectedWalls.push_back (w->_id);
+                pose->_detectedWalls.insert (w->_id);
+                w->_seenBy.insert (pose->_id);
             }
 
             int N = _graph->_activePoses.size();
@@ -188,15 +190,15 @@ namespace MYSLAM {
             int E = _graph->_activeEdges.size();
             int V = 3*N + 2*M;
 
-            std::ofstream lfile;
-            lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
-            lfile   << System::_frameCounter << " " 
-                    << N << " " << M << " " << E << " " << V << std::endl;
-            lfile.close();
+//            std::ofstream lfile;
+//            lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
+//            lfile   << System::_frameCounter << " " 
+//                    << N << " " << M << " " << E << " " << V << std::endl;
+//            lfile.close();
 
 //            if (E >= V)
-//            if (System::_frameCounter % 5 == 0)
-            if (_graph->_activeWalls.size() >= 2 && _graph->_activePoses.size() >= 2)
+            if (System::_frameCounter % 3 == 0)
+//            if (M >= 2 && N >= 2)
             {
 //                _visualizer->visualizeWallOptimizedPq();
                 _optimizer->localOptimize();
@@ -285,7 +287,7 @@ namespace MYSLAM {
                 }
                 std::tuple<int, int> m (pose->_id, w->_id);
                 _graph->_poseWallMap[m] = z;
-                pose->_detectedWalls.push_back (w->_id);
+                pose->_detectedWalls.insert (w->_id);
                 w->_seenBy.insert (pose->_id);
             }
 //            dafile << (double)(clock() - start)/CLOCKS_PER_SEC << std::endl;
