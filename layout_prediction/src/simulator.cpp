@@ -595,11 +595,11 @@ namespace MYSLAM {
             int P = graph._activePoseObjectEdges.size();
             int E = graph._activeEdges.size() + N - 1 + P;
             int V = 3*N + 2*M + 3*O;
-//            std::ofstream lfile;
-//            lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
-//            lfile   << frame << " " 
-//                    << N << " " << M << " " << E << " " << V << std::endl;
-//            lfile.close();
+            std::ofstream lfile;
+            lfile.open ("/home/ism/tmp/numoflandmark.dat",std::ios::out | std::ios::app);
+            lfile   << frame << " " 
+                    << N << " " << M << " " << E << " " << V << std::endl;
+            lfile.close();
 
 //            if (frame % 5 == 0)
 //            if (graph._activeWalls.size() >= 2 && graph._activePoses.size() >= 2)
@@ -961,6 +961,10 @@ namespace MYSLAM {
     void Simulator::Dinding::calcMC() {
         m = -xx/xy;
         c = (xx*xx + xy*xy)/xy;
+    }
+
+    Simulator::Benda::Benda() {
+       classid = uniform_generator<int> (1,MYSLAM::SIM_NUMBER_OF_OBJECT_CLASS);
     }
 }
 

@@ -13,10 +13,9 @@
 
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/core/utility.hpp>
-#include <opencv2/saliency.hpp>
 #include <opencv2/core/core.hpp>
 
-using namespace cv::saliency;
+//using namespace cv::saliency;
 
 void depth_cb (const sensor_msgs::Image::Ptr&);
 void image_cb (const sensor_msgs::Image::Ptr&);

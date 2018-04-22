@@ -7,6 +7,7 @@
 
 #include "layout_prediction/settings.h"
 #include "layout_prediction/graph.h"
+#include "layout_prediction/helpers.h"
 
 #include <Eigen/Core>
 
@@ -33,7 +34,10 @@ namespace MYSLAM {
         struct Benda
         {
             int id;
+            int classid;
             Eigen::Vector3d pose;
+
+            Benda ();
         };
 
         class Particle

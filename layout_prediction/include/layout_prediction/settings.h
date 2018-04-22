@@ -18,6 +18,7 @@ namespace MYSLAM {
     extern int SIM_NUMBER_OF_ITERATIONS;
     extern int SIM_NUMBER_OF_LANDMARKS;
     extern int SIM_NUMBER_OF_OBJECTS;
+    extern int SIM_NUMBER_OF_OBJECT_CLASS;
     extern int TRACKER_METHOD;
     extern int PF_NUMBER_OF_PARTICLES;
 
