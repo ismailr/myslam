@@ -134,4 +134,29 @@ namespace MYSLAM {
             return true;
         }
     }
+
+    void Graph::insertNode (Pose::Ptr pose) {
+        _poseMap[pose->_id] = pose;
+        _activePoses.push_back (pose->_id);
+    }
+
+    void Graph::insertNode (Wall::Ptr wall) {
+        _wallMap[wall->_id] = wall;
+        _activeWalls.insert (wall->_id);
+    }
+
+    void Graph::insertNode (Object::Ptr object) {
+        _objectMap[object->_id] = object;
+        _activeObjects.insert (object->_id);
+    }
+
+    void Graph::insertPoseWallEdge (std::tuple<int,int> e, Eigen::Vector2d d) {
+        _poseWallMap [e] = d;
+        _activeEdges.push_back (e);
+    }
+
+    void Graph::insertPoseObjectEdge (std::tuple<int,int> e, Eigen::Vector3d d) {
+        _poseObjectMap [e] = d;
+        _activePoseObjectEdges.push_back (e);
+    }
 }

@@ -1,25 +1,18 @@
 #ifndef _SIMULATOR_H_
 #define _SIMULATOR_H_
 
-#include <utility>
-
+#include <Eigen/Core>
 #include <g2o/types/slam2d/se2.h>
 
 #include "layout_prediction/settings.h"
-#include "layout_prediction/graph.h"
 #include "layout_prediction/helpers.h"
-
-#include <Eigen/Core>
-
-using namespace g2o;
+#include "layout_prediction/graph.h"
 
 namespace MYSLAM {
-    extern double objects[30];
-
     class Simulator
     {
         public:
-            Simulator();
+        Simulator();
 
         struct Dinding
         {
@@ -38,18 +31,6 @@ namespace MYSLAM {
             Eigen::Vector3d pose;
 
             Benda ();
-        };
-
-        class Particle
-        {
-            public:
-                Particle();
-
-                std::vector<SE2> path;
-                std::vector<std::tuple<int, Dinding ,Eigen::Matrix2d> > landmarks;
-                double weight;
-
-            private:
         };
 
         class Robot
@@ -71,14 +52,8 @@ namespace MYSLAM {
                 double nearestLandmark;
 
                 void move();
-                void moveWithPrediction();
                 void turn(int direction, double angle);
                 void sense();
-
-                void sampleMove(int direction = 0, double angle = 0.0); // particle filter
-                void observe(); // particle filter
-
-                Eigen::Matrix2d* obvJacobian (SE2, Eigen::Vector2d);
 
                 double _moveStep;
 
@@ -92,27 +67,33 @@ namespace MYSLAM {
         std::vector<Dinding> struktur;
         std::vector<Benda> bendabenda;
         Robot *robot;
-        std::vector<Particle> particles;
-        int N = MYSLAM::PF_NUMBER_OF_PARTICLES; // Num of particles
         SE2 M; //general rotation
+
+        // list of detected landmarks
+        std::vector<Dinding*> dindings; // sensors data
+        std::vector<Wall::Ptr> walls; // wall landmark
+        std::vector<Benda*> bendas; // sensor data
+        std::vector<Object::Ptr> objects; // object landmark
 
         double roomwidth;
         double roomlength;
 
         void getNextState();
-        void getNextStatePF();
 
         std::vector<Dinding> getStruktur () const { return struktur; };
         std::vector<Benda> getBendaBenda () const { return bendabenda; };
 
         void run();
-        void runPF();
-        void generateLandmark ();
         void generateObjects (int);
         void generateRoom ();
         void calculateRMSE (MYSLAM::Graph&);
 
-        void resample();
+        void dataAssociationWallKnown (Graph&, Pose::Ptr&);
+        void dataAssociationObjectKnown (Graph&, Pose::Ptr&);
+        void dataAssociationWallUnknown (Graph&, Pose::Ptr&);
+        void dataAssociationObjectUnknown (Graph&, Pose::Ptr&);
+
+        void writeLandmarkEstimation (Graph&);
 
         private:
     };

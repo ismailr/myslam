@@ -22,6 +22,12 @@ namespace MYSLAM {
             bool dataAssociationEKF (int poseid, Wall::Ptr& w, const Eigen::Vector2d& z);
             Point::Ptr dataAssociationPoint (Point::Ptr& p);
 
+            void insertNode (Pose::Ptr);
+            void insertNode (Wall::Ptr);
+            void insertNode (Object::Ptr);
+            void insertPoseWallEdge (std::tuple<int,int>, Eigen::Vector2d);
+            void insertPoseObjectEdge (std::tuple<int,int>, Eigen::Vector3d);
+
             std::map<int, Pose::Ptr> _poseMap;
             std::map<int, Wall::Ptr> _wallMap;
             std::map<int, Object::Ptr> _objectMap;
