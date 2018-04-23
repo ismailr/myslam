@@ -44,6 +44,8 @@ namespace MYSLAM {
                 std::vector<Eigen::Vector2d> sensedData;
                 std::vector<Benda*> sensedBenda;
                 std::vector<Eigen::Vector3d> sensedDataBenda;
+                std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > sensedWalls;
+                std::vector<std::tuple<Object::Ptr, Eigen::Vector3d> > sensedObjects;
 
                 // for statistics
                 std::vector<Eigen::Vector3d> truePath;
@@ -66,6 +68,8 @@ namespace MYSLAM {
 
         std::vector<Dinding> struktur;
         std::vector<Benda> bendabenda;
+        std::vector<Wall::Ptr> trueStructure;
+        std::vector<Object::Ptr> trueObjects;
         Robot *robot;
         SE2 M; //general rotation
 
@@ -82,6 +86,8 @@ namespace MYSLAM {
 
         std::vector<Dinding> getStruktur () const { return struktur; };
         std::vector<Benda> getBendaBenda () const { return bendabenda; };
+        std::vector<Wall::Ptr> getStructure () const { return trueStructure; };
+        std::vector<Object::Ptr> getObjects () const { return trueObjects; };
 
         void run();
         void generateObjects (int);

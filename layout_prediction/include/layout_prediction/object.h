@@ -24,6 +24,7 @@ namespace MYSLAM {
                 KOMPUTER };
 
             unsigned long int _id;
+            int _classid;
             Eigen::Vector3d _pose;
             Eigen::Matrix<double,3,3> objectCovarianceMatrix;
 
