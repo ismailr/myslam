@@ -80,33 +80,28 @@ namespace MYSLAM {
     {
         double _nearestLandmark = 100.0;
 
-        sensedData.clear();
-        sensedDinding.clear();
-        sensedDataBenda.clear();
-        sensedBenda.clear();
+        sensedWalls.clear();
+        sensedObjects.clear();
 
         SE2 simpose; simpose.fromVector (simPose);
         SE2 truepose; truepose.fromVector (truePose);
 
         // sensor model
-        for (std::vector<Dinding>::iterator it = _sim->struktur.begin(); it != _sim->struktur.end(); it++)
+        for (std::vector<Wall::Ptr>::iterator it = _sim->structure.begin(); it != _sim->structure.end(); it++)
         {
             double unoise = gaussian_generator<double>(0.0, wnoise_stdev);
             double vnoise = gaussian_generator<double>(0.0, wnoise_stdev);
 
-            double u = (*it).xx;
-            double v = (*it).xy;
+            double u = (*it)->_line.xx[0];
+            double v = (*it)->_line.xx[1];
 
             Eigen::Vector2d xx (u, v);
             Eigen::Vector2d xx_ = truepose.inverse() * xx;
 
             Eigen::Vector2d data (xx_[0] + unoise, xx_[1] + vnoise);
-//
-//            double r = sqrt (xx_[0]*xx_[0] + xx_[1]*xx_[1]);
-//            double angle = normalize_theta (atan2 (xx_[1],xx_[0]));
-//
-            double m = (*it).m;
-            double c = (*it).c;
+
+            double m = (*it)->_line.mc[0];
+            double c = (*it)->_line.mc[1];
 
             double& x = truePose[0];
             double& y = truePose[1];
@@ -121,27 +116,26 @@ namespace MYSLAM {
             double v_ = c_/(m_*m_+1) + vnoise;
 
             double r = sqrt (u_*u_ + v_*v_);
-//            double r_ = std::abs (-c_/m_);            
             double angle = normalize_angle (atan2 (v_,u_));
 
             if (r <= RANGE)
             {
                if ((angle >= 0.0 && angle < 0.5*M_PI) || (angle > 1.5*M_PI && angle <= 2*M_PI))
                 {
-                    if (r< _nearestLandmark) _nearestLandmark = r;
-                    sensedDinding.push_back (&(*it));
-                    sensedData.push_back (data);
+                    if (r < _nearestLandmark) _nearestLandmark = r;
+                    sensedWalls.push_back(std::make_tuple(*it,data));
                 }
             }
         }
 
-        for (std::vector<Benda>::iterator it = _sim->bendabenda.begin(); it != _sim->bendabenda.end(); it++)
+//        for (std::vector<Benda>::iterator it = _sim->bendabenda.begin(); it != _sim->bendabenda.end(); it++)
+        for (std::vector<Object::Ptr>::iterator it = _sim->objects.begin(); it != _sim->objects.end(); it++)
         {
             double oxnoise = gaussian_generator<double>(0.0, 1.0e-2);
             double oynoise = gaussian_generator<double>(0.0, 1.0e-2);
             double otnoise = gaussian_generator<double>(0.0, 2.0*M_PI/180.0);
 
-            SE2 objectPose; objectPose.fromVector (it->pose);
+            SE2 objectPose; objectPose.fromVector ((*it)->_pose);
 
             SE2 objectMeasurement = truepose.inverse() * objectPose;
 
@@ -163,8 +157,9 @@ namespace MYSLAM {
             {
                 if ((angle >= 0.0 && angle < M_PI/2) || (angle > -2*M_PI && angle <= -M_PI/2))
                 {
-                    sensedBenda.push_back (&(*it));
-                    sensedDataBenda.push_back (objectMeasurementWithNoise.toVector());
+                    sensedObjects.push_back (std::make_tuple (*it, objectMeasurementWithNoise.toVector()));
+//                    sensedBenda.push_back (&(*it));
+//                    sensedDataBenda.push_back (objectMeasurementWithNoise.toVector());
                 }
             }
         }
@@ -181,7 +176,7 @@ namespace MYSLAM {
         roomwidth = uniform_generator<double>(0.0, 10.0) + 5.0;
         roomlength = uniform_generator<double>(0.0, 10.0 ) + 5.0;
 
-        generateRoom();
+        generateWalls();
         generateObjects (MYSLAM::SIM_NUMBER_OF_OBJECTS);
 
         robot = new Robot(this);
@@ -280,19 +275,18 @@ namespace MYSLAM {
             double y = uniform_generator<double>(-roomlength + 0.5, roomlength - 0.5);
             double t = uniform_generator<double>(-M_PI,M_PI);
 
-            Benda b;
-            b.id = i;
+            Object::Ptr b (new Object);
             SE2 o (x, y, t);
             o = M * o;
-            b.pose = o.toVector();
-            bendabenda.push_back (b);
-            objectfile << b.pose.transpose() << std::endl;
+            b->_pose = o.toVector();
+            objects.push_back(b);
+            objectfile << b->_pose.transpose() << std::endl;
         }
 
         objectfile.close();
     }
 
-    void Simulator::generateRoom () {
+    void Simulator::generateWalls () {
 
         std::vector<Eigen::Vector2d> data;
 
@@ -328,16 +322,15 @@ namespace MYSLAM {
         wfile.open ("/home/ism/tmp/truewall.dat", std::ios::out | std::ios::app);
         for (int i = 0, j = 0; i < 4; i++, j = j + 3)
         {
-            Dinding *d = new Dinding;
-            d->id = i;
+            Wall::Ptr w (new Wall);
             data[j] = M * data[j];
-            d->xx = data[j][0];
-            d->xy = data[j][1];
-            d->calcMC();
-            d->p = M * data[j+1];
-            d->q = M * data[j+2];
-            struktur.push_back(*d);
-            wfile << d->p.transpose() << " " << d->q.transpose() << std::endl;
+            w->_line.xx[0] = data[j][0];
+            w->_line.xx[1] = data[j][1];
+            w->_line.p = M * data[j+1];
+            w->_line.q = M * data[j+2];
+            w->updateParams();
+            structure.push_back(w);
+            wfile << w->_line.p.transpose() << " " << w->_line.q.transpose() << std::endl;
         }
         wfile.close();
     }
@@ -375,60 +368,35 @@ namespace MYSLAM {
         rmsefile.close();
     }
 
-    void Simulator::Dinding::calcMC() {
-        m = -xx/xy;
-        c = (xx*xx + xy*xy)/xy;
-    }
-
     Simulator::Benda::Benda() {
        classid = uniform_generator<int> (1,MYSLAM::SIM_NUMBER_OF_OBJECT_CLASS);
+       id = Generator::id++;
     }
 
     void Simulator::dataAssociationWallKnown (Graph& graph, Pose::Ptr& pose) {
 
-        for (size_t i = 0; i < robot->sensedDinding.size(); i++)
+        for (int i = 0; i < robot->sensedWalls.size(); i++)
         {
             // asosiasi data
-            Wall::Ptr w = NULL;
-            Dinding* d = robot->sensedDinding[i];
+            Wall::Ptr w = std::make_shared<Wall>(*(std::get<0>(robot->sensedWalls[i])));
+            Eigen::Vector2d m = std::get<1>(robot->sensedWalls[i]);
+
             bool newLandmark = true;
 
-            if (dindings.size() == 0)
+            for (std::map<int, Wall::Ptr>::iterator it = graph._wallMap.begin();
+                    it != graph._wallMap.end(); ++it)
             {
-                Wall::Ptr wall (new Wall);
-                w = wall;
-                w->_line.p = d->p;
-                w->_line.q = d->q;
-                w->initParams();
-                dindings.push_back (d);
-                walls.push_back (w);
-
-            } else {
-                for (int j = 0; j < dindings.size(); j++)
+                if (w->_id == it->first)
                 {
-                    if (d->id == dindings[j]->id)
-                    {
-                        w = walls[j];
-                        newLandmark = false;
-                        break;
-                    }
-                    else if (j == dindings.size() - 1)
-                    {
-                        Wall::Ptr wall (new Wall);
-                        w = wall;
-                        w->_line.p = d->p;
-                        w->_line.q = d->q;
-                        w->initParams();
-                        dindings.push_back (d);
-                        walls.push_back (w);
-                        break;
-                    }
+                    w = it->second;
+                    newLandmark = false;
+                    break;
                 }
             }
 
             if (newLandmark) {
-                double& xx_ = robot->sensedData[i][0];
-                double& xy_ = robot->sensedData[i][1];
+                double& xx_ = m[0];
+                double& xy_ = m[1];
 
                 double x = pose->_pose[0];
                 double y = pose->_pose[1];
@@ -438,88 +406,65 @@ namespace MYSLAM {
 
                 w->_line.xx[0] = xx_*cost - xy_*sint + x;
                 w->_line.xx[1] = xx_*sint + xy_*cost + y;
-                w->initParams();
+                w->updateParams();
             }
 
-            graph.insertNode (w);
+            /* we insert also old node here to make it an active node */
+            graph.insertNode (w); 
+
             std::tuple<int, int> e (pose->_id, w->_id);
-            graph.insertPoseWallEdge (e, robot->sensedData[i]);
+            graph.insertPoseWallEdge (e, m);
         }
 
     }
 
     void Simulator::dataAssociationObjectKnown (Graph& graph, Pose::Ptr& pose) {
 
-        for (size_t i = 0; i < robot->sensedBenda.size(); i++)
+        for (int i = 0; i < robot->sensedObjects.size(); i++)
         {
             // asosiasi data
-            Object::Ptr o = NULL;
-            Benda* b = robot->sensedBenda[i];
+            Object::Ptr o = std::make_shared<Object>(*(std::get<0>(robot->sensedObjects[i])));
+            Eigen::Vector3d m = std::get<1>(robot->sensedObjects[i]);
+
             bool newObject = true;
 
-            if (bendas.size() == 0)
+            for (std::map<int, Object::Ptr>::iterator it = graph._objectMap.begin();
+                    it != graph._objectMap.end(); ++it)
             {
-                Object::Ptr object (new Object);
-                o = object;
-                bendas.push_back (b);
-                objects.push_back (o);
-
-            } else {
-                for (int j = 0; j < bendas.size(); j++)
+                if (o->_id == it->first)
                 {
-                    if (b->id == bendas[j]->id)
-                    {
-                        o = objects[j];
-                        newObject = false;
-                        break;
-                    }
-                    else if (j == bendas.size() - 1)
-                    {
-                        Object::Ptr object (new Object);
-                        o = object;
-                        bendas.push_back (b);
-                        objects.push_back (o);
-                        break;
-                    }
+                    o = it->second;
+                    newObject = false;
+                    break;
                 }
             }
 
             if (newObject) {
-                Eigen::Vector3d m = robot->sensedDataBenda[i];
-                SE2 measurement; measurement.fromVector (m); 
                 SE2 robotPose; robotPose.fromVector (pose->_pose);
+                SE2 measurement; measurement.fromVector (m); 
                 SE2 objectPose = robotPose * measurement;
                 o->_pose = objectPose.toVector();
             }
 
             graph.insertNode (o);
+
             std::tuple<int, int> e (pose->_id, o->_id);
-            graph.insertPoseObjectEdge (e, robot->sensedDataBenda[i]);
+            graph.insertPoseObjectEdge (e, m);
         }
     }
 
     void Simulator::dataAssociationWallUnknown (Graph& graph, Pose::Ptr& pose) {
 
-        for (size_t i = 0; i < robot->sensedDinding.size(); i++)
-        {
-
-        }
-
     }
 
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
-
-        for (size_t i = 0; i < robot->sensedBenda.size(); i++)
-        {
-
-        }
 
     }
 
     void Simulator::writeLandmarkEstimation (Graph& graph) {
 
         ofstream wfile;
-        wfile.open ("/home/ism/tmp/wall.dat", std::ios::out | std::ios::app);
+        wfile.open ("/home/ism/tmp/wall.dat", std::ios::out);
         for (std::map<int, Wall::Ptr>::iterator it = graph._wallMap.begin();
                 it != graph._wallMap.end(); it++)
         {
