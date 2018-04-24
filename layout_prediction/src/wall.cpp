@@ -91,11 +91,13 @@ namespace MYSLAM {
     };
 
     void Wall::updateParams(){
+        _line.calcSegment();
         _line.calcMcFromXx();
         _line.calcPq();
     };
 
     void Wall::initParams(){
+        _line.calcMcFromXx();
         _line.calcSegment();
     };
 
