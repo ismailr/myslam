@@ -128,7 +128,6 @@ namespace MYSLAM {
             }
         }
 
-//        for (std::vector<Benda>::iterator it = _sim->bendabenda.begin(); it != _sim->bendabenda.end(); it++)
         for (std::vector<Object::Ptr>::iterator it = _sim->objects.begin(); it != _sim->objects.end(); it++)
         {
             double oxnoise = gaussian_generator<double>(0.0, 1.0e-2);
@@ -158,8 +157,6 @@ namespace MYSLAM {
                 if ((angle >= 0.0 && angle < M_PI/2) || (angle > -2*M_PI && angle <= -M_PI/2))
                 {
                     sensedObjects.push_back (std::make_tuple (*it, objectMeasurementWithNoise.toVector()));
-//                    sensedBenda.push_back (&(*it));
-//                    sensedDataBenda.push_back (objectMeasurementWithNoise.toVector());
                 }
             }
         }
