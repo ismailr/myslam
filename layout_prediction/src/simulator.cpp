@@ -124,6 +124,14 @@ namespace MYSLAM {
                 {
                     if (r < _nearestLandmark) _nearestLandmark = r;
                     sensedWalls.push_back(std::make_tuple(*it,data));
+
+                    double uu = data[0]*cost - data[1]*sint + x;
+                    double vv = data[0]*sint + data[1]*cost + y;
+
+                    std::ofstream dafile;
+                    dafile.open ("/home/ism/tmp/da.dat", std::ios::out | std::ios::app);
+                    dafile << (*it)->_id << ": " << uu << " " << vv << std::endl;
+                    dafile.close();
                 }
             }
         }
@@ -157,6 +165,12 @@ namespace MYSLAM {
                 if ((angle >= 0.0 && angle < M_PI/2) || (angle > -2*M_PI && angle <= -M_PI/2))
                 {
                     sensedObjects.push_back (std::make_tuple (*it, objectMeasurementWithNoise.toVector()));
+
+                    Eigen::Vector3d objectPose = (truepose * objectMeasurementWithNoise).toVector();
+                    std::ofstream dafile;
+                    dafile.open ("/home/ism/tmp/da.dat", std::ios::out | std::ios::app);
+                    dafile << (*it)->_id << ": " << (*it)->_classid << ": " << objectPose.transpose() << std::endl;
+                    dafile.close();
                 }
             }
         }
@@ -214,6 +228,11 @@ namespace MYSLAM {
 
         for (int frame = 1; frame < MYSLAM::SIM_NUMBER_OF_ITERATIONS; frame++)
         {
+            ofstream dafile;
+            dafile.open ("/home/ism/tmp/da.dat", std::ios::out | std::ios::app);
+            dafile << "========== " << frame << " ==========" << std::endl; 
+            dafile.close();
+
             SE2 lastodom; lastodom.fromVector (lastSimPose);
             SE2 currentodom; currentodom.fromVector (robot->simPose);
             SE2 delta = lastodom.inverse() * currentodom;
@@ -273,6 +292,7 @@ namespace MYSLAM {
             double t = uniform_generator<double>(-M_PI,M_PI);
 
             Object::Ptr b (new Object);
+            b->_classid = uniform_generator<int>(0, MYSLAM::SIM_NUMBER_OF_OBJECT_CLASS);
             SE2 o (x, y, t);
             o = M * o;
             b->_pose = o.toVector();

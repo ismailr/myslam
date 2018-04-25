@@ -12,7 +12,6 @@ namespace MYSLAM {
             Optimizer(MYSLAM::Graph&); // simulation
             void localOptimize();
             void globalOptimize();
-            void globalOptimizePoint();
 
         private:
             System *_system;

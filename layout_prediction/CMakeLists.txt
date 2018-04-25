@@ -167,6 +167,7 @@ add_executable(layout_prediction
     src/ekf_mapper.cpp
     src/object.cpp
     src/object_measurement.cpp
+    src/data_association.cpp
     #    src/g2o/vertex_se2.cpp
     #    src/g2o/vertex_line2d.cpp
     #    src/g2o/edge_se2.cpp
@@ -197,6 +198,7 @@ add_executable(simulation
     src/ekf_mapper.cpp
     src/object.cpp
     src/object_measurement.cpp
+    src/data_association.cpp
     #    src/g2o/vertex_se2.cpp
     #    src/g2o/vertex_line2d.cpp
     #    src/g2o/edge_se2.cpp
