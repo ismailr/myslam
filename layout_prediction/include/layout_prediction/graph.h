@@ -30,6 +30,7 @@ namespace MYSLAM {
             std::map<int, Pose::Ptr> _poseMap;
             std::map<int, Wall::Ptr> _wallMap;
             std::map<int, Object::Ptr> _objectMap;
+            std::map<int, std::vector<int> > _objectClassMap;
 
             // for loop closure
             std::vector<int> _poseList;
