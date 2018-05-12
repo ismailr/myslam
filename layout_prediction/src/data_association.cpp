@@ -14,48 +14,134 @@ namespace MYSLAM {
 
     }
 
-//    void DataAssociation::associate (std::vector<Eigen::Vector3d> objects, std::vector<int> classids) {
     void DataAssociation::associate (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) {
 
+        if (data.size() <= 1) return;
+
+        // break the input
         std::vector<Eigen::Vector3d> measurements;
         std::vector<int> classids;
+        std::vector<double> dz; // distance between measurements
 
         for (int i = 0; i < data.size(); i++) {
             measurements.push_back (std::get<1>(data[i]));
             classids.push_back (std::get<0>(data[i]));
+
+            if (i < data.size() - 1) {
+                double d = calculateDistance (std::get<1>(data[i]), std::get<1>(data[i+1]));
+                dz.push_back (d);
+            }
         }
 
-        int numOfSeq = 1;
+        // first, handle new object, i.e. the one with no class in map
+        std::set<int> newClasses;
         for (int i = 0; i < classids.size(); i++) {
 
-            // first, handle new detected object
-            if (_graph->_objectClassMap[classids[i]].size() == 0) {
+            auto it = std::find (newClasses.begin(), newClasses.end(), classids[i]);
+            if (_graph->_objectClassMap[classids[i]].size() == 0 || it != newClasses.end() ) {
+
+                newClasses.insert (classids[i]);
+
                 Object::Ptr o (new Object);
                 SE2 robotPose; robotPose.fromVector (pose->_pose);
                 SE2 measurement; measurement.fromVector (measurements[i]);
                 o->_pose = (robotPose * measurement).toVector();
                 o->_classid = classids[i];
                 _graph->insertNode (o);
+            } 
+        }
+
+        // candidate containers (only n shortest paths will be recorded)
+        std::set<int> _from = _graph->_objectClassMap[classids[0]];
+        std::set<int> _to = _graph->_objectClassMap[classids[1]];
+        int npaths = _from.size() * _to.size();
+
+        int n;
+        npaths > 2 ? n = 3 : n = npaths; 
+        std::vector<std::vector<int> > candidates (n);
+        std::vector<double> dcandidates (n, 0.0); // weights
+
+        // get n candidates
+        // calculated from level 0 and level 1 nodes
+        std::vector<std::tuple<double,int,int> > path_candidates;
+        for (auto it = _from.begin(); it != _from.end(); it++) {
+
+            Object::Ptr o1 = _graph->_objectMap[*it];
+            for (auto jt = _to.begin(); jt != _to.end(); jt++) {
+
+                Object::Ptr o2 = _graph->_objectMap[*jt];
+                double d = calculateDistance (o1, o2);
+
+                if (d == 0) continue; // if o1 = o2, discard
+
+                double diff = std::abs (d - dz[0]);
+
+                path_candidates.push_back (std::make_tuple (diff, *it, *jt));
             }
 
-            numOfSeq *= _graph->_objectClassMap[classids[i]].size();
+            std::sort ( begin(path_candidates), 
+                        end(path_candidates),
+                        [](auto const &t1, auto const &t2) {
+                            return get<0>(t1) < get<0>(t2);
+                        });
+
+            for (int j = 0; j < n; j++) {
+
+                int f = std::get<1>(path_candidates[j]);
+                int t = std::get<2>(path_candidates[j]);
+                double d = std::get<0>(path_candidates[j]);
+
+                candidates[j].push_back (f); 
+                candidates[j].push_back (t);
+                dcandidates[j] = d;
+            }
         }
 
-        double distData = calculateTotalDistance (measurements);
-        double minDelta = std::numeric_limits<double>::max();
+        // iterate through _classObjectMap[classids[i]]
+        for (int i = 2; i < classids.size(); i++) {
 
-        for (int i = 0; i < numOfSeq; i++) {
+            std::set<int> to = _graph->_objectClassMap[classids[i]];
 
-            std::vector<int> seq; // current sequence
+            // exhaust all possible paths from "from" to "to"
+            // and weight them with distances
+            // "from" is now candidates[i].back()
+            for (auto it = candidates.begin(); it != candidates.end(); it++) {
 
+                Object::Ptr o1 = _graph->_objectMap[it->back()];
+                double shortest = std::numeric_limits<double>::max();
+                int nextnode; // next shortest node from o1
+                for (auto jt = to.begin(); jt != to.end(); jt++) {
 
-            // brute force
+                    Object::Ptr o2 = _graph->_objectMap[*jt];
+                    double d = calculateDistance (o1, o2);
 
-            // calculate dist of current seq to data
-            double distSeq = calculateTotalDistance (seq);
-            double delta = std::abs (distData - distSeq);
-            if (delta < minDelta) minDelta = delta;
+                    if (d == 0) continue; // if o1 = o2, discard
+                    auto kt = std::find (it->begin(), it->end(), o2->_id);
+                    if (kt != it->end()) continue;
+
+                    double diff = std::abs (d - dz[i-1]);
+
+                    if (diff < shortest) {
+                        shortest = diff;
+                        nextnode = *jt;
+                    }
+                }
+
+                it->push_back (nextnode);
+                dcandidates [it - candidates.begin()] += shortest; 
+            }
         }
+
+        std::cout << "CANDIDATES: " << std::endl;
+        for (int k = 0; k < candidates.size(); k++) {
+            std::cout << dcandidates[k] << ": ";
+            for (int l = 0; l < classids.size(); l++) {
+                std::cout << candidates[k][l] << " ";
+            }
+            std::cout << std::endl;
+        }
+
+        std::cout << std::endl;
     }
 
     double DataAssociation::calculateDistance (Wall::Ptr w1, Wall::Ptr w2) {

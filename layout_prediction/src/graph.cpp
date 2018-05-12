@@ -148,7 +148,7 @@ namespace MYSLAM {
     void Graph::insertNode (Object::Ptr object) {
         _objectMap[object->_id] = object;
         _activeObjects.insert (object->_id);
-        _objectClassMap[object->_classid].push_back (object->_id); 
+        _objectClassMap[object->_classid].insert (object->_id); 
     }
 
     void Graph::insertPoseWallEdge (std::tuple<int,int> e, Eigen::Vector2d d) {

@@ -8,7 +8,7 @@ namespace MYSLAM {
         public:
             DataAssociation (Graph&);
 
-//            void associate (std::vector<Eigen::Vector3d>, std::Vector<int>);
+            // args: robot's pose, vector<classid, measurements>
             void associate (Pose::Ptr, std::vector<std::tuple<int, Eigen::Vector3d> >); 
 
         private:

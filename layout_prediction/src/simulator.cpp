@@ -1,5 +1,6 @@
 #include <iostream>
 #include <fstream>
+#include <tuple>
 
 #include "layout_prediction/simulator.h"
 #include "layout_prediction/pose.h"
@@ -7,6 +8,7 @@
 #include "layout_prediction/optimizer.h"
 #include "layout_prediction/settings.h"
 #include "layout_prediction/helpers.h"
+#include "layout_prediction/data_association.h"
 
 namespace MYSLAM {
 
@@ -248,6 +250,7 @@ namespace MYSLAM {
 
             dataAssociationWallKnown (graph, pose);
             dataAssociationObjectKnown (graph, pose);
+            dataAssociationObjectUnknown (graph, pose);
 
             int N = graph._activePoses.size();
             int M = graph._activeWalls.size();
@@ -476,6 +479,27 @@ namespace MYSLAM {
 
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
 
+        if (robot->sensedObjects.size() <= 1) return;
+        std::cout << "CLASSIDS: "; 
+        for (int i = 0; i < robot->sensedObjects.size(); i++) {
+            std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
+        }
+        std::cout << std::endl;
+        
+        std::vector<std::tuple<int, Eigen::Vector3d> > data;
+
+        std::cout << "GROUNDTRUTH: ";
+        for (int i = 0; i < robot->sensedObjects.size(); i++) {
+
+            int classid = (std::get<0>(robot->sensedObjects[i]))->_classid;
+            Eigen::Vector3d measurement = std::get<1>(robot->sensedObjects[i]);
+            data.push_back (std::make_tuple (classid, measurement));
+            std::cout << (std::get<0>(robot->sensedObjects[i]))->_id << " ";
+        }
+        std::cout << std::endl;
+
+        DataAssociation da (graph);
+        da.associate (pose, data);
     }
 
     void Simulator::writeLandmarkEstimation (Graph& graph) {

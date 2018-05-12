@@ -241,7 +241,7 @@ target_link_libraries(simulation
     "/usr/lib64/libconfig++.so"
 )
 
-add_definitions(-std=c++11)
+add_definitions(-std=c++14)
 
 #############
 ## Install ##
