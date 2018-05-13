@@ -14,9 +14,12 @@ namespace MYSLAM {
 
     }
 
-    void DataAssociation::associate (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) {
+    std::vector<int> DataAssociation::associate (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) {
 
-        if (data.size() <= 1) return;
+        // ids container that will be returned
+        // id = -1 indicates new object
+        std::vector<int> objectsids (data.size(), -1);
+        if (data.size() <= 1) return objectsids;
 
         // break the input
         std::vector<Eigen::Vector3d> measurements;
