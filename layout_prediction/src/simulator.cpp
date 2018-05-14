@@ -480,6 +480,7 @@ namespace MYSLAM {
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
 
         if (robot->sensedObjects.size() <= 1) return;
+
         std::cout << "CLASSIDS: "; 
         for (int i = 0; i < robot->sensedObjects.size(); i++) {
             std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";

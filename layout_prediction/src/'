@@ -60,7 +60,7 @@ namespace MYSLAM {
         for (int i = 0; i < classids.size() - 1; i++) {
 
             if (i == 0) {
-                if (objectsids[i] == -1) {
+                if (objectsids[0] == -1) {
                     std::vector<int> _candidates;
                     _candidates.push_back (-1);
                     candidates.push_back (_candidates);
@@ -89,38 +89,25 @@ namespace MYSLAM {
                 if (i > 0 && it - candidates.begin() > 2) break;
 
                 Eigen::Vector3d o1;
-                if (it->back() == -1) {
+                if (*it == -1) {
                     SE2 m; m.fromVector (measurements[i]);
-                    SE2 p; p.fromVector (pose->_pose);
-                    o1 = (p * m).toVector();
-                } else {
-                    o1 = _graph->_objectMap[it->back()]->_pose;
+                    SE2 p; p.fromVector (pose);
+
                 }
 
+                Object::Ptr o1 = _graph->_objectMap[it->back()];
                 double shortest = std::numeric_limits<double>::max();
                 int nextnode; // next shortest node from o1
                 for (auto jt = to.begin(); jt != to.end(); jt++) {
 
-                    // prevent path to loop
-                    if (*jt != -1)  {
-                        auto kt = std::find (it->begin(), it->end(), *jt);
-                        if (kt != it->end()) continue;
-                    }
-
-                    Eigen::Vector3d o2;
-                    if (*jt == -1) {
-                        SE2 m; m.fromVector (measurements[i+1]);
-                        SE2 p; p.fromVector (pose->_pose);
-                        o2 = (p * m).toVector();
-                    } else {
-                        o2 = _graph->_objectMap[*jt]->_pose;
-                    }
-
+                    Object::Ptr o2 = _graph->_objectMap[*jt];
                     double d = calculateDistance (o1, o2);
 
-                    if (d == 0.0) continue; // if o1 = o2, discard
+                    if (d == 0) continue; // if o1 = o2, discard
+                    auto kt = std::find (it->begin(), it->end(), o2->_id);
+                    if (kt != it->end()) continue;
 
-                    double diff = std::abs (d - dz[i]);
+                    double diff = std::abs (d - dz[i-1]);
 
                     if (diff < shortest) {
                         shortest = diff;
