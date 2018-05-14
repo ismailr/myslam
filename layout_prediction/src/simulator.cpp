@@ -479,7 +479,7 @@ namespace MYSLAM {
 
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
 
-        if (robot->sensedObjects.size() <= 1) return;
+        if (robot->sensedObjects.size() <= 2) return;
 
         std::cout << "CLASSIDS: "; 
         for (int i = 0; i < robot->sensedObjects.size(); i++) {
@@ -500,7 +500,19 @@ namespace MYSLAM {
         std::cout << std::endl;
 
         DataAssociation da (graph);
-        da.associate (pose, data);
+        std::vector<int> result = da.associate (pose, data);
+
+        std::cout << "CANDIDATES: ";
+        for (int i = 0; i < result.size(); i++) {
+            if (result[i] = -1) {
+                Object::Ptr o = std::get<0>(robot->sensedObjects[i]);
+                graph.insertNode (o);
+                std::cout << o->_id << "-";
+            } else {
+                std::cout << result[i] << "+";
+            }
+        }
+        std::cout << std::endl;
     }
 
     void Simulator::writeLandmarkEstimation (Graph& graph) {

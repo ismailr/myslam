@@ -16,15 +16,15 @@ namespace MYSLAM {
 
     std::vector<int> DataAssociation::associate (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) {
 
-        // handle single and double object detection specially
-        if (data.size() <= 2) return objectsids;
-
         // ids container that will be returned
         // id = -1 indicates new object
         // id = -2 indicates possibility of object already present in map
         // following algorithm should replace all id = -2
         // either with -1 or associated object id
         std::vector<int> objectsids (data.size(), -1);
+
+        // handle single and double object detection specially
+        if (data.size() <= 2) return objectsids;
 
         // container to store path candidates
         // and distance values
@@ -46,7 +46,7 @@ namespace MYSLAM {
 
             // check if classids[i] is in the map
             // if yes, put -2 in objectsids[i]
-            if (_graph._objectClassMap[classids[i]] > 0)
+            if (_graph->_objectClassMap[classids[i]].size() > 0)
                 objectsids[i] = -2;
         }
 
@@ -54,45 +54,36 @@ namespace MYSLAM {
         if (std::all_of(objectsids.begin(), objectsids.end(), [](int i){return i == -1;})) 
             return objectsids;
 
-        // first candidates made from objects in _objectClassMap[0]
-        // and _objectClassMap[1]
-        // if empty, use measurement[0] and [1] and dz[0]
-        for (int i = 0; i < classids.size() - 1; i++) {
+        // fill first candidates with objects from _objectClassMap[classids[0]]
+        // if _objectClassMap[classids[0]] is empty, put -1
+        if (objectsids[0] == -1) {
+            std::vector<int> _candidates;
+            _candidates.push_back (-1);
+            candidates.push_back (_candidates);
+        } else {
+            for (auto it = _graph->_objectClassMap[classids[0]].begin(); 
+                    it != _graph->_objectClassMap[classids[0]].end();
+                   it ++) {
+                std::vector<int> _candidates;
+                _candidates.push_back (*it);
+                candidates.push_back (_candidates);
+            } 
+        }
 
-            if (i == 0) {
-                if (objectsids[i] == -1) {
-                    std::vector<int> _candidates;
-                    _candidates.push_back (-1);
-                    candidates.push_back (_candidates);
-                } else {
-                    for (auto it = _graph._objectClassMap[classids[i]].begin(); 
-                            it != _graph._objectClassMap[classids[i]].end();
-                           it ++) {
-                        std::vector<int> _candidates;
-                        _candidates.push_back (it->_id);
-                        candidates.push_back (_candidates);
-                    } 
-                }
-            }
+        for (int i = 1; i < classids.size(); i++) {
 
-            std::set<int> to = _graph->_objectClassMap[classids[i + 1]];
+            std::set<int> to = _graph->_objectClassMap[classids[i]];
             if (to.empty()) to.insert (-1); 
 
-            // exhaust all possible paths from "from" to "to"
+            // exhaust all possible paths from nodes[i] to nodes[i+1]
             // and weight them with distances
-            // "from" is now candidates[i].back()
             for (auto it = candidates.begin(); it != candidates.end(); it++) {
-
-                // if there are more than 3 candidate paths
-                // then record only those first 3
-                // except in first iteration
-                if (i > 0 && it - candidates.begin() > 2) break;
 
                 Eigen::Vector3d o1;
                 if (it->back() == -1) {
-                    SE2 m; m.fromVector (measurements[i]);
-                    SE2 p; p.fromVector (pose->_pose);
-                    o1 = (p * m).toVector();
+                    SE2 p; p.fromVector(pose->_pose);
+                    SE2 m; m.fromVector(measurements[i-1]);
+                    o1 = (p*m).toVector();
                 } else {
                     o1 = _graph->_objectMap[it->back()]->_pose;
                 }
@@ -101,19 +92,15 @@ namespace MYSLAM {
                 int nextnode; // next shortest node from o1
                 for (auto jt = to.begin(); jt != to.end(); jt++) {
 
-                    // prevent path to loop
+                    Eigen::Vector3d o2;
                     if (*jt != -1)  {
                         auto kt = std::find (it->begin(), it->end(), *jt);
-                        if (kt != it->end()) continue;
-                    }
-
-                    Eigen::Vector3d o2;
-                    if (*jt == -1) {
-                        SE2 m; m.fromVector (measurements[i+1]);
-                        SE2 p; p.fromVector (pose->_pose);
-                        o2 = (p * m).toVector();
-                    } else {
+                        if (kt != it->end()) continue; // prevent path to loop
                         o2 = _graph->_objectMap[*jt]->_pose;
+                    } else {
+                        SE2 p; p.fromVector(pose->_pose);
+                        SE2 m; m.fromVector(measurements[i]);
+                        o2 = (p*m).toVector();
                     }
 
                     double d = calculateDistance (o1, o2);
@@ -128,21 +115,20 @@ namespace MYSLAM {
                     }
                 }
 
-                it->push_back (nextnode);
-                dcandidates [it - candidates.begin()] += shortest; 
+                std::cout << "******* " << shortest << std::endl;
+                if (shortest > 0.02) {
+                    objectsids[i] = -1;
+                    it->push_back (-1);
+                } else {
+                    objectsids[i] = nextnode;
+                    it->push_back (nextnode);
+                }
+
+//                dcandidates [it - candidates.begin()] += shortest; 
             }
         }
 
-        std::cout << "CANDIDATES: " << std::endl;
-        for (int k = 0; k < candidates.size(); k++) {
-            std::cout << dcandidates[k] << ": ";
-            for (int l = 0; l < classids.size(); l++) {
-                std::cout << candidates[k][l] << " ";
-            }
-            std::cout << std::endl;
-        }
-
-        std::cout << std::endl;
+        return objectsids;
     }
 
     double DataAssociation::calculateDistance (Wall::Ptr w1, Wall::Ptr w2) {
