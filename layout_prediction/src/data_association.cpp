@@ -24,12 +24,11 @@ namespace MYSLAM {
         std::vector<int> objectsids (data.size(), -1);
 
         // handle single and double object detection specially
-        if (data.size() <= 2) return objectsids;
+        if (data.size() == 0) return objectsids;
 
         // container to store path candidates
         // and distance values
         std::vector<std::vector<int> > candidates;
-        std::vector<double> dcandidates; 
 
         // prepare input and data (map)
         std::vector<Eigen::Vector3d> measurements;
@@ -46,17 +45,17 @@ namespace MYSLAM {
 
             // check if classids[i] is in the map
             // if yes, put -2 in objectsids[i]
-            if (_graph->_objectClassMap[classids[i]].size() > 0)
-                objectsids[i] = -2;
+//            if (_graph->_objectClassMap[classids[i]].size() > 0)
+//                objectsids[i] = -2;
         }
 
         // very likely map is empty (maybe beginning of operation)
-        if (std::all_of(objectsids.begin(), objectsids.end(), [](int i){return i == -1;})) 
-            return objectsids;
+//        if (std::all_of(objectsids.begin(), objectsids.end(), [](int i){return i == -1;})) 
+//            return objectsids;
 
         // fill first candidates with objects from _objectClassMap[classids[0]]
         // if _objectClassMap[classids[0]] is empty, put -1
-        if (objectsids[0] == -1) {
+        if (_graph->_objectClassMap[classids[0]].empty()) {
             std::vector<int> _candidates;
             _candidates.push_back (-1);
             candidates.push_back (_candidates);
@@ -70,6 +69,8 @@ namespace MYSLAM {
             } 
         }
 
+        std::vector<double> dcandidates (candidates.size(), 0.0); 
+
         for (int i = 1; i < classids.size(); i++) {
 
             std::set<int> to = _graph->_objectClassMap[classids[i]];
@@ -77,15 +78,17 @@ namespace MYSLAM {
 
             // exhaust all possible paths from nodes[i] to nodes[i+1]
             // and weight them with distances
-            for (auto it = candidates.begin(); it != candidates.end(); it++) {
+
+            int loop = candidates.size(); // fix the number of iteration
+            for (int j = 0; j < loop; j++) {
 
                 Eigen::Vector3d o1;
-                if (it->back() == -1) {
+                if (candidates[j].back() == -1) {
                     SE2 p; p.fromVector(pose->_pose);
                     SE2 m; m.fromVector(measurements[i-1]);
                     o1 = (p*m).toVector();
                 } else {
-                    o1 = _graph->_objectMap[it->back()]->_pose;
+                    o1 = _graph->_objectMap[candidates[j].back()]->_pose;
                 }
 
                 double shortest = std::numeric_limits<double>::max();
@@ -94,8 +97,8 @@ namespace MYSLAM {
 
                     Eigen::Vector3d o2;
                     if (*jt != -1)  {
-                        auto kt = std::find (it->begin(), it->end(), *jt);
-                        if (kt != it->end()) continue; // prevent path to loop
+                        auto kt = std::find (candidates[j].begin(), candidates[j].end(), *jt);
+                        if (kt != candidates[j].end()) continue; // prevent path to loop
                         o2 = _graph->_objectMap[*jt]->_pose;
                     } else {
                         SE2 p; p.fromVector(pose->_pose);
@@ -107,7 +110,7 @@ namespace MYSLAM {
 
                     if (d == 0.0) continue; // if o1 = o2, discard
 
-                    double diff = std::abs (d - dz[i]);
+                    double diff = std::abs (d - dz[i-1]);
 
                     if (diff < shortest) {
                         shortest = diff;
@@ -115,16 +118,22 @@ namespace MYSLAM {
                     }
                 }
 
-                std::cout << "******* " << shortest << std::endl;
+//                std::cout << "******* " << shortest << std::endl;
                 if (shortest > 0.02) {
-                    objectsids[i] = -1;
-                    it->push_back (-1);
+                    candidates[j].push_back (-1);
                 } else {
-                    objectsids[i] = nextnode;
-                    it->push_back (nextnode);
+                    candidates[j].push_back (nextnode);
                 }
 
-//                dcandidates [it - candidates.begin()] += shortest; 
+                dcandidates [j] += shortest; 
+            }
+        }
+
+        double shortest = std::numeric_limits<double>::max();
+        for (int i = 0; i < candidates.size(); i++){
+            if (dcandidates[i] < shortest) {
+                shortest = dcandidates[i];
+                objectsids = candidates[i];
             }
         }
 

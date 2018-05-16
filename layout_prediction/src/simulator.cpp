@@ -248,8 +248,9 @@ namespace MYSLAM {
             robot->truePath.push_back (robot->truePose);
             robot->finalpose.push_back (pose->_id); // end of stats
 
+            std::cout << "*************** FRAME KE-" << frame << " ********************" << std::endl;
             dataAssociationWallKnown (graph, pose);
-            dataAssociationObjectKnown (graph, pose);
+//            dataAssociationObjectKnown (graph, pose);
             dataAssociationObjectUnknown (graph, pose);
 
             int N = graph._activePoses.size();
@@ -479,13 +480,13 @@ namespace MYSLAM {
 
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
 
-        if (robot->sensedObjects.size() <= 2) return;
+//        if (robot->sensedObjects.size() <= 2) return;
 
-        std::cout << "CLASSIDS: "; 
-        for (int i = 0; i < robot->sensedObjects.size(); i++) {
-            std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
-        }
-        std::cout << std::endl;
+//        std::cout << "CLASSIDS: "; 
+//        for (int i = 0; i < robot->sensedObjects.size(); i++) {
+//            std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
+//        }
+//        std::cout << std::endl;
         
         std::vector<std::tuple<int, Eigen::Vector3d> > data;
 
@@ -504,12 +505,12 @@ namespace MYSLAM {
 
         std::cout << "CANDIDATES: ";
         for (int i = 0; i < result.size(); i++) {
-            if (result[i] = -1) {
+            if (result[i] == -1) {
                 Object::Ptr o = std::get<0>(robot->sensedObjects[i]);
                 graph.insertNode (o);
-                std::cout << o->_id << "-";
+                std::cout << o->_id << "+";
             } else {
-                std::cout << result[i] << "+";
+                std::cout << result[i] << "-";
             }
         }
         std::cout << std::endl;
