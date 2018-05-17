@@ -26,6 +26,13 @@ namespace MYSLAM {
         // handle single and double object detection specially
         if (data.size() == 0) return objectsids;
 
+
+        if (data.size() == 1) {
+            int result = associate (pose, std::get<0>(data[0]), std::get<1>(data[0]));
+            objectsids[0] = result;
+            return objectsids;
+        }
+
         // container to store path candidates
         // and distance values
         std::vector<std::vector<int> > candidates;
@@ -42,16 +49,7 @@ namespace MYSLAM {
                 double d = calculateDistance (std::get<1>(data[i]), std::get<1>(data[i+1]));
                 dz.push_back (d);
             }
-
-            // check if classids[i] is in the map
-            // if yes, put -2 in objectsids[i]
-//            if (_graph->_objectClassMap[classids[i]].size() > 0)
-//                objectsids[i] = -2;
         }
-
-        // very likely map is empty (maybe beginning of operation)
-//        if (std::all_of(objectsids.begin(), objectsids.end(), [](int i){return i == -1;})) 
-//            return objectsids;
 
         // fill first candidates with objects from _objectClassMap[classids[0]]
         // if _objectClassMap[classids[0]] is empty, put -1
@@ -59,14 +57,19 @@ namespace MYSLAM {
             std::vector<int> _candidates;
             _candidates.push_back (-1);
             candidates.push_back (_candidates);
-        } else {
-            for (auto it = _graph->_objectClassMap[classids[0]].begin(); 
-                    it != _graph->_objectClassMap[classids[0]].end();
-                   it ++) {
-                std::vector<int> _candidates;
-                _candidates.push_back (*it);
-                candidates.push_back (_candidates);
-            } 
+        } else { // for 1st node, use nearest neighbor
+            int r = associate (pose, classids[0], measurements[0]);
+            std::vector<int> _candidates;
+            _candidates.push_back (r);
+            candidates.push_back (_candidates);
+
+//            for (auto it = _graph->_objectClassMap[classids[0]].begin(); 
+//                    it != _graph->_objectClassMap[classids[0]].end();
+//                   it ++) {
+//                std::vector<int> _candidates;
+//                _candidates.push_back (*it);
+//                candidates.push_back (_candidates);
+//            } 
         }
 
         std::vector<double> dcandidates (candidates.size(), 0.0); 
@@ -119,7 +122,7 @@ namespace MYSLAM {
                 }
 
 //                std::cout << "******* " << shortest << std::endl;
-                if (shortest > 0.02) {
+                if (shortest > 0.1) {
                     candidates[j].push_back (-1);
                 } else {
                     candidates[j].push_back (nextnode);
@@ -138,6 +141,34 @@ namespace MYSLAM {
         }
 
         return objectsids;
+    }
+
+    int DataAssociation::associate (Pose::Ptr pose, int classid, Eigen::Vector3d measurement) {
+        
+        std::set<int> obj = _graph->_objectClassMap[classid];
+
+        if (obj.empty()) return -1;
+
+        SE2 p; p.fromVector (pose->_pose); // pose
+        SE2 m; m.fromVector (measurement); // measurement
+        Eigen::Vector3d detected_obj_pose  = (p*m).toVector();
+
+        double nearest_distance = std::numeric_limits<double>::max();
+        int nearest_obj = -1;
+        for (auto it = obj.begin(); it != obj.end(); it++) {
+
+            double d = calculateDistance (detected_obj_pose, (_graph->_objectMap[*it])->_pose);
+
+            if (d < nearest_distance) {
+                nearest_distance = d;
+                nearest_obj = (_graph->_objectMap[*it])->_id;
+            }
+        }
+
+        if (nearest_distance < 0.1)
+            return nearest_obj;
+        else
+            return -1;
     }
 
     double DataAssociation::calculateDistance (Wall::Ptr w1, Wall::Ptr w2) {

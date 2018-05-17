@@ -482,11 +482,11 @@ namespace MYSLAM {
 
 //        if (robot->sensedObjects.size() <= 2) return;
 
-//        std::cout << "CLASSIDS: "; 
-//        for (int i = 0; i < robot->sensedObjects.size(); i++) {
-//            std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
-//        }
-//        std::cout << std::endl;
+        std::cout << "CLASSIDS: "; 
+        for (int i = 0; i < robot->sensedObjects.size(); i++) {
+            std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
+        }
+        std::cout << std::endl;
         
         std::vector<std::tuple<int, Eigen::Vector3d> > data;
 
@@ -496,7 +496,7 @@ namespace MYSLAM {
             int classid = (std::get<0>(robot->sensedObjects[i]))->_classid;
             Eigen::Vector3d measurement = std::get<1>(robot->sensedObjects[i]);
             data.push_back (std::make_tuple (classid, measurement));
-            std::cout << (std::get<0>(robot->sensedObjects[i]))->_id << " ";
+            std::cout   << (std::get<0>(robot->sensedObjects[i]))->_id << " "; 
         }
         std::cout << std::endl;
 
@@ -508,9 +508,10 @@ namespace MYSLAM {
             if (result[i] == -1) {
                 Object::Ptr o = std::get<0>(robot->sensedObjects[i]);
                 graph.insertNode (o);
-                std::cout << o->_id << "+";
+//                std::cout << o->_id << "+";
+                std::cout << "+ ";
             } else {
-                std::cout << result[i] << "-";
+                std::cout << result[i] << " ";
             }
         }
         std::cout << std::endl;
