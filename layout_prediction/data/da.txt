@@ -1,0 +1,796 @@
+*************** FRAME KE-1 ********************
+CLASSIDS: 0 5 7 6 3 
+GROUNDTRUTH: 24 27 32 39 46 
+CANDIDATES: + + + + + 
+*************** FRAME KE-2 ********************
+CLASSIDS: 1 0 5 6 7 6 3 
+GROUNDTRUTH: 10 24 27 30 32 39 46 
+CANDIDATES: + + + + + + + 
+*************** FRAME KE-3 ********************
+CLASSIDS: 9 1 10 5 6 6 3 
+GROUNDTRUTH: 6 10 23 27 30 39 46 
+CANDIDATES: + + + + + + + 
+*************** FRAME KE-4 ********************
+CLASSIDS: 9 1 10 5 6 6 5 3 
+GROUNDTRUTH: 6 10 23 27 30 39 41 46 
+CANDIDATES: + + + + + + + + 
+*************** FRAME KE-5 ********************
+CLASSIDS: 9 1 10 5 6 6 5 3 
+GROUNDTRUTH: 6 10 23 27 30 39 41 46 
+CANDIDATES: 6 10 23 27 30 39 41 46 
+*************** FRAME KE-6 ********************
+CLASSIDS: 9 1 10 6 6 5 3 
+GROUNDTRUTH: 6 10 23 30 39 41 46 
+CANDIDATES: 6 10 23 30 39 41 46 
+*************** FRAME KE-7 ********************
+CLASSIDS: 9 1 6 6 5 3 
+GROUNDTRUTH: 6 10 30 39 41 46 
+CANDIDATES: 6 10 30 39 41 46 
+*************** FRAME KE-8 ********************
+CLASSIDS: 9 1 6 5 4 
+GROUNDTRUTH: 6 10 30 41 53 
+CANDIDATES: 6 10 30 41 + 
+*************** FRAME KE-9 ********************
+CLASSIDS: 9 1 1 6 5 4 
+GROUNDTRUTH: 6 10 25 30 41 53 
+CANDIDATES: + + + + + + 
+*************** FRAME KE-10 ********************
+CLASSIDS: 9 1 1 6 5 7 4 
+GROUNDTRUTH: 6 10 25 30 41 48 53 
+CANDIDATES: 6 10 25 30 41 + 53 
+*************** FRAME KE-11 ********************
+CLASSIDS: 1 5 7 4 
+GROUNDTRUTH: 25 41 48 53 
+CANDIDATES: 25 41 48 53 
+*************** FRAME KE-12 ********************
+CLASSIDS: 1 5 7 4 
+GROUNDTRUTH: 25 41 48 53 
+CANDIDATES: 25 41 48 53 
+*************** FRAME KE-13 ********************
+CLASSIDS: 1 5 7 4 
+GROUNDTRUTH: 25 41 48 53 
+CANDIDATES: 25 41 48 53 
+*************** FRAME KE-14 ********************
+CLASSIDS: 1 7 4 
+GROUNDTRUTH: 25 48 53 
+CANDIDATES: 25 48 53 
+*************** FRAME KE-15 ********************
+CLASSIDS: 1 4 
+GROUNDTRUTH: 25 53 
+CANDIDATES: 25 53 
+*************** FRAME KE-16 ********************
+CLASSIDS: 9 5 7 
+GROUNDTRUTH: 6 41 48 
+CANDIDATES: 6 41 48 
+*************** FRAME KE-17 ********************
+CLASSIDS: 9 5 7 
+GROUNDTRUTH: 6 41 48 
+CANDIDATES: 6 41 48 
+*************** FRAME KE-18 ********************
+CLASSIDS: 9 5 7 
+GROUNDTRUTH: 6 41 48 
+CANDIDATES: 6 41 48 
+*************** FRAME KE-19 ********************
+CLASSIDS: 9 5 
+GROUNDTRUTH: 6 41 
+CANDIDATES: 6 41 
+*************** FRAME KE-20 ********************
+CLASSIDS: 9 5 0 
+GROUNDTRUTH: 6 41 52 
+CANDIDATES: 6 41 + 
+*************** FRAME KE-21 ********************
+CLASSIDS: 9 5 2 0 
+GROUNDTRUTH: 6 41 51 52 
+CANDIDATES: 6 41 + 52 
+*************** FRAME KE-22 ********************
+CLASSIDS: 1 5 2 0 
+GROUNDTRUTH: 25 41 51 52 
+CANDIDATES: 25 41 51 52 
+*************** FRAME KE-23 ********************
+CLASSIDS: 1 5 2 0 
+GROUNDTRUTH: 25 41 51 52 
+CANDIDATES: 25 + 51 52 
+*************** FRAME KE-24 ********************
+CLASSIDS: 1 5 2 0 
+GROUNDTRUTH: 25 41 51 52 
+CANDIDATES: 25 + 51 52 
+*************** FRAME KE-25 ********************
+CLASSIDS: 6 1 5 2 0 4 
+GROUNDTRUTH: 16 25 41 51 52 53 
+CANDIDATES: + 25 + 51 52 53 
+*************** FRAME KE-26 ********************
+CLASSIDS: 6 1 2 0 4 
+GROUNDTRUTH: 16 25 51 52 53 
+CANDIDATES: 16 + 51 52 53 
+*************** FRAME KE-27 ********************
+CLASSIDS: 6 1 2 0 4 
+GROUNDTRUTH: 16 25 51 52 53 
+CANDIDATES: 16 + 51 52 53 
+*************** FRAME KE-28 ********************
+CLASSIDS: 6 1 6 2 0 4 
+GROUNDTRUTH: 16 25 30 51 52 53 
+CANDIDATES: 16 + 30 51 52 53 
+*************** FRAME KE-29 ********************
+CLASSIDS: 6 1 2 0 4 
+GROUNDTRUTH: 16 25 51 52 53 
+CANDIDATES: 16 + 51 52 53 
+*************** FRAME KE-30 ********************
+CLASSIDS: 6 1 4 
+GROUNDTRUTH: 16 25 53 
+CANDIDATES: 16 + 53 
+*************** FRAME KE-31 ********************
+CLASSIDS: 6 4 
+GROUNDTRUTH: 16 53 
+CANDIDATES: 16 + 
+*************** FRAME KE-32 ********************
+CLASSIDS: 6 5 4 
+GROUNDTRUTH: 16 27 53 
+CANDIDATES: 16 27 + 
+*************** FRAME KE-33 ********************
+CLASSIDS: 6 5 4 
+GROUNDTRUTH: 16 27 53 
+CANDIDATES: 16 27 + 
+*************** FRAME KE-34 ********************
+CLASSIDS: 6 5 
+GROUNDTRUTH: 16 27 
+CANDIDATES: + 27 
+*************** FRAME KE-35 ********************
+CLASSIDS: 5 9 
+GROUNDTRUTH: 27 35 
+CANDIDATES: + + 
+*************** FRAME KE-36 ********************
+CLASSIDS: 1 5 9 
+GROUNDTRUTH: 7 27 35 
+CANDIDATES: + + 35 
+*************** FRAME KE-37 ********************
+CLASSIDS: 1 3 5 9 0 
+GROUNDTRUTH: 7 12 27 35 50 
+CANDIDATES: 7 + + 35 + 
+*************** FRAME KE-38 ********************
+CLASSIDS: 1 3 4 5 9 0 
+GROUNDTRUTH: 7 12 20 27 35 50 
+CANDIDATES: 7 12 + + 35 50 
+*************** FRAME KE-39 ********************
+CLASSIDS: 1 3 4 5 9 0 
+GROUNDTRUTH: 7 12 20 27 35 50 
+CANDIDATES: 7 12 20 + 35 50 
+*************** FRAME KE-40 ********************
+CLASSIDS: 1 3 6 4 5 9 10 0 
+GROUNDTRUTH: 7 12 16 20 27 35 45 50 
+CANDIDATES: 7 12 16 20 + 35 + 50 
+*************** FRAME KE-41 ********************
+CLASSIDS: 1 3 6 4 5 9 6 10 0 
+GROUNDTRUTH: 7 12 16 20 27 35 36 45 50 
+CANDIDATES: 7 12 16 20 + 35 + 45 50 
+*************** FRAME KE-42 ********************
+CLASSIDS: 1 6 5 6 9 6 10 0 
+GROUNDTRUTH: 7 16 27 30 35 36 45 50 
+CANDIDATES: 7 16 27 + 35 36 45 50 
+*************** FRAME KE-43 ********************
+CLASSIDS: 1 6 5 6 9 6 6 10 2 
+GROUNDTRUTH: 7 16 27 30 35 36 39 45 51 
+CANDIDATES: 7 16 27 30 35 36 39 45 + 
+*************** FRAME KE-44 ********************
+CLASSIDS: 1 6 5 6 9 6 10 2 
+GROUNDTRUTH: 7 16 27 30 35 39 45 51 
+CANDIDATES: 7 16 27 30 35 39 45 + 
+*************** FRAME KE-45 ********************
+CLASSIDS: 1 6 5 6 9 6 2 0 
+GROUNDTRUTH: 10 16 27 30 35 39 51 52 
+CANDIDATES: 10 16 27 30 35 39 51 + 
+*************** FRAME KE-46 ********************
+CLASSIDS: 1 6 5 6 6 2 0 
+GROUNDTRUTH: 10 16 27 30 39 51 52 
+CANDIDATES: 10 16 27 30 39 51 + 
+*************** FRAME KE-47 ********************
+CLASSIDS: 1 6 5 6 6 3 2 0 
+GROUNDTRUTH: 10 16 27 30 39 46 51 52 
+CANDIDATES: 10 16 27 30 39 46 51 + 
+*************** FRAME KE-48 ********************
+CLASSIDS: 1 6 0 6 6 3 2 0 
+GROUNDTRUTH: 10 16 24 30 39 46 51 52 
+CANDIDATES: 10 16 24 30 39 46 51 + 
+*************** FRAME KE-49 ********************
+CLASSIDS: 1 6 6 6 3 2 0 
+GROUNDTRUTH: 10 16 30 39 46 51 52 
+CANDIDATES: 10 16 30 39 46 51 + 
+*************** FRAME KE-50 ********************
+CLASSIDS: 1 6 6 3 0 
+GROUNDTRUTH: 10 30 39 46 52 
+CANDIDATES: 10 30 39 46 + 
+*************** FRAME KE-51 ********************
+CLASSIDS: 1 6 3 0 
+GROUNDTRUTH: 10 30 46 52 
+CANDIDATES: 7 36 12 + 
+*************** FRAME KE-52 ********************
+CLASSIDS: 1 6 3 0 4 
+GROUNDTRUTH: 10 21 46 52 53 
+CANDIDATES: 10 30 46 52 + 
+*************** FRAME KE-53 ********************
+CLASSIDS: 1 6 3 0 4 
+GROUNDTRUTH: 10 21 46 52 53 
+CANDIDATES: 10 30 46 52 + 
+*************** FRAME KE-54 ********************
+CLASSIDS: 1 6 1 3 4 
+GROUNDTRUTH: 10 21 25 46 53 
+CANDIDATES: 10 30 + 46 53 
+*************** FRAME KE-55 ********************
+CLASSIDS: 6 1 4 
+GROUNDTRUTH: 21 25 53 
+CANDIDATES: 16 + 53 
+*************** FRAME KE-56 ********************
+CLASSIDS: 6 1 1 4 
+GROUNDTRUTH: 21 25 38 53 
+CANDIDATES: + + + 53 
+*************** FRAME KE-57 ********************
+CLASSIDS: 6 1 1 4 
+GROUNDTRUTH: 21 25 38 53 
+CANDIDATES: 21 + 38 53 
+*************** FRAME KE-58 ********************
+CLASSIDS: 6 1 1 5 4 
+GROUNDTRUTH: 21 25 38 41 53 
+CANDIDATES: 21 25 38 41 53 
+*************** FRAME KE-59 ********************
+CLASSIDS: 1 6 1 1 5 4 
+GROUNDTRUTH: 19 21 25 38 41 53 
+CANDIDATES: + 21 25 38 41 53 
+*************** FRAME KE-60 ********************
+CLASSIDS: 1 1 1 1 5 4 
+GROUNDTRUTH: 19 25 33 38 41 53 
+CANDIDATES: 19 25 + 38 41 53 
+*************** FRAME KE-61 ********************
+CLASSIDS: 9 1 1 1 5 
+GROUNDTRUTH: 6 19 25 33 41 
+CANDIDATES: 6 19 25 33 41 
+*************** FRAME KE-62 ********************
+CLASSIDS: 9 1 1 1 0 
+GROUNDTRUTH: 6 19 25 33 34 
+CANDIDATES: + 19 25 33 + 
+*************** FRAME KE-63 ********************
+CLASSIDS: 9 1 1 1 0 
+GROUNDTRUTH: 6 19 25 33 34 
+CANDIDATES: + 19 25 33 34 
+*************** FRAME KE-64 ********************
+CLASSIDS: 9 10 1 1 0 
+GROUNDTRUTH: 6 9 19 33 34 
+CANDIDATES: + + + 10 34 
+*************** FRAME KE-65 ********************
+CLASSIDS: 9 10 1 10 1 0 
+GROUNDTRUTH: 6 9 19 23 33 34 
+CANDIDATES: + 9 19 23 33 34 
+*************** FRAME KE-66 ********************
+CLASSIDS: 9 10 1 1 10 0 1 0 1 
+GROUNDTRUTH: 6 9 17 19 23 29 33 34 44 
+CANDIDATES: + 9 38 19 23 + 33 34 10 
+*************** FRAME KE-67 ********************
+CLASSIDS: 9 10 1 1 10 0 1 0 1 
+GROUNDTRUTH: 6 9 17 19 23 29 33 34 44 
+CANDIDATES: + 9 38 19 23 29 33 34 10 
+*************** FRAME KE-68 ********************
+CLASSIDS: 9 10 1 1 10 0 1 0 1 
+GROUNDTRUTH: 6 9 17 19 23 29 33 34 44 
+CANDIDATES: + 9 38 19 23 29 33 34 10 
+*************** FRAME KE-69 ********************
+CLASSIDS: 10 1 10 0 1 0 1 
+GROUNDTRUTH: 9 17 23 29 33 34 44 
+CANDIDATES: 9 38 23 + 33 34 10 
+*************** FRAME KE-70 ********************
+CLASSIDS: 10 1 2 10 0 0 10 1 
+GROUNDTRUTH: 9 17 22 23 29 34 40 44 
+CANDIDATES: 9 38 + 23 + 34 + + 
+*************** FRAME KE-71 ********************
+CLASSIDS: 10 1 2 10 0 10 1 
+GROUNDTRUTH: 9 17 22 23 29 40 44 
+CANDIDATES: 9 38 22 23 + 40 44 
+*************** FRAME KE-72 ********************
+CLASSIDS: 10 0 0 1 
+GROUNDTRUTH: 9 29 34 44 
+CANDIDATES: 9 + 34 44 
+*************** FRAME KE-73 ********************
+CLASSIDS: 1 1 10 
+GROUNDTRUTH: 19 33 40 
+CANDIDATES: 19 33 + 
+*************** FRAME KE-74 ********************
+CLASSIDS: 1 1 
+GROUNDTRUTH: 19 33 
+CANDIDATES: + 33 
+*************** FRAME KE-75 ********************
+CLASSIDS: 1 
+GROUNDTRUTH: 19 
+CANDIDATES: + 
+*************** FRAME KE-76 ********************
+CLASSIDS: 9 
+GROUNDTRUTH: 18 
+CANDIDATES: + 
+*************** FRAME KE-77 ********************
+CLASSIDS: 9 
+GROUNDTRUTH: 18 
+CANDIDATES: + 
+*************** FRAME KE-78 ********************
+CLASSIDS: 9 0 8 
+GROUNDTRUTH: 18 34 49 
+CANDIDATES: 18 + + 
+*************** FRAME KE-79 ********************
+CLASSIDS: 10 9 10 0 10 1 8 
+GROUNDTRUTH: 9 18 26 34 37 38 49 
+CANDIDATES: 9 18 + + + 38 49 
+*************** FRAME KE-80 ********************
+CLASSIDS: 10 9 6 10 0 10 1 8 
+GROUNDTRUTH: 9 18 21 26 34 37 38 49 
+CANDIDATES: 9 18 21 26 + 37 38 49 
+*************** FRAME KE-81 ********************
+CLASSIDS: 10 9 6 10 2 0 10 1 8 
+GROUNDTRUTH: 9 18 21 26 28 34 37 38 49 
+CANDIDATES: 9 18 21 26 + + 37 38 49 
+*************** FRAME KE-82 ********************
+CLASSIDS: 10 9 6 10 2 0 10 1 8 
+GROUNDTRUTH: 9 18 21 26 28 34 37 38 49 
+CANDIDATES: 9 18 21 26 28 + 37 38 49 
+*************** FRAME KE-83 ********************
+CLASSIDS: 10 9 10 2 0 10 1 8 
+GROUNDTRUTH: 9 18 26 28 34 37 38 49 
+CANDIDATES: 9 18 26 28 + 37 38 49 
+*************** FRAME KE-84 ********************
+CLASSIDS: 10 9 10 2 0 10 1 8 
+GROUNDTRUTH: 9 18 26 28 34 37 38 49 
+CANDIDATES: 9 18 26 28 + 37 38 49 
+*************** FRAME KE-85 ********************
+CLASSIDS: 10 0 8 9 10 2 0 10 8 
+GROUNDTRUTH: 9 13 14 18 26 28 34 37 49 
+CANDIDATES: + + + + + + + + + 
+*************** FRAME KE-86 ********************
+CLASSIDS: 10 0 8 10 2 0 8 
+GROUNDTRUTH: 9 13 14 26 28 34 49 
+CANDIDATES: 9 13 14 26 28 + 49 
+*************** FRAME KE-87 ********************
+CLASSIDS: 10 0 8 10 0 
+GROUNDTRUTH: 9 13 14 26 34 
+CANDIDATES: 9 13 14 26 + 
+*************** FRAME KE-88 ********************
+CLASSIDS: 10 0 8 
+GROUNDTRUTH: 9 13 14 
+CANDIDATES: + 13 14 
+*************** FRAME KE-89 ********************
+CLASSIDS: 0 8 
+GROUNDTRUTH: 13 14 
+CANDIDATES: + + 
+*************** FRAME KE-90 ********************
+CLASSIDS: 0 8 
+GROUNDTRUTH: 13 14 
+CANDIDATES: + + 
+*************** FRAME KE-91 ********************
+CLASSIDS: 0 8 9 
+GROUNDTRUTH: 13 14 18 
+CANDIDATES: + + + 
+*************** FRAME KE-92 ********************
+CLASSIDS: 0 8 9 
+GROUNDTRUTH: 13 14 18 
+CANDIDATES: + + + 
+*************** FRAME KE-93 ********************
+CLASSIDS: 0 8 9 
+GROUNDTRUTH: 13 14 18 
+CANDIDATES: + + + 
+*************** FRAME KE-94 ********************
+CLASSIDS: 10 0 9 
+GROUNDTRUTH: 9 13 18 
+CANDIDATES: + 13 18 
+*************** FRAME KE-95 ********************
+CLASSIDS: 10 9 0 
+GROUNDTRUTH: 9 18 34 
+CANDIDATES: 9 18 + 
+*************** FRAME KE-96 ********************
+CLASSIDS: 10 9 0 
+GROUNDTRUTH: 9 18 34 
+CANDIDATES: 9 18 + 
+*************** FRAME KE-97 ********************
+CLASSIDS: 10 1 10 0 8 
+GROUNDTRUTH: 9 19 26 34 49 
+CANDIDATES: 9 + 26 34 49 
+*************** FRAME KE-98 ********************
+CLASSIDS: 10 1 10 0 8 
+GROUNDTRUTH: 9 19 26 34 49 
+CANDIDATES: 9 + 26 34 49 
+*************** FRAME KE-99 ********************
+CLASSIDS: 10 1 10 2 0 10 8 
+GROUNDTRUTH: 9 19 26 28 34 37 49 
+CANDIDATES: 9 + 26 28 34 37 49 
+*************** FRAME KE-100 ********************
+CLASSIDS: 1 10 2 1 0 10 8 
+GROUNDTRUTH: 19 26 28 33 34 37 49 
+CANDIDATES: 33 26 28 + 34 37 49 
+*************** FRAME KE-101 ********************
+CLASSIDS: 1 1 10 10 2 1 10 1 10 8 
+GROUNDTRUTH: 17 19 23 26 28 33 37 38 40 49 
+CANDIDATES: + 33 + 26 28 19 + 44 40 49 
+*************** FRAME KE-102 ********************
+CLASSIDS: 1 1 2 10 10 2 1 10 1 10 8 
+GROUNDTRUTH: 17 19 22 23 26 28 33 37 38 40 49 
+CANDIDATES: 17 19 22 + 26 28 33 37 38 40 49 
+*************** FRAME KE-103 ********************
+CLASSIDS: 1 1 2 10 10 2 1 10 1 10 8 
+GROUNDTRUTH: 17 19 22 23 26 28 33 37 38 40 49 
+CANDIDATES: 17 19 22 + 26 28 33 37 38 40 49 
+*************** FRAME KE-104 ********************
+CLASSIDS: 1 6 2 10 10 2 1 10 1 10 8 
+GROUNDTRUTH: 17 21 22 23 26 28 33 37 38 40 49 
+CANDIDATES: 17 21 22 + 26 28 33 37 38 40 49 
+*************** FRAME KE-105 ********************
+CLASSIDS: 9 1 6 2 10 10 2 10 1 10 3 8 
+GROUNDTRUTH: 6 17 21 22 23 26 28 37 38 40 46 49 
+CANDIDATES: + 17 21 22 23 26 28 37 38 40 46 49 
+*************** FRAME KE-106 ********************
+CLASSIDS: 9 1 6 10 2 10 1 3 8 
+GROUNDTRUTH: 6 17 21 23 28 37 38 46 49 
+CANDIDATES: + 17 21 23 28 37 38 46 49 
+*************** FRAME KE-107 ********************
+CLASSIDS: 9 1 6 10 2 10 1 3 
+GROUNDTRUTH: 6 17 21 23 28 37 38 46 
+CANDIDATES: + 17 21 23 28 37 38 46 
+*************** FRAME KE-108 ********************
+CLASSIDS: 9 1 1 6 10 10 1 3 
+GROUNDTRUTH: 6 10 17 21 23 37 38 46 
+CANDIDATES: + 10 17 21 23 37 38 46 
+*************** FRAME KE-109 ********************
+CLASSIDS: 9 1 6 10 0 6 1 5 3 
+GROUNDTRUTH: 6 10 21 23 29 30 38 41 46 
+CANDIDATES: + 10 21 23 29 30 38 41 46 
+*************** FRAME KE-110 ********************
+CLASSIDS: 9 1 6 0 6 1 5 1 3 
+GROUNDTRUTH: 6 10 21 29 30 38 41 44 46 
+CANDIDATES: + 10 21 29 30 38 41 44 46 
+*************** FRAME KE-111 ********************
+CLASSIDS: 9 1 6 0 6 5 1 7 
+GROUNDTRUTH: 6 10 21 29 30 41 44 48 
+CANDIDATES: 6 10 21 29 30 41 44 48 
+*************** FRAME KE-112 ********************
+CLASSIDS: 9 1 6 0 5 1 7 
+GROUNDTRUTH: 6 10 21 29 41 44 48 
+CANDIDATES: + 10 21 29 41 44 48 
+*************** FRAME KE-113 ********************
+CLASSIDS: 9 1 0 5 1 7 
+GROUNDTRUTH: 6 10 29 41 44 48 
+CANDIDATES: 6 10 29 41 44 + 
+*************** FRAME KE-114 ********************
+CLASSIDS: 9 1 0 5 1 7 
+GROUNDTRUTH: 6 10 29 41 44 48 
+CANDIDATES: 6 10 29 41 44 + 
+*************** FRAME KE-115 ********************
+CLASSIDS: 1 1 5 7 4 
+GROUNDTRUTH: 10 25 41 48 53 
+CANDIDATES: 10 25 41 + 53 
+*************** FRAME KE-116 ********************
+CLASSIDS: 1 5 7 4 
+GROUNDTRUTH: 25 41 48 53 
+CANDIDATES: 25 41 + 53 
+*************** FRAME KE-117 ********************
+CLASSIDS: 1 5 7 4 
+GROUNDTRUTH: 25 41 48 53 
+CANDIDATES: 25 41 + 53 
+*************** FRAME KE-118 ********************
+CLASSIDS: 1 5 4 
+GROUNDTRUTH: 25 41 53 
+CANDIDATES: 25 + 53 
+*************** FRAME KE-119 ********************
+CLASSIDS: 1 4 
+GROUNDTRUTH: 25 53 
+CANDIDATES: + 53 
+*************** FRAME KE-120 ********************
+CLASSIDS: 1 4 
+GROUNDTRUTH: 25 53 
+CANDIDATES: + 53 
+*************** FRAME KE-121 ********************
+CLASSIDS: 1 5 4 
+GROUNDTRUTH: 25 41 53 
+CANDIDATES: 25 + 53 
+*************** FRAME KE-122 ********************
+CLASSIDS: 1 5 4 
+GROUNDTRUTH: 25 41 53 
+CANDIDATES: 25 + 53 
+*************** FRAME KE-123 ********************
+CLASSIDS: 1 5 4 
+GROUNDTRUTH: 25 41 53 
+CANDIDATES: 25 + 53 
+*************** FRAME KE-124 ********************
+CLASSIDS: 1 4 
+GROUNDTRUTH: 25 53 
+CANDIDATES: + 53 
+*************** FRAME KE-125 ********************
+CLASSIDS: 1 1 4 
+GROUNDTRUTH: 4 25 53 
+CANDIDATES: 19 + 53 
+*************** FRAME KE-126 ********************
+CLASSIDS: 1 1 
+GROUNDTRUTH: 4 25 
+CANDIDATES: 38 + 
+*************** FRAME KE-127 ********************
+CLASSIDS: 1 7 
+GROUNDTRUTH: 4 48 
+CANDIDATES: 44 + 
+*************** FRAME KE-128 ********************
+CLASSIDS: 7 
+GROUNDTRUTH: 48 
+CANDIDATES: + 
+*************** FRAME KE-129 ********************
+CLASSIDS: 9 7 
+GROUNDTRUTH: 6 48 
+CANDIDATES: 6 + 
+*************** FRAME KE-130 ********************
+CLASSIDS: 9 1 0 1 7 
+GROUNDTRUTH: 6 10 29 44 48 
+CANDIDATES: 6 10 29 + 48 
+*************** FRAME KE-131 ********************
+CLASSIDS: 9 1 6 0 1 7 
+GROUNDTRUTH: 6 10 21 29 44 48 
+CANDIDATES: 6 10 21 29 + 48 
+*************** FRAME KE-132 ********************
+CLASSIDS: 9 1 6 0 1 7 
+GROUNDTRUTH: 6 10 21 29 44 48 
+CANDIDATES: 6 10 21 29 + 48 
+*************** FRAME KE-133 ********************
+CLASSIDS: 9 6 0 1 7 
+GROUNDTRUTH: 6 21 29 44 48 
+CANDIDATES: 6 21 29 44 + 
+*************** FRAME KE-134 ********************
+CLASSIDS: 9 6 10 0 1 1 
+GROUNDTRUTH: 6 21 23 29 38 44 
+CANDIDATES: 6 21 23 29 38 + 
+*************** FRAME KE-135 ********************
+CLASSIDS: 9 1 6 10 0 1 1 
+GROUNDTRUTH: 6 17 21 23 29 38 44 
+CANDIDATES: 6 17 21 23 + 38 44 
+*************** FRAME KE-136 ********************
+CLASSIDS: 9 1 6 10 0 10 1 1 
+GROUNDTRUTH: 6 17 21 23 29 37 38 44 
+CANDIDATES: 6 17 21 23 + 37 38 44 
+*************** FRAME KE-137 ********************
+CLASSIDS: 9 1 9 6 10 0 10 1 
+GROUNDTRUTH: 6 17 18 21 23 29 37 38 
+CANDIDATES: 6 17 18 21 23 + 37 38 
+*************** FRAME KE-138 ********************
+CLASSIDS: 9 1 9 10 10 1 8 
+GROUNDTRUTH: 6 17 18 23 37 38 49 
+CANDIDATES: + 17 18 23 37 38 49 
+*************** FRAME KE-139 ********************
+CLASSIDS: 0 1 9 2 10 10 2 10 1 10 8 
+GROUNDTRUTH: 13 17 18 22 23 26 28 37 38 40 49 
+CANDIDATES: 13 17 18 22 + 26 28 37 38 40 49 
+*************** FRAME KE-140 ********************
+CLASSIDS: 0 8 1 9 1 2 10 10 2 1 10 10 8 
+GROUNDTRUTH: 13 14 17 18 19 22 23 26 28 33 37 40 49 
+CANDIDATES: 13 14 17 18 19 22 + 26 28 33 37 40 49 
+*************** FRAME KE-141 ********************
+CLASSIDS: 0 8 1 9 1 2 10 10 2 1 10 10 8 
+GROUNDTRUTH: 13 14 17 18 19 22 23 26 28 33 37 40 49 
+CANDIDATES: 13 14 17 18 19 22 + 26 28 33 37 40 49 
+*************** FRAME KE-142 ********************
+CLASSIDS: 0 8 1 9 1 2 10 10 2 1 10 8 
+GROUNDTRUTH: 13 14 17 18 19 22 23 26 28 33 40 49 
+CANDIDATES: 13 14 17 18 19 22 + 26 28 33 40 49 
+*************** FRAME KE-143 ********************
+CLASSIDS: 0 8 1 9 1 2 10 10 1 0 10 8 
+GROUNDTRUTH: 13 14 17 18 19 22 23 26 33 34 40 49 
+CANDIDATES: 13 14 + 18 19 22 23 26 33 34 40 49 
+*************** FRAME KE-144 ********************
+CLASSIDS: 0 8 1 9 1 2 10 1 0 10 8 
+GROUNDTRUTH: 13 14 17 18 19 22 26 33 34 40 49 
+CANDIDATES: 13 14 + 18 19 22 26 33 34 40 49 
+*************** FRAME KE-145 ********************
+CLASSIDS: 10 0 8 9 1 2 1 0 10 8 
+GROUNDTRUTH: 9 13 14 18 19 22 33 34 40 49 
+CANDIDATES: 9 13 14 18 19 + 33 34 40 49 
+*************** FRAME KE-146 ********************
+CLASSIDS: 10 0 8 1 2 1 0 10 
+GROUNDTRUTH: 9 13 14 19 22 33 34 40 
+CANDIDATES: 9 13 14 19 + 33 34 40 
+*************** FRAME KE-147 ********************
+CLASSIDS: 10 0 8 1 1 0 
+GROUNDTRUTH: 9 13 14 19 33 34 
+CANDIDATES: 9 13 14 19 + 34 
+*************** FRAME KE-148 ********************
+CLASSIDS: 10 0 8 1 1 0 
+GROUNDTRUTH: 9 13 14 19 33 34 
+CANDIDATES: 9 13 14 19 + 34 
+*************** FRAME KE-149 ********************
+CLASSIDS: 10 8 1 0 
+GROUNDTRUTH: 9 14 19 34 
+CANDIDATES: 9 14 + 34 
+*************** FRAME KE-150 ********************
+CLASSIDS: 10 0 
+GROUNDTRUTH: 9 34 
+CANDIDATES: 9 + 
+*************** FRAME KE-151 ********************
+CLASSIDS: 10 0 
+GROUNDTRUTH: 9 34 
+CANDIDATES: 9 + 
+*************** FRAME KE-152 ********************
+CLASSIDS: 10 0 
+GROUNDTRUTH: 9 34 
+CANDIDATES: 9 + 
+*************** FRAME KE-153 ********************
+CLASSIDS: 10 
+GROUNDTRUTH: 9 
+CANDIDATES: + 
+*************** FRAME KE-154 ********************
+CLASSIDS: 
+GROUNDTRUTH: 
+CANDIDATES: 
+*************** FRAME KE-155 ********************
+CLASSIDS: 
+GROUNDTRUTH: 
+CANDIDATES: 
+*************** FRAME KE-156 ********************
+CLASSIDS: 0 8 9 
+GROUNDTRUTH: 13 14 18 
+CANDIDATES: 13 14 + 
+*************** FRAME KE-157 ********************
+CLASSIDS: 
+GROUNDTRUTH: 
+CANDIDATES: 
+*************** FRAME KE-158 ********************
+CLASSIDS: 0 8 9 
+GROUNDTRUTH: 13 14 18 
+CANDIDATES: 13 14 + 
+*************** FRAME KE-159 ********************
+CLASSIDS: 0 8 9 8 
+GROUNDTRUTH: 13 14 18 49 
+CANDIDATES: 13 14 + 49 
+*************** FRAME KE-160 ********************
+CLASSIDS: 0 8 9 8 
+GROUNDTRUTH: 13 14 18 49 
+CANDIDATES: 13 14 + 49 
+*************** FRAME KE-161 ********************
+CLASSIDS: 0 9 10 8 
+GROUNDTRUTH: 13 18 26 49 
+CANDIDATES: 13 + 26 49 
+*************** FRAME KE-162 ********************
+CLASSIDS: 9 10 8 
+GROUNDTRUTH: 18 26 49 
+CANDIDATES: + 26 49 
+*************** FRAME KE-163 ********************
+CLASSIDS: 9 10 8 
+GROUNDTRUTH: 18 26 49 
+CANDIDATES: + 26 49 
+*************** FRAME KE-164 ********************
+CLASSIDS: 9 10 8 
+GROUNDTRUTH: 18 26 49 
+CANDIDATES: + 26 49 
+*************** FRAME KE-165 ********************
+CLASSIDS: 0 9 10 8 
+GROUNDTRUTH: 13 18 26 49 
+CANDIDATES: 13 + 26 49 
+*************** FRAME KE-166 ********************
+CLASSIDS: 0 8 9 10 8 
+GROUNDTRUTH: 13 14 18 26 49 
+CANDIDATES: 13 14 + 26 49 
+*************** FRAME KE-167 ********************
+CLASSIDS: 0 8 9 8 
+GROUNDTRUTH: 13 14 18 49 
+CANDIDATES: 13 14 + 49 
+*************** FRAME KE-168 ********************
+CLASSIDS: 0 8 9 0 
+GROUNDTRUTH: 13 14 18 34 
+CANDIDATES: 13 14 18 + 
+*************** FRAME KE-169 ********************
+CLASSIDS: 10 0 8 9 0 
+GROUNDTRUTH: 9 13 14 18 34 
+CANDIDATES: 9 13 14 18 + 
+*************** FRAME KE-170 ********************
+CLASSIDS: 10 0 8 0 
+GROUNDTRUTH: 9 13 14 34 
+CANDIDATES: 9 13 14 + 
+*************** FRAME KE-171 ********************
+CLASSIDS: 10 0 8 0 
+GROUNDTRUTH: 9 13 14 34 
+CANDIDATES: 9 13 14 + 
+*************** FRAME KE-172 ********************
+CLASSIDS: 10 0 8 0 
+GROUNDTRUTH: 9 13 14 34 
+CANDIDATES: 9 13 14 + 
+*************** FRAME KE-173 ********************
+CLASSIDS: 10 0 8 0 
+GROUNDTRUTH: 9 13 14 34 
+CANDIDATES: 9 13 14 + 
+*************** FRAME KE-174 ********************
+CLASSIDS: 10 0 0 
+GROUNDTRUTH: 9 13 34 
+CANDIDATES: 9 13 + 
+*************** FRAME KE-175 ********************
+CLASSIDS: 10 0 0 
+GROUNDTRUTH: 9 13 34 
+CANDIDATES: 9 13 + 
+*************** FRAME KE-176 ********************
+CLASSIDS: 1 0 1 
+GROUNDTRUTH: 19 34 38 
+CANDIDATES: 19 34 38 
+*************** FRAME KE-177 ********************
+CLASSIDS: 1 1 
+GROUNDTRUTH: 19 38 
+CANDIDATES: 19 38 
+*************** FRAME KE-178 ********************
+CLASSIDS: 1 6 1 
+GROUNDTRUTH: 19 21 38 
+CANDIDATES: 19 21 38 
+*************** FRAME KE-179 ********************
+CLASSIDS: 1 6 1 
+GROUNDTRUTH: 19 21 38 
+CANDIDATES: 19 21 38 
+*************** FRAME KE-180 ********************
+CLASSIDS: 9 6 1 
+GROUNDTRUTH: 18 21 38 
+CANDIDATES: + 21 38 
+*************** FRAME KE-181 ********************
+CLASSIDS: 9 6 1 8 
+GROUNDTRUTH: 18 21 38 49 
+CANDIDATES: + 21 38 49 
+*************** FRAME KE-182 ********************
+CLASSIDS: 9 6 10 1 3 8 
+GROUNDTRUTH: 18 21 26 38 46 49 
+CANDIDATES: 18 21 + 38 46 49 
+*************** FRAME KE-183 ********************
+CLASSIDS: 0 9 6 10 1 3 8 
+GROUNDTRUTH: 13 18 21 26 38 46 49 
+CANDIDATES: 13 18 21 + 38 46 49 
+*************** FRAME KE-184 ********************
+CLASSIDS: 1 0 9 6 10 10 1 3 8 
+GROUNDTRUTH: 10 13 18 21 26 37 38 46 49 
+CANDIDATES: 10 13 18 21 + 37 38 46 49 
+*************** FRAME KE-185 ********************
+CLASSIDS: 1 9 6 10 2 10 1 6 3 8 
+GROUNDTRUTH: 10 18 21 26 28 37 38 39 46 49 
+CANDIDATES: 10 18 21 37 28 + 38 + 46 49 
+*************** FRAME KE-186 ********************
+CLASSIDS: 1 9 6 10 2 6 10 6 3 8 
+GROUNDTRUTH: 10 18 21 26 28 30 37 39 46 49 
+CANDIDATES: 10 18 21 26 28 30 37 + 46 49 
+*************** FRAME KE-187 ********************
+CLASSIDS: 1 9 10 2 6 10 6 3 8 
+GROUNDTRUTH: 10 18 26 28 30 37 39 46 49 
+CANDIDATES: 10 18 37 28 30 26 + 46 49 
+*************** FRAME KE-188 ********************
+CLASSIDS: 1 9 10 2 6 10 6 3 8 
+GROUNDTRUTH: 10 18 26 28 30 37 39 46 49 
+CANDIDATES: 10 18 37 28 30 26 + 46 49 
+*************** FRAME KE-189 ********************
+CLASSIDS: 7 1 10 2 6 10 6 3 8 
+GROUNDTRUTH: 5 10 26 28 30 37 39 46 49 
+CANDIDATES: + 10 37 28 30 26 + 46 49 
+*************** FRAME KE-190 ********************
+CLASSIDS: 7 1 5 10 5 2 6 10 6 3 8 
+GROUNDTRUTH: 5 10 15 26 27 28 30 37 39 46 49 
+CANDIDATES: 5 10 + 37 27 28 30 26 + 46 49 
+*************** FRAME KE-191 ********************
+CLASSIDS: 7 1 5 10 5 2 6 7 10 6 3 
+GROUNDTRUTH: 5 10 15 26 27 28 30 32 37 39 46 
+CANDIDATES: 5 10 15 37 27 28 30 32 26 + 46 
+*************** FRAME KE-192 ********************
+CLASSIDS: 1 5 5 2 6 7 10 6 
+GROUNDTRUTH: 10 15 27 28 30 32 37 39 
+CANDIDATES: 10 15 27 28 30 32 37 + 
+*************** FRAME KE-193 ********************
+CLASSIDS: 5 5 2 6 7 10 6 2 4 
+GROUNDTRUTH: 15 27 28 30 32 37 39 43 53 
+CANDIDATES: 15 27 28 30 32 37 + 51 53 
+*************** FRAME KE-194 ********************
+CLASSIDS: 5 5 2 6 7 6 2 4 
+GROUNDTRUTH: 15 27 28 30 32 39 43 53 
+CANDIDATES: 15 27 + 30 32 + 51 53 
+*************** FRAME KE-195 ********************
+CLASSIDS: 5 5 6 7 4 
+GROUNDTRUTH: 15 27 30 32 53 
+CANDIDATES: + + + + + 
+*************** FRAME KE-196 ********************
+CLASSIDS: 5 0 5 7 4 
+GROUNDTRUTH: 15 24 27 32 53 
+CANDIDATES: + + + + + 
+*************** FRAME KE-197 ********************
+CLASSIDS: 5 0 5 7 4 
+GROUNDTRUTH: 15 24 27 32 53 
+CANDIDATES: + + + + + 
+*************** FRAME KE-198 ********************
+CLASSIDS: 0 5 7 
+GROUNDTRUTH: 24 27 32 
+CANDIDATES: + + + 
+*************** FRAME KE-199 ********************
+CLASSIDS: 6 0 5 7 0 
+GROUNDTRUTH: 16 24 27 32 52 
+CANDIDATES: + 52 + + 24 

@@ -33,6 +33,13 @@ namespace MYSLAM {
             return objectsids;
         }
 
+        std::vector<int> rearranged = rearrangeInput (pose, data);
+        std::vector<std::tuple<int, Eigen::Vector3d> > arrData;
+
+        for (int i = 0; i < rearranged.size(); i++) {
+            arrData.push_back (data[rearranged[i]]);
+        }
+
         // container to store path candidates
         // and distance values
         std::vector<std::vector<int> > candidates;
@@ -41,12 +48,12 @@ namespace MYSLAM {
         std::vector<Eigen::Vector3d> measurements;
         std::vector<int> classids;
         std::vector<double> dz; // distance between measurements
-        for (int i = 0; i < data.size(); i++) {
-            measurements.push_back (std::get<1>(data[i]));
-            classids.push_back (std::get<0>(data[i]));
+        for (int i = 0; i < arrData.size(); i++) {
+            measurements.push_back (std::get<1>(arrData[i]));
+            classids.push_back (std::get<0>(arrData[i]));
 
-            if (i < data.size() - 1) {
-                double d = calculateDistance (std::get<1>(data[i]), std::get<1>(data[i+1]));
+            if (i < arrData.size() - 1) {
+                double d = calculateDistance (std::get<1>(arrData[i]), std::get<1>(arrData[i+1]));
                 dz.push_back (d);
             }
         }
@@ -122,7 +129,7 @@ namespace MYSLAM {
                 }
 
 //                std::cout << "******* " << shortest << std::endl;
-                if (shortest > 0.1) {
+                if (shortest > 0.5) {
                     candidates[j].push_back (-1);
                 } else {
                     candidates[j].push_back (nextnode);
@@ -140,7 +147,12 @@ namespace MYSLAM {
             }
         }
 
-        return objectsids;
+        std::vector<int> out (objectsids.size(), -1);
+        for (int i = 0; i < objectsids.size(); i++) {
+            out[rearranged[i]] = objectsids[i];
+        }
+
+        return out;
     }
 
     int DataAssociation::associate (Pose::Ptr pose, int classid, Eigen::Vector3d measurement) {
@@ -226,5 +238,53 @@ namespace MYSLAM {
         double d1 = calculateTotalDistance (s1);
         double d2 = calculateTotalDistance (s2);
         return std::abs (d1-d2);
+    }
+
+    std::vector<int> DataAssociation::rearrangeInput (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data)
+    {
+        int size = data.size();
+        std::vector<int> out (size, -1);
+
+        std::map<int, double> arr;
+
+        for (int i = 0; i < size; i++) {
+
+            Eigen::Vector3d measurement = std::get<1>(data[i]);
+            SE2 p; p.fromVector (pose->_pose);
+            SE2 m; m.fromVector (measurement);
+            Eigen::Vector3d o = (p*m).toVector();
+
+            double shortest = std::numeric_limits<double>::max();
+            int node;
+            for (auto   it = _graph->_objectClassMap[std::get<0>(data[i])].begin();
+                        it != _graph->_objectClassMap[std::get<0>(data[i])].end();
+                        it++) {
+
+                double d = calculateDistance (o, _graph->_objectMap[*it]->_pose);
+
+                if (d < shortest) {
+                    shortest = d;
+                    node = *it;
+                }
+            }
+
+            arr[i] = shortest;
+        }
+
+        std::vector<double> sorted;
+        for (auto it = arr.begin(); it != arr.end(); it++) {
+            sorted.push_back (it->second);
+        }
+
+        std::sort (sorted.begin(), sorted.end()); 
+
+        for (int i = 0; i < sorted.size(); i++) {
+            for (auto it = arr.begin(); it != arr.end(); it++) {
+                if (sorted[i] == it->second)
+                    out[i] = it->first;
+            }
+        } 
+
+        return out;
     }
 }
