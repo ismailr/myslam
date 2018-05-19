@@ -27,6 +27,7 @@ namespace MYSLAM {
             int _classid;
             Eigen::Vector3d _pose;
             Eigen::Matrix<double,3,3> objectCovarianceMatrix;
+            bool _active;
 
         private:
     };

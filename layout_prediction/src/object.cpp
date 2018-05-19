@@ -2,7 +2,7 @@
 #include "layout_prediction/helpers.h"
 
 namespace MYSLAM {
-    Object::Object() {
+    Object::Object() : _active (false) {
        _id = Generator::id++;
     }
 

@@ -51,6 +51,7 @@ namespace MYSLAM {
             pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
             Eigen::Matrix2d cov;
             std::set<int> _seenBy;
+            bool _active;
 
     };
 

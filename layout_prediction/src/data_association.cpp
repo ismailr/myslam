@@ -129,7 +129,7 @@ namespace MYSLAM {
                 }
 
 //                std::cout << "******* " << shortest << std::endl;
-                if (shortest > 0.5) {
+                if (shortest > 0.02) {
                     candidates[j].push_back (-1);
                 } else {
                     candidates[j].push_back (nextnode);

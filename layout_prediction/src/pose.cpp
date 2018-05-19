@@ -2,7 +2,7 @@
 #include "layout_prediction/helpers.h"
 
 namespace MYSLAM {
-    Pose::Pose() { 
+    Pose::Pose() : _active (false) { 
         _id = Generator::id++;
         _pose.setZero();
     };

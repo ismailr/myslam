@@ -27,6 +27,8 @@ namespace MYSLAM {
             void insertPoseWallEdge (std::tuple<int,int>, Eigen::Vector2d);
             void insertPoseObjectEdge (std::tuple<int,int>, Eigen::Vector3d);
 
+            void resetActive ();
+
             std::map<int, Pose::Ptr> _poseMap;
             std::map<int, Wall::Ptr> _wallMap;
             std::map<int, Object::Ptr> _objectMap;

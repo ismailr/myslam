@@ -85,7 +85,7 @@ namespace MYSLAM {
     };
 
 
-    Wall::Wall() {
+    Wall::Wall() : _active (false) {
        _id = Generator::id++;
 //       cov = Eigen::Matrix2d::Identity() * 99;
     };

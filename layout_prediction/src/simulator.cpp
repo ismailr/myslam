@@ -480,7 +480,7 @@ namespace MYSLAM {
 
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
 
-//        if (robot->sensedObjects.size() <= 2) return;
+        if (robot->sensedObjects.size() <= 2) return;
 
         std::cout << "CLASSIDS: "; 
         for (int i = 0; i < robot->sensedObjects.size(); i++) {
@@ -505,16 +505,28 @@ namespace MYSLAM {
 
         std::cout << "CANDIDATES: ";
         for (int i = 0; i < result.size(); i++) {
+            Object::Ptr o;
             if (result[i] == -1) {
-                Object::Ptr o = std::get<0>(robot->sensedObjects[i]);
+//                o = std::get<0>(robot->sensedObjects[i]);
+                Object::Ptr ob (new Object);
+                o = ob;
+                o->_classid = std::get<0>(data[i]);
+
+                SE2 p; p.fromVector (pose->_pose);
+                SE2 m; m.fromVector (std::get<1>(robot->sensedObjects[i]));
+                o->_pose = (p*m).toVector();
                 graph.insertNode (o);
 //                std::cout << o->_id << "+";
                 std::cout << "+ ";
             } else {
                 std::cout << result[i] << " ";
+                o = graph._objectMap[result[i]];
             }
+            std::tuple<int, int> e (pose->_id, o->_id);
+            graph.insertPoseObjectEdge (e, std::get<1>(robot->sensedObjects[i]));
         }
         std::cout << std::endl;
+
     }
 
     void Simulator::writeLandmarkEstimation (Graph& graph) {
