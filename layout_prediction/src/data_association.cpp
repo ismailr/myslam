@@ -18,9 +18,6 @@ namespace MYSLAM {
 
         // ids container that will be returned
         // id = -1 indicates new object
-        // id = -2 indicates possibility of object already present in map
-        // following algorithm should replace all id = -2
-        // either with -1 or associated object id
         std::vector<int> objectsids (data.size(), -1);
 
         // handle single and double object detection specially
@@ -36,9 +33,12 @@ namespace MYSLAM {
         std::vector<int> rearranged = rearrangeInput (pose, data);
         std::vector<std::tuple<int, Eigen::Vector3d> > arrData;
 
+//        std::cout << "REARRANGE: ";
         for (int i = 0; i < rearranged.size(); i++) {
             arrData.push_back (data[rearranged[i]]);
+//            std::cout << rearranged[i] << " ";
         }
+//        std::cout << std::endl;
 
         // container to store path candidates
         // and distance values
@@ -65,21 +65,24 @@ namespace MYSLAM {
             _candidates.push_back (-1);
             candidates.push_back (_candidates);
         } else { // for 1st node, use nearest neighbor
-            int r = associate (pose, classids[0], measurements[0]);
-            std::vector<int> _candidates;
-            _candidates.push_back (r);
-            candidates.push_back (_candidates);
+//            int r = associate (pose, classids[0], measurements[0]);
+//            std::vector<int> _candidates;
+//            _candidates.push_back (r);
+//            candidates.push_back (_candidates);
 
-//            for (auto it = _graph->_objectClassMap[classids[0]].begin(); 
-//                    it != _graph->_objectClassMap[classids[0]].end();
-//                   it ++) {
-//                std::vector<int> _candidates;
-//                _candidates.push_back (*it);
-//                candidates.push_back (_candidates);
-//            } 
+            for (auto it = _graph->_objectClassMap[classids[0]].begin(); 
+                    it != _graph->_objectClassMap[classids[0]].end();
+                   it ++) {
+                std::vector<int> _candidates;
+                _candidates.push_back (*it);
+                candidates.push_back (_candidates);
+            } 
         }
 
         std::vector<double> dcandidates (candidates.size(), 0.0); 
+//        std::cout << "CANDIDATES SIZE: " << candidates.size() << std::endl;
+
+//        if (candidates.size() == 1) std::cout << "IT IS: " << candidates[0][0] << std::endl;
 
         for (int i = 1; i < classids.size(); i++) {
 
@@ -103,33 +106,51 @@ namespace MYSLAM {
 
                 double shortest = std::numeric_limits<double>::max();
                 int nextnode; // next shortest node from o1
+//                std::cout << "FROM: " << candidates[j].back();
                 for (auto jt = to.begin(); jt != to.end(); jt++) {
 
+                    int id = -1;
                     Eigen::Vector3d o2;
                     if (*jt != -1)  {
                         auto kt = std::find (candidates[j].begin(), candidates[j].end(), *jt);
-                        if (kt != candidates[j].end()) continue; // prevent path to loop
-                        o2 = _graph->_objectMap[*jt]->_pose;
+                        if (kt != candidates[j].end()) {
+                            if (std::next(jt) != to.end()) continue;
+                            else {
+                                SE2 p; p.fromVector(pose->_pose);
+                                SE2 m; m.fromVector(measurements[i]);
+                                o2 = (p*m).toVector();
+                                id = -1;
+                            }
+                        } else {
+                            o2 = _graph->_objectMap[*jt]->_pose;
+                            id = *jt;
+                        }
                     } else {
                         SE2 p; p.fromVector(pose->_pose);
                         SE2 m; m.fromVector(measurements[i]);
                         o2 = (p*m).toVector();
+                        id = -1;
                     }
+                    
+//                    std::cout << " TO: " << *jt;
 
                     double d = calculateDistance (o1, o2);
+//                    std::cout << " --> D = " << d;
 
                     if (d == 0.0) continue; // if o1 = o2, discard
 
                     double diff = std::abs (d - dz[i-1]);
+//                    std::cout << " || DIFF = " << diff;
 
                     if (diff < shortest) {
                         shortest = diff;
-                        nextnode = *jt;
+                        nextnode = id;
                     }
                 }
+//                std::cout << std::endl;
 
 //                std::cout << "******* " << shortest << std::endl;
-                if (shortest > 0.02) {
+                if (shortest > 0.5) {
                     candidates[j].push_back (-1);
                 } else {
                     candidates[j].push_back (nextnode);
@@ -139,10 +160,10 @@ namespace MYSLAM {
             }
         }
 
-        double shortest = std::numeric_limits<double>::max();
+        double shortest_candidate = std::numeric_limits<double>::max();
         for (int i = 0; i < candidates.size(); i++){
-            if (dcandidates[i] < shortest) {
-                shortest = dcandidates[i];
+            if (dcandidates[i] < shortest_candidate) {
+                shortest_candidate = dcandidates[i];
                 objectsids = candidates[i];
             }
         }
@@ -151,6 +172,12 @@ namespace MYSLAM {
         for (int i = 0; i < objectsids.size(); i++) {
             out[rearranged[i]] = objectsids[i];
         }
+
+//        std::cout << "OUT: ";
+//        for (int i = 0; i < out.size(); i++) {
+//            std::cout << out[i] << " ";
+//        }
+//        std::cout << std::endl;
 
         return out;
     }
@@ -177,7 +204,7 @@ namespace MYSLAM {
             }
         }
 
-        if (nearest_distance < 0.1)
+        if (nearest_distance < 0.5)
             return nearest_obj;
         else
             return -1;
@@ -255,16 +282,21 @@ namespace MYSLAM {
             Eigen::Vector3d o = (p*m).toVector();
 
             double shortest = std::numeric_limits<double>::max();
-            int node;
-            for (auto   it = _graph->_objectClassMap[std::get<0>(data[i])].begin();
-                        it != _graph->_objectClassMap[std::get<0>(data[i])].end();
-                        it++) {
 
-                double d = calculateDistance (o, _graph->_objectMap[*it]->_pose);
+            // this prevent two class with no objects
+            // having the same shortest values
+            if (_graph->_objectClassMap[std::get<0>(data[i])].empty()) {
+                shortest = 1000 + i * 1000; // random number
+            } else {
+                for (auto   it = _graph->_objectClassMap[std::get<0>(data[i])].begin();
+                            it != _graph->_objectClassMap[std::get<0>(data[i])].end();
+                            it++) {
 
-                if (d < shortest) {
-                    shortest = d;
-                    node = *it;
+                    double d = calculateDistance (o, _graph->_objectMap[*it]->_pose);
+
+                    if (d < shortest) {
+                        shortest = d;
+                    }
                 }
             }
 
@@ -287,4 +319,15 @@ namespace MYSLAM {
 
         return out;
     }
+
+    std::vector<int> DataAssociation::rearrangeInput2 (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data)
+    {
+        int size = data.size();
+        std::vector<int> out (size, -1);
+
+        for (int i = 0; i < size; i++) {
+            int size = _graph->_objectClassMap[std::get<0>(data[i])].size();
+        }
+    }
+
 }
