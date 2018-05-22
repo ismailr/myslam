@@ -33,12 +33,12 @@ namespace MYSLAM {
         std::vector<int> rearranged = rearrangeInput (pose, data);
         std::vector<std::tuple<int, Eigen::Vector3d> > arrData;
 
-//        std::cout << "REARRANGE: ";
+        std::cout << "REARRANGE: ";
         for (int i = 0; i < rearranged.size(); i++) {
             arrData.push_back (data[rearranged[i]]);
-//            std::cout << rearranged[i] << " ";
+            std::cout << rearranged[i] << " ";
         }
-//        std::cout << std::endl;
+        std::cout << std::endl;
 
         // container to store path candidates
         // and distance values
@@ -74,15 +74,17 @@ namespace MYSLAM {
                     it != _graph->_objectClassMap[classids[0]].end();
                    it ++) {
                 std::vector<int> _candidates;
+//                int id = associate (pose, classids[0], measurements[0]);
+//                _candidates.push_back (id);
                 _candidates.push_back (*it);
                 candidates.push_back (_candidates);
             } 
         }
 
         std::vector<double> dcandidates (candidates.size(), 0.0); 
-//        std::cout << "CANDIDATES SIZE: " << candidates.size() << std::endl;
+        std::cout << "CANDIDATES SIZE: " << candidates.size() << std::endl;
 
-//        if (candidates.size() == 1) std::cout << "IT IS: " << candidates[0][0] << std::endl;
+        if (candidates.size() == 1) std::cout << "IT IS: " << candidates[0][0] << std::endl;
 
         for (int i = 1; i < classids.size(); i++) {
 
@@ -106,7 +108,7 @@ namespace MYSLAM {
 
                 double shortest = std::numeric_limits<double>::max();
                 int nextnode; // next shortest node from o1
-//                std::cout << "FROM: " << candidates[j].back();
+                std::cout << "FROM: " << candidates[j].back();
                 for (auto jt = to.begin(); jt != to.end(); jt++) {
 
                     int id = -1;
@@ -115,12 +117,13 @@ namespace MYSLAM {
                         auto kt = std::find (candidates[j].begin(), candidates[j].end(), *jt);
                         if (kt != candidates[j].end()) {
                             if (std::next(jt) != to.end()) continue;
-                            else {
+                            else if (shortest > 0.05)
+                            {
                                 SE2 p; p.fromVector(pose->_pose);
                                 SE2 m; m.fromVector(measurements[i]);
                                 o2 = (p*m).toVector();
                                 id = -1;
-                            }
+                            } else continue;
                         } else {
                             o2 = _graph->_objectMap[*jt]->_pose;
                             id = *jt;
@@ -132,25 +135,26 @@ namespace MYSLAM {
                         id = -1;
                     }
                     
-//                    std::cout << " TO: " << *jt;
+                    std::cout << " --" << id;
 
                     double d = calculateDistance (o1, o2);
-//                    std::cout << " --> D = " << d;
 
                     if (d == 0.0) continue; // if o1 = o2, discard
 
                     double diff = std::abs (d - dz[i-1]);
-//                    std::cout << " || DIFF = " << diff;
+                    std::cout << "(" << diff << ") ";
+
+                    if (id == -1 && shortest < 0.05) continue;
 
                     if (diff < shortest) {
                         shortest = diff;
                         nextnode = id;
                     }
                 }
-//                std::cout << std::endl;
+                std::cout << std::endl;
 
 //                std::cout << "******* " << shortest << std::endl;
-                if (shortest > 0.5) {
+                if (shortest > 0.05) {
                     candidates[j].push_back (-1);
                 } else {
                     candidates[j].push_back (nextnode);
@@ -172,12 +176,6 @@ namespace MYSLAM {
         for (int i = 0; i < objectsids.size(); i++) {
             out[rearranged[i]] = objectsids[i];
         }
-
-//        std::cout << "OUT: ";
-//        for (int i = 0; i < out.size(); i++) {
-//            std::cout << out[i] << " ";
-//        }
-//        std::cout << std::endl;
 
         return out;
     }
@@ -204,7 +202,7 @@ namespace MYSLAM {
             }
         }
 
-        if (nearest_distance < 0.5)
+        if (nearest_distance < 0.2)
             return nearest_obj;
         else
             return -1;
