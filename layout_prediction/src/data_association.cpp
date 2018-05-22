@@ -48,6 +48,7 @@ namespace MYSLAM {
         std::vector<Eigen::Vector3d> measurements;
         std::vector<int> classids;
         std::vector<double> dz; // distance between measurements
+        double distance; // total distance from end to end
         for (int i = 0; i < arrData.size(); i++) {
             measurements.push_back (std::get<1>(arrData[i]));
             classids.push_back (std::get<0>(arrData[i]));
@@ -57,6 +58,9 @@ namespace MYSLAM {
                 dz.push_back (d);
             }
         }
+
+        distance = std::accumulate (dz.begin(), dz.end(), 0.0);
+        std::cout << "DATA DIST: " << distance << std::endl;
 
         // fill first candidates with objects from _objectClassMap[classids[0]]
         // if _objectClassMap[classids[0]] is empty, put -1
@@ -79,9 +83,15 @@ namespace MYSLAM {
                 _candidates.push_back (*it);
                 candidates.push_back (_candidates);
             } 
+
+            // add -1 as a potential candidate for first node
+            std::vector<int> _candidates;
+            _candidates.push_back (-1);
+            candidates.push_back (_candidates);
         }
 
         std::vector<double> dcandidates (candidates.size(), 0.0); 
+        std::vector<double> distcandidates (candidates.size(), 0.0);
         std::cout << "CANDIDATES SIZE: " << candidates.size() << std::endl;
 
         if (candidates.size() == 1) std::cout << "IT IS: " << candidates[0][0] << std::endl;
@@ -95,6 +105,7 @@ namespace MYSLAM {
             // and weight them with distances
 
             int loop = candidates.size(); // fix the number of iteration
+
             for (int j = 0; j < loop; j++) {
 
                 Eigen::Vector3d o1;
@@ -108,6 +119,7 @@ namespace MYSLAM {
 
                 double shortest = std::numeric_limits<double>::max();
                 int nextnode; // next shortest node from o1
+                double tdist = 0.0;
                 std::cout << "FROM: " << candidates[j].back();
                 for (auto jt = to.begin(); jt != to.end(); jt++) {
 
@@ -144,11 +156,15 @@ namespace MYSLAM {
                     double diff = std::abs (d - dz[i-1]);
                     std::cout << "(" << diff << ") ";
 
+                    // do not put -1 into this node 
+                    // if previous nodes have good potential
+                    // of being correct
                     if (id == -1 && shortest < 0.05) continue;
 
                     if (diff < shortest) {
                         shortest = diff;
                         nextnode = id;
+                        tdist = d;
                     }
                 }
                 std::cout << std::endl;
@@ -161,11 +177,13 @@ namespace MYSLAM {
                 }
 
                 dcandidates [j] += shortest; 
+                distcandidates [j] += tdist;
             }
         }
 
         double shortest_candidate = std::numeric_limits<double>::max();
         for (int i = 0; i < candidates.size(); i++){
+            std::cout << "DIST CANDIDATE " << i << "= " << distcandidates[i] << std::endl;
             if (dcandidates[i] < shortest_candidate) {
                 shortest_candidate = dcandidates[i];
                 objectsids = candidates[i];
