@@ -9,6 +9,7 @@ using namespace std;
 using namespace libconfig;
 
 namespace MYSLAM {
+    extern int DEBUG;
     extern int SIMULATION;
     extern int SLAM_ONLINE;
     extern string PCL_FRAME;

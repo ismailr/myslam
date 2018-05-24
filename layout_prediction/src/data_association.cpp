@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "layout_prediction/data_association.h"
+#include "layout_prediction/settings.h"
 
 #include "boost/graph/adjacency_list.hpp"
 #include "boost/graph/topological_sort.hpp"
@@ -374,7 +375,6 @@ namespace MYSLAM {
 
     std::vector<int> DataAssociation::associate2 (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) 
     {
-        std::cout << "377 ";
         int N = data.size();
 
         std::vector<int> objectsids (N, -1);
@@ -390,9 +390,12 @@ namespace MYSLAM {
         std::vector<int> rearranged = rearrangeInput (pose, data);
         std::vector<std::tuple<int, Eigen::Vector3d> > arrData;
 
+        std::cout << "(";
         for (int i = 0; i < rearranged.size(); i++) {
             arrData.push_back (data[rearranged[i]]);
+            std::cout << rearranged[i] << " ";
         }
+        std::cout << ")" << std::endl;
 
         // prepare input and data (map)
         std::vector<Eigen::Vector3d> measurements;
@@ -426,8 +429,6 @@ namespace MYSLAM {
                 SE2 m_; m_.fromVector(measurements[i]);
                 m.push_back((p*m_).toVector());
             }
-
-            std::cout << "429 ";
 
             double shortest = std::numeric_limits<double>::max();
             double shortest_ = std::numeric_limits<double>::max(); // with one or both node -1
@@ -475,12 +476,35 @@ namespace MYSLAM {
             }
         }
 
-        std::cout << "477 ";
-        // start next nodes
+        // for debug only
+        // print out already mapped objects
+        if (MYSLAM::DEBUG) {
+            std::set<int> cids; // set of classes
 
+            for (int i = 0; i < classids.size(); i++)
+                cids.insert (classids[i]);
+
+            for (auto it = cids.begin(); it != cids.end(); it++) {
+                std::cout << "CLASS " << *it << ": ";
+                std::set<int> oids = _graph->_objectClassMap[*it]; 
+                for (auto jt = oids.begin(); jt != oids.end(); jt++) {
+                    std::cout << *jt << " ";
+                }
+                std::cout << std::endl;
+            }
+        }
+
+        // start next nodes
         for (int i = 2; i < N; i++) {
 
             std::set<int> nodei = _graph->_objectClassMap[classids[i]];
+
+            // remove object already in the objectsids
+            for (auto it = nodei.begin(); it != nodei.end(); it++) {
+                auto kt = std::find (objectsids.begin(), objectsids.end(), *it);
+                if (kt != objectsids.end())
+                    nodei.erase (*it);
+            }
 
             if (nodei.empty()) {
                 nodei.insert (-1);
@@ -501,7 +525,7 @@ namespace MYSLAM {
             double shortest = std::numeric_limits<double>::max();
             int ni;
 
-            for (auto it = nodei.begin(); it != nodei.end(); ++i) {
+            for (auto it = nodei.begin(); it != nodei.end(); ++it) {
 
                 Eigen::Vector3d oi = _graph->_objectMap[*it]->_pose;
 
@@ -519,7 +543,6 @@ namespace MYSLAM {
             else
                 objectsids[i] = -1;
         }
-        std::cout << "521 ";
 
         std::vector<int> out (objectsids.size(), -1);
         for (int i = 0; i < objectsids.size(); i++) {

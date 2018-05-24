@@ -48,8 +48,8 @@ namespace MYSLAM {
 
             private:
                 Simulator* _sim;
-                const double xnoise_stdev = 1.0e-1, ynoise_stdev = 1.0e-1, pnoise_stdev  = 10.0 * M_PI/180.; 
-                const double wnoise_stdev = 1.0e-1;
+                const double xnoise_stdev = 1.0e-2, ynoise_stdev = 1.0e-2, pnoise_stdev  = 2.0 * M_PI/180.; 
+                const double wnoise_stdev = 1.0e-2;
                 const double RANGE = 5.0;
         };
 

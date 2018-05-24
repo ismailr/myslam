@@ -1,6 +1,7 @@
 #include "layout_prediction/settings.h"
 
 namespace MYSLAM {
+    int DEBUG;
     int SIMULATION;
     int SLAM_ONLINE;
     string PCL_FRAME;
@@ -27,6 +28,7 @@ namespace MYSLAM {
         }
 
         try {
+          cfg.lookupValue ("debug", DEBUG);
           cfg.lookupValue ("simulation", SIMULATION);
           cfg.lookupValue ("online", SLAM_ONLINE);
           cfg.lookupValue ("pcl_frame", PCL_FRAME);

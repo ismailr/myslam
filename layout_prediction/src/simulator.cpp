@@ -482,50 +482,57 @@ namespace MYSLAM {
 
         if (robot->sensedObjects.size() <= 1) return;
 
-        std::cout << "CLASSIDS: "; 
-        for (int i = 0; i < robot->sensedObjects.size(); i++) {
-            std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
+        if (MYSLAM::DEBUG) {
+            std::cout << "CLASSIDS: "; 
+            for (int i = 0; i < robot->sensedObjects.size(); i++) 
+                std::cout << (std::get<0>(robot->sensedObjects[i]))->_classid << " ";
+            std::cout << std::endl;
+
+            std::cout << "GROUNDTRUTH: ";
+            for (int i = 0; i < robot->sensedObjects.size(); i++) 
+                std::cout << (std::get<0>(robot->sensedObjects[i]))->_id << " "; 
+            std::cout << std::endl;
         }
-        std::cout << std::endl;
         
         std::vector<std::tuple<int, Eigen::Vector3d> > data;
 
-        std::cout << "GROUNDTRUTH: ";
         for (int i = 0; i < robot->sensedObjects.size(); i++) {
 
             int classid = (std::get<0>(robot->sensedObjects[i]))->_classid;
             Eigen::Vector3d measurement = std::get<1>(robot->sensedObjects[i]);
             data.push_back (std::make_tuple (classid, measurement));
-            std::cout   << (std::get<0>(robot->sensedObjects[i]))->_id << " "; 
         }
-        std::cout << std::endl;
 
         DataAssociation da (graph);
-        std::vector<int> result = da.associate (pose, data);
+        std::vector<int> result = da.associate2 (pose, data);
 
-        std::cout << "CANDIDATES: ";
         for (int i = 0; i < result.size(); i++) {
             Object::Ptr o;
             if (result[i] == -1) {
-//                o = std::get<0>(robot->sensedObjects[i]);
-                Object::Ptr ob (new Object);
-                o = ob;
-                o->_classid = std::get<0>(data[i]);
-
-                SE2 p; p.fromVector (pose->_pose);
-                SE2 m; m.fromVector (std::get<1>(robot->sensedObjects[i]));
-                o->_pose = (p*m).toVector();
+                o = std::get<0>(robot->sensedObjects[i]);
+//                Object::Ptr ob (new Object);
+//                o = ob;
+//                o->_classid = std::get<0>(data[i]);
+//
+//                SE2 p; p.fromVector (pose->_pose);
+//                SE2 m; m.fromVector (std::get<1>(robot->sensedObjects[i]));
+//                o->_pose = (p*m).toVector();
                 graph.insertNode (o);
-                std::cout << "+ ";
             } else {
-                std::cout << result[i] << " ";
                 o = graph._objectMap[result[i]];
             }
             std::tuple<int, int> e (pose->_id, o->_id);
             graph.insertPoseObjectEdge (e, std::get<1>(robot->sensedObjects[i]));
         }
-        std::cout << std::endl;
 
+        if (MYSLAM::DEBUG) {
+            std::cout << "CANDIDATES: ";
+            for (int i = 0; i < result.size(); i++) {
+                if (result[i] == -1) std::cout << "+ ";
+                else std::cout << result[i] << " ";
+            }
+            std::cout << std::endl;
+        }
     }
 
     void Simulator::writeLandmarkEstimation (Graph& graph) {
