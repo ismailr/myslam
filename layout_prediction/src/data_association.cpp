@@ -15,216 +15,6 @@ namespace MYSLAM {
 
     }
 
-    std::vector<int> DataAssociation::associate (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) {
-
-        // ids container that will be returned
-        // id = -1 indicates new object
-        std::vector<int> objectsids (data.size(), -1);
-
-        // handle single and double object detection specially
-        if (data.size() == 0) return objectsids;
-
-
-        if (data.size() == 1) {
-            int result = associate (pose, std::get<0>(data[0]), std::get<1>(data[0]));
-            objectsids[0] = result;
-            return objectsids;
-        }
-
-        std::vector<int> rearranged = rearrangeInput (pose, data);
-        std::vector<std::tuple<int, Eigen::Vector3d> > arrData;
-
-        std::cout << "REARRANGE: ";
-        for (int i = 0; i < rearranged.size(); i++) {
-            arrData.push_back (data[rearranged[i]]);
-            std::cout << rearranged[i] << " ";
-        }
-        std::cout << std::endl;
-
-        // container to store path candidates
-        // and distance values
-        std::vector<std::vector<int> > candidates;
-
-        // prepare input and data (map)
-        std::vector<Eigen::Vector3d> measurements;
-        std::vector<int> classids;
-        std::vector<double> dz; // distance between measurements
-        double distance; // total distance from end to end
-        for (int i = 0; i < arrData.size(); i++) {
-            measurements.push_back (std::get<1>(arrData[i]));
-            classids.push_back (std::get<0>(arrData[i]));
-
-            if (i < arrData.size() - 1) {
-                double d = calculateDistance (std::get<1>(arrData[i]), std::get<1>(arrData[i+1]));
-                dz.push_back (d);
-            }
-        }
-
-        distance = std::accumulate (dz.begin(), dz.end(), 0.0);
-        std::cout << "DATA DIST: " << distance << std::endl;
-
-        // fill first candidates with objects from _objectClassMap[classids[0]]
-        // if _objectClassMap[classids[0]] is empty, put -1
-        std::cout << "AVAILABLE OBJECT FOR CLASS " << classids[0] << ": ";
-        if (_graph->_objectClassMap[classids[0]].empty()) {
-            std::vector<int> _candidates;
-            _candidates.push_back (-1);
-            candidates.push_back (_candidates);
-        } else { // for 1st node, use nearest neighbor
-//            int r = associate (pose, classids[0], measurements[0]);
-//            std::vector<int> _candidates;
-//            _candidates.push_back (r);
-//            candidates.push_back (_candidates);
-
-            for (auto it = _graph->_objectClassMap[classids[0]].begin(); 
-                    it != _graph->_objectClassMap[classids[0]].end();
-                   it ++) {
-                std::vector<int> _candidates;
-//                int id = associate (pose, classids[0], measurements[0]);
-//                _candidates.push_back (id);
-                _candidates.push_back (*it);
-                candidates.push_back (_candidates);
-                std::cout << *it << " ";
-            } 
-            // add -1 as a potential candidate for first node
-//            std::vector<int> _candidates;
-//            _candidates.push_back (-1);
-//            candidates.push_back (_candidates);
-        }
-        std::cout << std::endl;
-
-        std::vector<double> dcandidates (candidates.size(), 0.0); 
-        std::vector<double> distcandidates (candidates.size(), 0.0);
-//        std::cout << "CANDIDATES SIZE: " << candidates.size() << std::endl;
-
-//        if (candidates.size() == 1) std::cout << "IT IS: " << candidates[0][0] << std::endl;
-
-        for (int i = 1; i < classids.size(); i++) {
-
-            // measurement in global frame of ref
-            Eigen::Vector3d o01;
-            SE2 p01; p01.fromVector(pose->_pose);
-            SE2 m01; m01.fromVector(measurements[i-1]);
-            o01 = (p01*m01).toVector();
-
-            Eigen::Vector3d o02;
-            SE2 p02; p02.fromVector(pose->_pose);
-            SE2 m02; m02.fromVector(measurements[i]);
-            o02 = (p02*m02).toVector();
-
-            std::set<int> to = _graph->_objectClassMap[classids[i]];
-            if (to.empty()) to.insert (-1); 
-
-            std::cout << "AVAILABLE OBJECT FOR CLASS " << classids[i] << ": ";
-            for (auto it = to.begin(); it != to.end(); it++) {
-                std::cout << *it << " ";
-            }
-            std::cout << std::endl;
-
-            // exhaust all possible paths from nodes[i] to nodes[i+1]
-            // and weight them with distances
-
-            int loop = candidates.size(); // fix the number of iteration
-
-            for (int j = 0; j < loop; j++) {
-
-                Eigen::Vector3d o1;
-                if (candidates[j].back() == -1) {
-                    o1 = o01;
-                } else {
-                    o1 = _graph->_objectMap[candidates[j].back()]->_pose;
-                }
-
-                double shortest = std::numeric_limits<double>::max();
-                double shortest0 = std::numeric_limits<double>::max(); // record d for -1 first nodes
-                int nextnode; // next shortest node from o1
-                int nextnode0;
-                double tdist = 0.0;
-                std::cout << "FROM: " << candidates[j].back();
-                for (auto jt = to.begin(); jt != to.end(); jt++) {
-
-                    int id = -1;
-                    Eigen::Vector3d o2;
-                    if (*jt != -1)  {
-                        auto kt = std::find (candidates[j].begin(), candidates[j].end(), *jt);
-                        if (kt != candidates[j].end()) {
-                            if (std::next(jt) != to.end()) continue;
-                            else if (shortest > 0.03)
-                            {
-                                o2 = o02;
-                                id = -1;
-                            } else continue;
-                        } else {
-                            o2 = _graph->_objectMap[*jt]->_pose;
-                            id = *jt;
-                        }
-                    } else {
-                        o2 = o02;
-                        id = -1;
-                    }
-                    
-                    std::cout << " --" << id;
-
-                    double d = calculateDistance (o1, o2);
-                    double d0 = calculateDistance (o01, o2);
-
-                    if (d == 0.0) continue; // if o1 = o2, discard
-
-                    double diff = std::abs (d - dz[i-1]);
-                    double diff0 = std::abs (d0 - dz[i-1]);
-                    std::cout << "(" << diff << ") ";
-
-                    // do not put -1 into this node 
-                    // if previous nodes have good potential (shortest < 0.03)
-                    // of being correct
-                    if (id == -1 && shortest < 0.03) continue;
-
-                    if (diff < shortest) {
-                        shortest = diff;
-                        nextnode = id;
-                        tdist = d;
-                    }
-
-                    if (diff0 < shortest0) {
-                        shortest0 = diff0;
-                        nextnode0 = id;
-                    }
-                }
-                std::cout << std::endl;
-
-//                std::cout << "******* " << shortest << std::endl;
-                if (shortest > 0.03) {
-                    if (shortest0 < 0.03 && i == 1) {
-                        candidates[j].back() = -1;
-                        candidates[j].push_back (nextnode);
-                    } else 
-                        candidates[j].push_back (-1);
-                } else {
-                    candidates[j].push_back (nextnode);
-                }
-
-                dcandidates [j] += shortest; 
-                distcandidates [j] += tdist;
-            }
-        }
-
-        double shortest_candidate = std::numeric_limits<double>::max();
-        for (int i = 0; i < candidates.size(); i++){
-            std::cout << "DIST CANDIDATE " << i << "= " << distcandidates[i] << std::endl;
-            if (dcandidates[i] < shortest_candidate) {
-                shortest_candidate = dcandidates[i];
-                objectsids = candidates[i];
-            }
-        }
-
-        std::vector<int> out (objectsids.size(), -1);
-        for (int i = 0; i < objectsids.size(); i++) {
-            out[rearranged[i]] = objectsids[i];
-        }
-
-        return out;
-    }
-
     int DataAssociation::associate (Pose::Ptr pose, int classid, Eigen::Vector3d measurement) {
         
         std::set<int> obj = _graph->_objectClassMap[classid];
@@ -360,20 +150,23 @@ namespace MYSLAM {
             }
         } 
 
+        // this prevent first two nodes to have the same classids
+        // as it has a potential to make a wrong associations
+        if (std::get<0>(data[out[0]]) == std::get<0>(data[out[1]])) {
+            int tmp = out[1];
+            for (int i = 2; i < out.size(); i++) {
+                if (std::get<0>(data[out[i]]) != std::get<0>(data[out[0]])) {
+                    out [1] = out [i];
+                    out[i] = tmp;
+                    break;
+                }
+            }
+        }
+
         return out;
     }
 
-    std::vector<int> DataAssociation::rearrangeInput2 (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data)
-    {
-        int size = data.size();
-        std::vector<int> out (size, -1);
-
-        for (int i = 0; i < size; i++) {
-            int size = _graph->_objectClassMap[std::get<0>(data[i])].size();
-        }
-    }
-
-    std::vector<int> DataAssociation::associate2 (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) 
+    std::vector<int> DataAssociation::associate (Pose::Ptr pose, std::vector<std::tuple<int, Eigen::Vector3d> > data) 
     {
         int N = data.size();
 
@@ -390,12 +183,15 @@ namespace MYSLAM {
         std::vector<int> rearranged = rearrangeInput (pose, data);
         std::vector<std::tuple<int, Eigen::Vector3d> > arrData;
 
-        std::cout << "(";
         for (int i = 0; i < rearranged.size(); i++) {
             arrData.push_back (data[rearranged[i]]);
-            std::cout << rearranged[i] << " ";
         }
-        std::cout << ")" << std::endl;
+
+        if (MYSLAM::DEBUG) {
+            std::cout << "(";
+            for (int i = 0; i < rearranged.size(); i++) std::cout << rearranged[i] << " "; 
+            std::cout << ")" << std::endl;
+        }
 
         // prepare input and data (map)
         std::vector<Eigen::Vector3d> measurements;

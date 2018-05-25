@@ -79,6 +79,9 @@ namespace MYSLAM {
         void writeLandmarkEstimation (Graph&);
 
         private:
+        int counter;
+        int trueGuess;
+        int newObj;
     };
 }
 

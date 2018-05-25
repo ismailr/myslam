@@ -11,10 +11,8 @@ namespace MYSLAM {
             // args: robot's pose, vector<classid, measurements>
             // return: set of objects' ids
             std::vector<int> associate (Pose::Ptr, std::vector<std::tuple<int, Eigen::Vector3d> >); 
-            std::vector<int> associate2 (Pose::Ptr, std::vector<std::tuple<int, Eigen::Vector3d> >); 
             int associate (Pose::Ptr, int, Eigen::Vector3d);
             std::vector<int> rearrangeInput (Pose::Ptr, std::vector<std::tuple<int, Eigen::Vector3d> >);
-            std::vector<int> rearrangeInput2 (Pose::Ptr, std::vector<std::tuple<int, Eigen::Vector3d> >);
 
         private:
             Graph* _graph;

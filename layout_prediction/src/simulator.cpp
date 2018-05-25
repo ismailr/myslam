@@ -180,7 +180,7 @@ namespace MYSLAM {
         nearestLandmark = _nearestLandmark;
     }
 
-    Simulator::Simulator()
+    Simulator::Simulator() : counter (0), trueGuess (0), newObj (0)
     {
         double rot = uniform_generator<double>(-M_PI, M_PI);
         Eigen::Vector3d r (0.0, 0.0, rot);
@@ -248,10 +248,16 @@ namespace MYSLAM {
             robot->truePath.push_back (robot->truePose);
             robot->finalpose.push_back (pose->_id); // end of stats
 
-            std::cout << "*************** FRAME KE-" << frame << " ********************" << std::endl;
+            if (MYSLAM::DEBUG)
+                std::cout << "*************** FRAME KE-" << frame << " ********************" << std::endl;
+
             dataAssociationWallKnown (graph, pose);
 //            dataAssociationObjectKnown (graph, pose);
+            double start = clock();
             dataAssociationObjectUnknown (graph, pose);
+
+            if (MYSLAM::DEBUG)
+                std::cout << "TIME: " << (double) 1000 * (clock() - start)/CLOCKS_PER_SEC << " ms" << std::endl;
 
             int N = graph._activePoses.size();
             int M = graph._activeWalls.size();
@@ -480,7 +486,7 @@ namespace MYSLAM {
 
     void Simulator::dataAssociationObjectUnknown (Graph& graph, Pose::Ptr& pose) {
 
-        if (robot->sensedObjects.size() <= 1) return;
+        if (robot->sensedObjects.size() <= 2) return;
 
         if (MYSLAM::DEBUG) {
             std::cout << "CLASSIDS: "; 
@@ -504,23 +510,45 @@ namespace MYSLAM {
         }
 
         DataAssociation da (graph);
-        std::vector<int> result = da.associate2 (pose, data);
+        std::vector<int> result = da.associate (pose, data);
 
         for (int i = 0; i < result.size(); i++) {
             Object::Ptr o;
             if (result[i] == -1) {
-                o = std::get<0>(robot->sensedObjects[i]);
-//                Object::Ptr ob (new Object);
-//                o = ob;
-//                o->_classid = std::get<0>(data[i]);
-//
-//                SE2 p; p.fromVector (pose->_pose);
-//                SE2 m; m.fromVector (std::get<1>(robot->sensedObjects[i]));
-//                o->_pose = (p*m).toVector();
+
+                if (MYSLAM::DEBUG) {
+                    int clid = std::get<0>(data[i]);
+                    if (graph._objectClassMap[clid].empty())
+                        trueGuess++;
+                    else {
+                        auto it = std::find (   graph._objectClassMap[clid].begin(),
+                                                graph._objectClassMap[clid].end(),
+                                                std::get<0>(robot->sensedObjects[i])->_id);
+                        if (it == graph._objectClassMap[clid].end()) trueGuess++;
+                        else std::cout << "ALERTTTTTT!!!!!" << std::endl;
+                    }
+                }
+
+                // BOOKMARK
+//                o = std::get<0>(robot->sensedObjects[i]);
+                Object::Ptr ob (new Object);
+                o = ob;
+                o->_classid = std::get<0>(data[i]);
+
+                SE2 p; p.fromVector (pose->_pose);
+                SE2 m; m.fromVector (std::get<1>(robot->sensedObjects[i]));
+                o->_pose = (p*m).toVector();
                 graph.insertNode (o);
             } else {
+                if (MYSLAM::DEBUG) {
+                    if (result[i] == std::get<0>(robot->sensedObjects[i])->_id) trueGuess++;
+                    else std::cout << "ALERTTTTTT!!!!!" << std::endl;
+                }
                 o = graph._objectMap[result[i]];
             }
+
+            if (MYSLAM::DEBUG) counter++;
+
             std::tuple<int, int> e (pose->_id, o->_id);
             graph.insertPoseObjectEdge (e, std::get<1>(robot->sensedObjects[i]));
         }
@@ -532,6 +560,8 @@ namespace MYSLAM {
                 else std::cout << result[i] << " ";
             }
             std::cout << std::endl;
+
+            std::cout << "ACCURACY = " << (double)(trueGuess * 100)/counter << "%" << std::endl;
         }
     }
 

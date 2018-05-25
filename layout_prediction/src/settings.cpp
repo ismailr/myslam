@@ -2,7 +2,6 @@
 
 namespace MYSLAM {
     int DEBUG;
-    int SIMULATION;
     int SLAM_ONLINE;
     string PCL_FRAME;
     int WALL_DETECTOR_METHOD;
@@ -29,7 +28,6 @@ namespace MYSLAM {
 
         try {
           cfg.lookupValue ("debug", DEBUG);
-          cfg.lookupValue ("simulation", SIMULATION);
           cfg.lookupValue ("online", SLAM_ONLINE);
           cfg.lookupValue ("pcl_frame", PCL_FRAME);
           cfg.lookupValue ("wall_detector_method", WALL_DETECTOR_METHOD);

@@ -92,6 +92,11 @@ namespace MYSLAM {
                 pm->vertices()[1] = v;
                 pm->setMeasurement (u->estimate().inverse() * v->estimate());
                 pm->information () = poseCovMatrix.inverse();
+
+//                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+//                pm->setRobustKernel (rk);
+//                rk->setDelta (sqrt(1000.99));
+
                 o->addEdge (pm);
             }
 
@@ -182,7 +187,7 @@ namespace MYSLAM {
             
 //            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
 //            wm->setRobustKernel (rk);
-//            rk->setDelta (sqrt(5.99));
+//            rk->setDelta (sqrt(1000.99));
 
             o->addEdge (wm);
         }
@@ -200,8 +205,8 @@ namespace MYSLAM {
             om->information() = objectCovMatrix.inverse();
             
 //            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-//            wm->setRobustKernel (rk);
-//            rk->setDelta (sqrt(5.99));
+//            om->setRobustKernel (rk);
+//            rk->setDelta (sqrt(1000.99));
 
             o->addEdge (om);
         }
