@@ -50,7 +50,7 @@ void LogicalCameraPlugin::onUpdate ()
     for (int i = 0; i < n; i++) {
         logcam_plugin::Model model_msg;
 
-        if (logical_image.model(i).name() == "ground_plane")
+        if (logical_image.model(i).name() == "ground_plane" || logical_image.model(i).name() == "indoor1")
             continue;
 
         rendering::VisualPtr visual = scene->GetVisual (logical_image.model(i).name());

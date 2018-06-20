@@ -1,9 +1,6 @@
 #ifndef _LOGCAM_PLUGIN_H_
 #define _LOGCAM_PLUGIN_H_
 
-#include <string>
-#include <sstream>
-
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/gazebo.hh>
 #include <gazebo/rendering/rendering.hh>
