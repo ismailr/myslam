@@ -23,5 +23,7 @@ int main (int argc, char** argv)
 //    sim.generateRoom();
 //    sim.generateLandmark ();
 
+    ros::spin();
+
     return 0;
 }

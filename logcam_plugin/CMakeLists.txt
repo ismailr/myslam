@@ -1,29 +1,26 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(layout_prediction)
+project(logcam_plugin)
+
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  gazebo_ros
   roscpp
+  sensor_msgs
   std_msgs
-  tf
-  geometry_msgs
-  pcl_conversions
-  pcl_ros
-  cmake_modules
-  cv_bridge
-  pr2_mechanism_controllers
-  message_filters
+  message_generation
+  rospy
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
-find_package(G2O REQUIRED)
-find_package(CSparse REQUIRED)
-find_package(Eigen3 REQUIRED)
-find_package(OpenGL)
-find_package(GLUT)
+find_package(gazebo REQUIRED)
+
+link_directories(${GAZEBO_LIBRARY_DIRS})
+
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -55,11 +52,11 @@ find_package(GLUT)
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+   FILES
+   Model.msg
+   LogicalImage.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -76,10 +73,12 @@ find_package(GLUT)
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   std_msgs  # Or other packages containing msgs
+   geometry_msgs
+   sensor_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -111,9 +110,9 @@ find_package(GLUT)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES layout_prediction
-  CATKIN_DEPENDS roscpp std_msgs tf geometry_msgs pcl_conversions pcl_ros pr2_mechanism_controllers message_filters 
+#    INCLUDE_DIRS include
+#  LIBRARIES logcam_plugin
+    CATKIN_DEPENDS gazebo_ros roscpp rospy std_msgs sensor_msgs message_runtime
 #  DEPENDS system_lib
 )
 
@@ -125,124 +124,33 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-	include
-	${catkin_INCLUDE_DIRS}
-	${CSPARSE_INCLUDE_DIR}
-    ${EIGEN3_INCLUDE_DIR}
+    include 
+  ${catkin_INCLUDE_DIRS}
+  ${GAZEBO_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(layout_prediction
-#   src/${PROJECT_NAME}/layout_prediction.cpp
-# )
+add_library(logcam_plugin SHARED
+  src/logcam_plugin.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(layout_prediction ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-
-#add_library (isam STATIC IMPORTED)
-#set_property(TARGET isam PROPERTY IMPORTED LOCATION /usr/local/lib/libisam.a)
+# add_dependencies(logcam_plugin ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(layout_prediction 
-	src/layout_prediction.cpp
-	src/helpers.cpp
-	src/pose.cpp
-    src/wall.cpp
-    src/tracker.cpp
-    src/wall_detector.cpp
-    src/system.cpp
-    src/graph.cpp
-    src/pose_measurement.cpp
-    src/wall_measurement.cpp
-    src/types_myslam.cpp
-    src/angle_measurement.cpp
-    src/settings.cpp
-    src/optimizer.cpp
-    src/visualizer.cpp
-    src/particle.cpp
-    src/particle_filter.cpp
-    src/icp.cpp
-    src/ekf_mapper.cpp
-    src/object.cpp
-    src/object_measurement.cpp
-    src/data_association.cpp
-    #    src/g2o/vertex_se2.cpp
-    #    src/g2o/vertex_line2d.cpp
-    #    src/g2o/edge_se2.cpp
-    #    src/g2o/edge_se2_line2d.cpp
-    #    src/g2o/edge_line2d.cpp
-)
-
-add_executable(simulation
-	src/simulation.cpp
-	src/helpers.cpp
-	src/pose.cpp
-    src/wall.cpp
-    src/tracker.cpp
-    src/wall_detector.cpp
-    src/system.cpp
-    src/graph.cpp
-    src/pose_measurement.cpp
-    src/wall_measurement.cpp
-    src/types_myslam.cpp
-    src/angle_measurement.cpp
-    src/simulator.cpp
-    src/settings.cpp
-    src/optimizer.cpp
-    src/visualizer.cpp
-    src/particle.cpp
-    src/particle_filter.cpp
-    src/icp.cpp
-    src/ekf_mapper.cpp
-    src/object.cpp
-    src/object_measurement.cpp
-    src/data_association.cpp
-    #    src/g2o/vertex_se2.cpp
-    #    src/g2o/vertex_line2d.cpp
-    #    src/g2o/edge_se2.cpp
-    #    src/g2o/edge_se2_line2d.cpp
-    #    src/g2o/edge_line2d.cpp
-)
+# add_executable(logcam_plugin_node src/logcam_plugin_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(layout_prediction_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(logcam_plugin_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(layout_prediction
-	${catkin_LIBRARIES}
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-    ${G2O_SOLVER_CHOLMOD}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_SLAM3D}
-    ${G2O_TYPES_SLAM2D}
-    ${G2O_OPENGL_HELPER}
-    ${OPENGL_gl_LIBRARY}
-    ${GLUT_LIBRARIES}
-    "/usr/lib64/libconfig++.so"
+target_link_libraries(logcam_plugin
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
 )
-
-target_link_libraries(simulation
-	${catkin_LIBRARIES}
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-    ${G2O_SOLVER_CHOLMOD}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_SLAM3D}
-    ${G2O_TYPES_SLAM2D}
-    ${G2O_OPENGL_HELPER}
-    ${OPENGL_gl_LIBRARY}
-    ${GLUT_LIBRARIES}
-    "/usr/lib64/libconfig++.so"
-
-)
-
-add_definitions(-std=c++14)
 
 #############
 ## Install ##
@@ -259,7 +167,7 @@ add_definitions(-std=c++14)
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS layout_prediction layout_prediction_node
+# install(TARGETS logcam_plugin logcam_plugin_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -284,7 +192,7 @@ add_definitions(-std=c++14)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_layout_prediction.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_logcam_plugin.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

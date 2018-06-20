@@ -34,8 +34,8 @@ namespace MYSLAM {
             std::map<int, Object::Ptr> _objectMap;
             std::map<int, std::set<int> > _objectClassMap;
 
-            // for loop closure
-            std::vector<int> _poseList;
+            // path
+            std::vector<int> _path;
 
             // measurement
             std::map<std::tuple<int, int>, Eigen::Vector3d> _posePoseMap;

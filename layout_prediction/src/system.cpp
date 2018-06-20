@@ -166,7 +166,6 @@ namespace MYSLAM {
         if (_method == BA) {
             _graph->_poseMap[pose->_id] = pose;
             _graph->_activePoses.push_back (pose->_id);
-            _graph->_poseList.push_back (pose->_id);
 
             // detectwall
             std::vector<std::tuple<Wall::Ptr, Eigen::Vector2d> > walls;

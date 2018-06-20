@@ -14,15 +14,6 @@ namespace MYSLAM {
         public:
         Simulator();
 
-        struct Benda
-        {
-            int id;
-            int classid;
-            Eigen::Vector3d pose;
-
-            Benda ();
-        };
-
         class Robot
         {
             public:

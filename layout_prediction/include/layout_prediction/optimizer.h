@@ -11,6 +11,7 @@ namespace MYSLAM {
             Optimizer(System&, MYSLAM::Graph&);
             Optimizer(MYSLAM::Graph&); // simulation
             void localOptimize();
+            void localOptimize2(Pose::Ptr pose);
             void globalOptimize();
 
         private:

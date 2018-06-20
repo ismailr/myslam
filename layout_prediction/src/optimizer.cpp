@@ -95,7 +95,7 @@ namespace MYSLAM {
 
 //                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
 //                pm->setRobustKernel (rk);
-//                rk->setDelta (sqrt(1000.99));
+//                rk->setDelta (sqrt(5.99));
 
                 o->addEdge (pm);
             }
@@ -117,43 +117,8 @@ namespace MYSLAM {
             WallVertex *v = new WallVertex;
             v->setId (wall->_id);
             v->setEstimateDataImpl (data);
+//            v->setMarginalized (true);
             o->addVertex (v);
-
-//            if (it == activeWalls.begin() && !lastActiveWallsEmpty)
-//            {
-//                Wall* lwall = wallMap[*(_graph->_lastActiveWalls.rbegin())].get();
-//
-//                if (!o->vertex(lwall->_id)) {
-//                    double lxx = lwall->_line.xx[0];
-//                    double lxy = lwall->_line.xx[1];
-//                    double ldata[2] = {lxx,lxy};
-//                    WallVertex *lw = new WallVertex;
-//                    lw->setId (lwall->_id);
-//                    lw->setEstimateDataImpl(ldata);
-//                    lw->setMarginalized (true);
-//                    o->addVertex (lw);
-//
-//                    AngleMeasurement* am = new AngleMeasurement;
-//                    am->vertices()[0] = o->vertex (lwall->_id);
-//                    am->vertices()[1] = o->vertex (*it);
-//                    o->addEdge (am);
-//                    Eigen::Matrix<double, 1, 1> inf;
-//                    inf.setIdentity();
-//                    am->information () = inf;
-//                }
-//            }
-//
-//            for (std::set<int>::iterator jt = activeWalls.begin();
-//                    jt != activeWalls.end(); jt++)
-//            {
-//                AngleMeasurement* am = new AngleMeasurement;
-//                am->vertices()[0] = o->vertex (*jt);
-//                am->vertices()[1] = o->vertex (*jt);
-//                o->addEdge (am);
-//                Eigen::Matrix<double, 1, 1> inf;
-//                inf.setIdentity();
-//                am->information () = inf;
-//            }
         }
 
         for (std::set<int>::iterator it = activeObjects.begin();
@@ -168,6 +133,7 @@ namespace MYSLAM {
             ObjectVertex *v = new ObjectVertex; 
             v->setId (object->_id); 
             v->setEstimate (vse2);
+//            v->setMarginalized (true);
             o->addVertex (v); 
         }
 
@@ -353,20 +319,6 @@ namespace MYSLAM {
             v->setEstimateDataImpl (data);
             v->setMarginalized (true);
             o->addVertex (v);
-
-//            if (it != wallMap.begin())
-//            {
-//                AngleMeasurement* am = new AngleMeasurement;
-//                am->vertices()[0] = t;
-//                am->vertices()[1] = v;
-//                am->setMeasurement (std::abs(atan2(v->estimate().y(), v->estimate().x()) - atan2(t->estimate().y(), t->estimate().x())));
-//                Eigen::Matrix<double, 1, 1> inf;
-//                inf <<  1e-2;
-//                am->information () = inf;
-//                o->addEdge (am);
-//            }
-//
-//            t = v;
         }
 
         for (std::map<std::tuple<int,int>, Eigen::Vector2d>::iterator it = poseWallMap.begin();
@@ -385,14 +337,11 @@ namespace MYSLAM {
             o->addEdge (wm);
         }
 
-        o->save ("/home/ism/tmp/mit_strata_center_dataset_before.txt");
         o->initializeOptimization();
         o->optimize(100);
-        o->save ("/home/ism/tmp/mit_strata_center_dataset.txt");
-
 
         std::ofstream posefile;
-        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out);
+        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
         for (std::map<int,Pose::Ptr>::iterator it = poseMap.begin();
                 it != poseMap.end(); it++)
         {
@@ -421,5 +370,221 @@ namespace MYSLAM {
             wallMap[id]->_line.xx[1] = xy;
             wallMap[id]->updateParams ();
         }
+    }
+
+    void Optimizer::localOptimize2(Pose::Ptr pose)
+    {
+        if (pose->_detectedObjects.empty()) return;
+
+        typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+        typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+
+        g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
+        auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+        linearSolver->setBlockOrdering (false);
+        OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
+                g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+        o->setAlgorithm (solver);
+        o->setVerbose (true);
+
+        std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
+        std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
+        std::map<int, Object::Ptr>& objectMap = _graph->_objectMap;
+        std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
+        std::map<std::tuple<int, int>, Eigen::Vector3d>& poseObjectMap = _graph->_poseObjectMap;
+        std::vector<int>& path = _graph->_path;
+
+        Eigen::Matrix<double, 3, 3> poseCovMatrix;
+//        poseCovMatrix.setIdentity();
+        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
+                            0.0, 1.0e-4, 0.0,
+                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        Eigen::Matrix<double, 2, 2> wallCovMatrix;
+//        wallCovMatrix.setIdentity();
+        wallCovMatrix <<    1.0e-4, 0.0,
+                            0.0, 1.0e-4;
+        Eigen::Matrix<double, 3, 3> objectCovMatrix;
+//        poseCovMatrix.setIdentity();
+        objectCovMatrix <<  1.0e-4, 0.0, 0.0,
+                            0.0, 1.0e-4, 0.0,
+                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+
+        std::set<int> activeObjects = pose->_detectedObjects;
+
+        std::vector<int> activePoses;
+        for (auto it = path.rbegin(); it != path.rend(); it++) {
+            std::set<int> obj = poseMap[*it]->_detectedObjects;
+
+            for (auto jt = obj.begin(); jt != obj.end(); jt++) {
+                auto kt = std::find (activeObjects.begin(), activeObjects.end(), *jt);
+
+                if (kt != activeObjects.end()) {
+                    auto lt = std::find (activePoses.begin(), activePoses.end(), *it);
+
+                    if (lt == activePoses.end())
+                        activePoses.push_back(*it);
+                }
+            }
+        }
+
+        std::reverse (activePoses.begin(), activePoses.end());
+
+        if (activePoses.size() == 1) return;
+
+        PoseVertex *u; 
+        for (auto it = activePoses.begin(); it != activePoses.end(); it++)
+        {
+            Pose* p = poseMap[*it].get(); 
+            double& x = pose->_pose[0]; 
+            double& y = pose->_pose[1];
+            double& t = pose->_pose[2];
+
+            SE2 vse2 (x,y,t); 
+            PoseVertex *v = new PoseVertex; 
+            v->setId (p->_id); 
+            v->setEstimate (vse2);
+            v->setFixed (it == activePoses.begin());
+            o->addVertex (v); 
+
+            if (it != activePoses.begin())
+            {
+                PoseMeasurement* pm = new PoseMeasurement;
+                pm->vertices()[0] = u;
+                pm->vertices()[1] = v;
+                pm->setMeasurement (u->estimate().inverse() * v->estimate());
+                pm->information () = poseCovMatrix.inverse();
+
+//                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+//                pm->setRobustKernel (rk);
+//                rk->setDelta (sqrt(5.99));
+
+                o->addEdge (pm);
+            }
+
+            u = v;
+        }
+
+        for (auto it = activeObjects.begin(); it != activeObjects.end(); it++)
+        {
+            Object* object = objectMap[*it].get(); 
+            double& x = object->_pose[0]; 
+            double& y = object->_pose[1];
+            double& p = object->_pose[2];
+
+            SE2 vse2 (x,y,p); 
+            ObjectVertex *v = new ObjectVertex; 
+            v->setId (object->_id); 
+            v->setEstimate (vse2);
+            v->setMarginalized (true);
+            o->addVertex (v); 
+
+            for (auto jt = activePoses.begin(); jt != activePoses.end(); jt++) {
+
+                if (poseObjectMap.count(std::make_tuple(*jt,*it)) == 0) continue;
+
+                ObjectMeasurement* om = new ObjectMeasurement;
+
+                om->vertices()[0] = o->vertex (*jt);
+                om->vertices()[1] = o->vertex (*it);
+                om->setMeasurement (poseObjectMap[std::make_tuple(*jt, *it)]);
+                om->information() = objectCovMatrix.inverse();
+                
+    //            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+    //            om->setRobustKernel (rk);
+    //            rk->setDelta (sqrt(1000.99));
+
+                o->addEdge (om);
+            }
+        }
+
+//        for (auto it = wallMap.begin(); it != wallMap.end(); it++)
+//        {
+//            Wall* wall= (it->second).get();
+//            double& xx = wall->_line.xx[0];
+//            double& xy = wall->_line.xx[1];
+//
+//            double data[2] = {xx,xy};
+//            WallVertex *v = new WallVertex;
+//            v->setId (wall->_id);
+//            v->setEstimateDataImpl (data);
+////            v->setMarginalized (!wall->_active);
+//            v->setMarginalized (true);
+//            o->addVertex (v);
+//        }
+//
+//        for (auto it = poseWallMap.begin(); it != poseWallMap.end(); it++)
+//        {
+//            double& xx_ = (it->second).x();
+//            double& xy_ = (it->second).y();
+//            double data[2] = {xx_,xy_};
+//
+//            WallMeasurement* wm = new WallMeasurement;
+//
+//            wm->vertices()[0] = o->vertex (std::get<0>(it->first));
+//            wm->vertices()[1] = o->vertex (std::get<1>(it->first));
+//            wm->setMeasurementData (data);
+//            wm->information() = wallCovMatrix.inverse();
+//            
+////            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+////            wm->setRobustKernel (rk);
+////            rk->setDelta (sqrt(5.99));
+//
+//            o->addEdge (wm);
+//        }
+
+        o->initializeOptimization(); 
+        o->optimize(10);
+
+        std::cout << "RECOVER POSE" << std::endl;
+        std::ofstream posefile;
+        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+        for (auto it = activePoses.begin(); it != activePoses.end(); it++)
+        {
+            PoseVertex* optv = dynamic_cast<PoseVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            poseMap[*it]->_pose[0] = x;
+            poseMap[*it]->_pose[1] = y;
+            poseMap[*it]->_pose[2] = p;
+
+            poseMap[*it]->_active = false;
+
+            posefile << x << " " << y << " " << p << std::endl;
+        }
+        posefile.close();
+        std::cout << "DONE" << std::endl;
+
+//        std::cout << "RECOVER WALL" << std::endl;
+//        for (auto it = wallMap.begin(); it != wallMap.end(); it++)
+//        {
+//            WallVertex* optv = dynamic_cast<WallVertex*> (o->vertex (it->first));
+//            double xx = optv->estimate().x();
+//            double xy = optv->estimate().y();
+//
+//            (it->second)->_line.xx[0] = xx;
+//            (it->second)->_line.xx[1] = xy;
+//            (it->second)->updateParams ();
+//
+//            (it->second)->_active = false;
+//        }
+//        std::cout << "DONE" << std::endl;
+
+        std::cout << "RECOVER OBJECTS" << std::endl;
+        for (auto it = activeObjects.begin(); it != activeObjects.end(); it++)
+        {
+            ObjectVertex* optv = dynamic_cast<ObjectVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            objectMap[*it]->_pose[0] = x;
+            objectMap[*it]->_pose[1] = y;
+            objectMap[*it]->_pose[2] = p;
+
+            objectMap[*it]->_active = false;
+        }
+        std::cout << "DONE" << std::endl;
     }
 }

@@ -1,6 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include <tuple>
+#include <chrono>
+#include <thread>
 
 #include "layout_prediction/simulator.h"
 #include "layout_prediction/pose.h"
@@ -277,13 +279,19 @@ namespace MYSLAM {
 //            if (E >= V)
             if ((M >= 1 && N >= 9 && O >= 2) || frame + 1 == MYSLAM::SIM_NUMBER_OF_ITERATIONS)
             {
-                o.localOptimize();
+              o.localOptimize();
             }
 
             lastSimPose = robot->simPose;
             lastPose = pose;
 
             getNextState();
+//            using namespace std::this_thread;
+//            using namespace std::chrono_literals;
+//            using std::chrono::system_clock;
+//
+//            std::cout << "SLEEPP....." << std::endl;
+//            sleep_for (2s);
         }
 
 //        o.globalOptimize();
@@ -393,11 +401,6 @@ namespace MYSLAM {
 
         rmsefile << rmsetrans << " " << normalize_angle (rmserot) << std::endl;
         rmsefile.close();
-    }
-
-    Simulator::Benda::Benda() {
-       classid = uniform_generator<int> (1,MYSLAM::SIM_NUMBER_OF_OBJECT_CLASS);
-       id = Generator::id++;
     }
 
     void Simulator::dataAssociationWallKnown (Graph& graph, Pose::Ptr& pose) {
@@ -538,6 +541,8 @@ namespace MYSLAM {
                 SE2 p; p.fromVector (pose->_pose);
                 SE2 m; m.fromVector (std::get<1>(robot->sensedObjects[i]));
                 o->_pose = (p*m).toVector();
+                o->_seenBy.insert (pose->_id);
+                pose->_detectedObjects.insert (o->_id);
                 graph.insertNode (o);
             } else {
                 if (MYSLAM::DEBUG) {
@@ -545,6 +550,10 @@ namespace MYSLAM {
                     else std::cout << "ALERTTTTTT!!!!!" << std::endl;
                 }
                 o = graph._objectMap[result[i]];
+                o->_active = true;
+                o->_seenBy.insert (pose->_id);
+                pose->_detectedObjects.insert (o->_id);
+
             }
 
             if (MYSLAM::DEBUG) counter++;

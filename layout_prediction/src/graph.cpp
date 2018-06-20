@@ -139,12 +139,13 @@ namespace MYSLAM {
         _poseMap[pose->_id] = pose;
         _activePoses.push_back (pose->_id);
         pose->_active = true;
+        _path.push_back (pose->_id);
     }
 
     void Graph::insertNode (Wall::Ptr wall) {
         _wallMap[wall->_id] = wall;
         _activeWalls.insert (wall->_id);
-        wall->_active = true;
+//        wall->_active = true;
     }
 
     void Graph::insertNode (Object::Ptr object) {
