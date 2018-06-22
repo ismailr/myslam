@@ -15,7 +15,7 @@
     <arg name="headless" value="$(arg headless)"/>
   </include>
 
-  <arg name="model" />
+  <arg name="model" default="$(find myslam_sim_resources)/robot/myslam_robot.urdf" />
   <param name="robot_description" command="$(find xacro)/xacro.py $(arg model)" />
 
   <!-- push robot_description to factory and spawn robot in gazebo -->
