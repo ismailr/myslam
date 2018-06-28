@@ -1,12 +1,14 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(myslam_sim_resources)
+project(myslam_data_structures)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED
-    p2os_urdf
+find_package(catkin REQUIRED COMPONENTS
+  roscpp
 )
+
+find_package(Eigen3 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -98,9 +100,9 @@ find_package(catkin REQUIRED
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES myslam_sim_resources
-    CATKIN_DEPENDS p2os_urdf
+    INCLUDE_DIRS include
+    LIBRARIES myslam_data_structures
+    CATKIN_DEPENDS roscpp
 #  DEPENDS system_lib
 )
 
@@ -111,28 +113,37 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+include_directories(
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
+)
 
 ## Declare a C++ library
-# add_library(myslam_sim_resources
-#   src/${PROJECT_NAME}/myslam_sim_resources.cpp
-# )
+add_library(myslam_data_structures SHARED
+    src/pose.cpp
+    src/object.cpp
+    #    src/wall.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(myslam_sim_resources ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(myslam_data_structures ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(myslam_sim_resources_node src/myslam_sim_resources_node.cpp)
+# add_executable(myslam_data_structures_node src/myslam_data_structures_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(myslam_sim_resources_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(myslam_data_structures_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(myslam_sim_resources_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(myslam_data_structures
+    ${catkin_LIBRARIES}
+ )
+
+add_definitions(-std=c++14)
 
 #############
 ## Install ##
@@ -149,7 +160,7 @@ catkin_package(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS myslam_sim_resources myslam_sim_resources_node
+# install(TARGETS myslam_data_structures myslam_data_structures_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -174,7 +185,7 @@ catkin_package(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_myslam_sim_resources.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_myslam_data_structures.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

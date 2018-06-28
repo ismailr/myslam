@@ -168,11 +168,6 @@ add_executable(layout_prediction
     src/object.cpp
     src/object_measurement.cpp
     src/data_association.cpp
-    #    src/g2o/vertex_se2.cpp
-    #    src/g2o/vertex_line2d.cpp
-    #    src/g2o/edge_se2.cpp
-    #    src/g2o/edge_se2_line2d.cpp
-    #    src/g2o/edge_line2d.cpp
 )
 
 add_executable(simulation
@@ -199,11 +194,6 @@ add_executable(simulation
     src/object.cpp
     src/object_measurement.cpp
     src/data_association.cpp
-    #    src/g2o/vertex_se2.cpp
-    #    src/g2o/vertex_line2d.cpp
-    #    src/g2o/edge_se2.cpp
-    #    src/g2o/edge_se2_line2d.cpp
-    #    src/g2o/edge_line2d.cpp
 )
 
 ## Add cmake target dependencies of the executable

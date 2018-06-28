@@ -1,16 +1,24 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(myslam_sim_resources)
+project(myslam_sim_gazebo)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED
-    p2os_urdf
+find_package(catkin REQUIRED COMPONENTS
+  gazebo_ros
+  roscpp
+  geometry_msgs
+  nav_msgs
+  message_filters
+  sensor_msgs
+  message_generation
 )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package(gazebo REQUIRED)
 
+link_directories(${GAZEBO_LIBRARY_DIRS})
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -42,11 +50,11 @@ find_package(catkin REQUIRED
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-# add_message_files(
-#   FILES
-#   Message1.msg
-#   Message2.msg
-# )
+add_message_files(
+    FILES
+    Model.msg
+    LogicalImage.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -63,10 +71,13 @@ find_package(catkin REQUIRED
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+DEPENDENCIES
+    DEPENDENCIES
+    std_msgs  # Or other packages containing msgs
+    geometry_msgs
+    sensor_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -99,8 +110,8 @@ find_package(catkin REQUIRED
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES myslam_sim_resources
-    CATKIN_DEPENDS p2os_urdf
+#  LIBRARIES myslam_sim_gazebo
+CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters
 #  DEPENDS system_lib
 )
 
@@ -111,28 +122,42 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
+include_directories(
+    include
+  ${catkin_INCLUDE_DIRS}
+  ${GAZEBO_INCLUDE_DIRS}
+)
 
 ## Declare a C++ library
-# add_library(myslam_sim_resources
-#   src/${PROJECT_NAME}/myslam_sim_resources.cpp
-# )
+add_library(logcam_plugin SHARED
+    src/logcam_plugin.cpp
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(myslam_sim_resources ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(myslam_sim_gazebo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(myslam_sim_resources_node src/myslam_sim_resources_node.cpp)
+add_executable(myslam_sim_gazebo
+    src/myslam_sim_gazebo.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(myslam_sim_resources_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(myslam_sim_gazebo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(myslam_sim_resources_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(myslam_sim_gazebo
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
+)
+
+target_link_libraries(logcam_plugin
+  ${catkin_LIBRARIES}
+  ${GAZEBO_LIBRARIES}
+)
+
+add_definitions(-std=c++14)
 
 #############
 ## Install ##
@@ -149,7 +174,7 @@ catkin_package(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS myslam_sim_resources myslam_sim_resources_node
+# install(TARGETS myslam_sim_gazebo myslam_sim_gazebo_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -174,7 +199,7 @@ catkin_package(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_myslam_sim_resources.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_myslam_sim_gazebo.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
