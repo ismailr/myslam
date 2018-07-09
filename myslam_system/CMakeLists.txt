@@ -1,25 +1,27 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(myslam_sim_gazebo)
+project(myslam_system)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  gazebo_ros
-  roscpp
+  cmake_modules
   geometry_msgs
-  nav_msgs
-  message_filters
-  sensor_msgs
   message_generation
-  myslam_system
+  pcl_conversions
+  pcl_msgs
+  pcl_ros
+  roscpp
+  rospy
+  sensor_msgs
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-find_package(gazebo REQUIRED)
+find_package(G2O REQUIRED)
+find_package(CSparse REQUIRED)
+find_package(Eigen3 REQUIRED)
 
-link_directories(${GAZEBO_LIBRARY_DIRS})
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -51,11 +53,11 @@ link_directories(${GAZEBO_LIBRARY_DIRS})
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-    FILES
-    Model.msg
-    LogicalImage.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -72,13 +74,10 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-DEPENDENCIES
-    DEPENDENCIES
-    std_msgs  # Or other packages containing msgs
-    geometry_msgs
-    sensor_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   geometry_msgs#   pcl_msgs#   sensor_msgs#   std_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -110,9 +109,9 @@ DEPENDENCIES
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES myslam_sim_gazebo
-CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system
+    INCLUDE_DIRS include
+    LIBRARIES myslam_system
+    CATKIN_DEPENDS cmake_modules geometry_msgs message_generation pcl_conversions pcl_msgs pcl_ros roscpp rospy sensor_msgs std_msgs
 #  DEPENDS system_lib
 )
 
@@ -126,37 +125,48 @@ CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_m
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
-    ${GAZEBO_INCLUDE_DIRS}
+	${CSPARSE_INCLUDE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
 )
 
 ## Declare a C++ library
-add_library(logcam_plugin SHARED
-    src/logcam_plugin.cpp
+add_library(myslam_system SHARED
+    src/data_association.cpp
+    src/graph.cpp
+    src/helpers.cpp
+    src/object.cpp
+    src/object_measurement.cpp
+    src/optimizer.cpp
+    src/pose.cpp
+    src/pose_measurement.cpp
+    src/types_myslam.cpp
+    src/wall.cpp
+    src/wall_measurement.cpp
 )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(myslam_sim_gazebo ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(myslam_system ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(myslam_sim_gazebo
-    src/myslam_sim_gazebo.cpp
-)
+# add_executable(myslam_system_node src/myslam_system_node.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(myslam_sim_gazebo_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(myslam_system_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(myslam_sim_gazebo
+target_link_libraries(myslam_system
     ${catkin_LIBRARIES}
-    ${GAZEBO_LIBRARIES}
-)
-
-target_link_libraries(logcam_plugin
-  ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
+	${G2O_CORE_LIBRARY}
+	${G2O_STUFF_LIBRARY}
+    ${G2O_SOLVER_CHOLMOD}
+	${G2O_SOLVER_CSPARSE}
+	${G2O_SOLVER_CSPARSE_EXTENSION}
+    ${G2O_TYPES_SLAM3D}
+    ${G2O_TYPES_SLAM2D}
+    ${G2O_OPENGL_HELPER}
 )
 
 add_definitions(-std=c++14)
@@ -176,18 +186,18 @@ add_definitions(-std=c++14)
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS myslam_sim_gazebo myslam_sim_gazebo_node
+# install(TARGETS myslam_system myslam_system_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
 ## Mark cpp header files for installation
-# install(DIRECTORY include/${PROJECT_NAME}/
-#   DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-#   FILES_MATCHING PATTERN "*.h"
-#   PATTERN ".svn" EXCLUDE
-# )
+install(DIRECTORY include/${PROJECT_NAME}/
+    DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+    FILES_MATCHING PATTERN "*.h"
+    PATTERN ".svn" EXCLUDE
+)
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
@@ -201,7 +211,7 @@ add_definitions(-std=c++14)
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_myslam_sim_gazebo.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_myslam_system.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

@@ -7,6 +7,16 @@
 #include "myslam_sim_gazebo/LogicalImage.h"
 #include "myslam_sim_gazebo/Model.h"
 
+#include "myslam_system/optimizer.h"
+#include "myslam_system/pose.h"
+
+using namespace MYSLAM;
+
+Graph graph;
+Optimizer o(graph);
+Pose::Ptr lastPose;
+SE2 lastOdom;
+
 void callback (const nav_msgs::Odometry::ConstPtr& odom,
         const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg)
 {
