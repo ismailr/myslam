@@ -1,31 +1,26 @@
 #include <ros/ros.h>
-#include <nav_msgs/Odometry.h>
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
 
-#include "myslam_sim_gazebo/LogicalImage.h"
-#include "myslam_sim_gazebo/Model.h"
-
-#include "myslam_system/optimizer.h"
-#include "myslam_system/pose.h"
+#include "myslam_sim_gazebo/simulation.h"
 
 using namespace MYSLAM;
 
-Graph graph;
-Optimizer o(graph);
-Pose::Ptr lastPose;
-SE2 lastOdom;
-
-void callback (const nav_msgs::Odometry::ConstPtr& odom,
-        const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg)
-{
-}
-
 int main (int argc, char** argv)
 {
+	std::remove ("/home/ism/data/code/rosws/result/finalpose.dat");
+	std::remove ("/home/ism/data/code/rosws/result/odom.dat");
+	std::remove ("/home/ism/data/code/rosws/result/data.g2o");
+	std::remove ("/home/ism/data/code/rosws/result/da.log");
+
 	ros::init (argc,argv,"myslam_sim_gazebo");
 	ros::NodeHandle nh;
+
+	Graph g;
+	Optimizer o (g);
+
+	MYSLAM::Simulation sim (g, o, nh);
 
     message_filters::Subscriber<nav_msgs::Odometry> subodom (nh, "odom", 1);
     message_filters::Subscriber<myslam_sim_gazebo::LogicalImage> sublogcam (nh, "logcam", 1);
@@ -35,7 +30,7 @@ int main (int argc, char** argv)
     message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (100), 
         subodom, sublogcam);
 
-    sync.registerCallback (boost::bind (&callback, _1, _2/*, _3, _4, _5, _6, _7*/));
+    sync.registerCallback (boost::bind (&MYSLAM::Simulation::callback, &sim, _1, _2/*, _3, _4, _5, _6, _7*/));
 
     ros::spin();
 

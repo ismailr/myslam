@@ -111,7 +111,7 @@ find_package(Eigen3 REQUIRED)
 catkin_package(
     INCLUDE_DIRS include
     LIBRARIES myslam_system
-    CATKIN_DEPENDS cmake_modules geometry_msgs message_generation pcl_conversions pcl_msgs pcl_ros roscpp rospy sensor_msgs std_msgs
+    CATKIN_DEPENDS cmake_modules geometry_msgs message_generation pcl_conversions pcl_msgs pcl_ros roscpp rospy sensor_msgs std_msgs 
 #  DEPENDS system_lib
 )
 
@@ -125,7 +125,7 @@ catkin_package(
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
-	${CSPARSE_INCLUDE_DIR}
+    ${CSPARSE_INCLUDE_DIR}
     ${EIGEN3_INCLUDE_DIR}
 )
 
@@ -159,14 +159,14 @@ add_library(myslam_system SHARED
 ## Specify libraries to link a library or executable target against
 target_link_libraries(myslam_system
     ${catkin_LIBRARIES}
-	${G2O_CORE_LIBRARY}
-	${G2O_STUFF_LIBRARY}
-    ${G2O_SOLVER_CHOLMOD}
-	${G2O_SOLVER_CSPARSE}
-	${G2O_SOLVER_CSPARSE_EXTENSION}
-    ${G2O_TYPES_SLAM3D}
-    ${G2O_TYPES_SLAM2D}
-    ${G2O_OPENGL_HELPER}
+    	${G2O_CORE_LIBRARY}
+    	${G2O_STUFF_LIBRARY}
+    	${G2O_SOLVER_CHOLMOD}
+    	${G2O_SOLVER_CSPARSE}
+    	${G2O_SOLVER_CSPARSE_EXTENSION}
+        ${G2O_TYPES_SLAM3D}
+        ${G2O_TYPES_SLAM2D}
+        ${G2O_OPENGL_HELPER}
 )
 
 add_definitions(-std=c++14)

@@ -1,0 +1,192 @@
+<?xml version="1.0"?>
+<sdf version='1.4'>
+  <model name="myrobot">
+    <static>false</static>
+    <link name="chassis">
+        <pose>0 0 .1 0 0 0</pose>
+
+        <collision name="collision">
+            <geometry>
+                <box>
+                    <size>.4 .2 .1</size>
+                </box>
+            </geometry>
+        </collision>
+
+        <visual name="visual">
+            <geometry>
+                <box>
+                    <size>.4 .2 .1</size>
+                </box>
+            </geometry>
+        </visual>
+
+        <collision name='caster_collision'>
+            <pose>-0.15 0 -0.05 0 0 0</pose>
+            <geometry>
+                <sphere>
+                <radius>.05</radius>
+              </sphere>
+            </geometry>
+
+            <surface>
+              <friction>
+                <ode>
+                  <mu>0</mu>
+                  <mu2>0</mu2>
+                  <slip1>1.0</slip1>
+                  <slip2>1.0</slip2>
+                </ode>
+              </friction>
+            </surface>
+        </collision>
+
+        <visual name='caster_visual'>
+            <pose>-0.15 0 -0.05 0 0 0</pose>
+            <geometry>
+              <sphere>
+                <radius>.05</radius>
+              </sphere>
+            </geometry>
+        </visual>
+    </link>
+    <link name="left_wheel">
+        <pose>0.1 0.13 0.1 0 1.5707 1.5707</pose>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>.1</radius>
+              <length>.05</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>.1</radius>
+              <length>.05</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+    <link name="right_wheel">
+        <pose>0.1 -0.13 0.1 0 1.5707 1.5707</pose>
+        <collision name="collision">
+          <geometry>
+            <cylinder>
+              <radius>.1</radius>
+              <length>.05</length>
+            </cylinder>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>.1</radius>
+              <length>.05</length>
+            </cylinder>
+          </geometry>
+        </visual>
+      </link>
+
+    <joint type="revolute" name="left_wheel_hinge">
+        <pose>0 0 -0.03 0 0 0</pose>
+        <child>left_wheel</child>
+        <parent>chassis</parent>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+
+      <joint type="revolute" name="right_wheel_hinge">
+        <pose>0 0 0.03 0 0 0</pose>
+        <child>right_wheel</child>
+        <parent>chassis</parent>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+
+      <link name="logical_camera">
+          <pose>0 0 0.5 0 0 0</pose>
+          <sensor name="logical_camera" type="logical_camera">
+              <logical_camera>
+                  <near>0.55</near>
+                  <far>2.5</far>
+                  <horizontal_fov>1.05</horizontal_fov>
+                  <aspect_ratio>1.8</aspect_ratio>
+              </logical_camera>
+
+              <plugin name="logical_camera_plugin" filename="liblogical_camera.so"/>
+
+              <visualize>true</visualize>
+              <always_on>true</always_on>
+              <update_rate>10</update_rate>
+          </sensor>
+        <visual name="visual">
+            <geometry>
+                <box>
+                    <size>.05 .05 .05</size>
+                </box>
+            </geometry>
+        </visual>
+      </link>
+
+      <link name="mycamera">
+          <pose>0 0 0.5 0 0 0</pose>
+          <sensor name="mycamera" type="camera">
+              <camera>
+                  <horizontal_fov>2.09</horizontal_fov>
+                  <image>
+                      <width>640</width>
+                      <height>480</height>
+                      <format>R8G8B8</format>
+                  </image>
+                  <clip>
+                      <near>0.1</near>
+                      <far>100</far>
+                  </clip>
+                  <noise>
+                      <type>gaussian</type>
+                      <mean>0.0</mean>
+                      <stddev>0.005</stddev>
+                  </noise>
+              </camera>
+
+              <plugin name="mycamera_plugin" filename="/home/ism/work/kinetic/install_isolated/lib/libgazebo_ros_camera.so">
+                  <frameName>/mycamera_link</frameName>
+                  <imageTopicName>/myrobot/image_raw</imageTopicName>
+              </plugin>
+
+              <visualize>true</visualize>
+              <always_on>true</always_on>
+              <update_rate>30</update_rate>
+          </sensor>
+        <visual name="visual">
+            <geometry>
+                <box>
+                    <size>.02 .02 .02</size>
+                </box>
+            </geometry>
+        </visual>
+      </link>
+
+      <joint type="fixed" name="logicalcamjoint">
+        <pose>1 0 0 0 0 0</pose>
+        <child>logical_camera</child>
+        <parent>chassis</parent>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+
+      <joint type="fixed" name="camjoint">
+        <pose>1 0 0 0 0 0</pose>
+        <child>mycamera</child>
+        <parent>chassis</parent>
+        <axis>
+          <xyz>0 1 0</xyz>
+        </axis>
+      </joint>
+</model>
+</sdf>

@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   message_generation
   myslam_system
+  myslam_visualizer
 )
 
 ## System dependencies are found with CMake's conventions
@@ -112,7 +113,7 @@ DEPENDENCIES
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES myslam_sim_gazebo
-CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system
+CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system myslam_visualizer
 #  DEPENDS system_lib
 )
 
@@ -142,6 +143,12 @@ add_library(logcam_plugin SHARED
 ## Declare a C++ executable
 add_executable(myslam_sim_gazebo
     src/myslam_sim_gazebo.cpp
+    src/simulation.cpp
+)
+
+add_executable(objects_truth
+    src/objects_truth.cpp
+    src/simulation.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -151,12 +158,17 @@ add_executable(myslam_sim_gazebo
 ## Specify libraries to link a library or executable target against
 target_link_libraries(myslam_sim_gazebo
     ${catkin_LIBRARIES}
-    ${GAZEBO_LIBRARIES}
+    #    ${GAZEBO_LIBRARIES}
+)
+
+target_link_libraries(objects_truth
+    ${catkin_LIBRARIES}
+    #    ${GAZEBO_LIBRARIES}
 )
 
 target_link_libraries(logcam_plugin
   ${catkin_LIBRARIES}
-  ${GAZEBO_LIBRARIES}
+  #  ${GAZEBO_LIBRARIES}
 )
 
 add_definitions(-std=c++14)

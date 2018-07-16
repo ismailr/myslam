@@ -60,7 +60,7 @@ void LogicalCameraPlugin::onUpdate ()
         if (!visual)
             continue;
 
-        math::Box bounding_box = visual->GetBoundingBox();
+//        math::Box bounding_box = visual->GetBoundingBox();
 
         model_msg.pose.position.x = logical_image.model(i).pose().position().x();
         model_msg.pose.position.y = logical_image.model(i).pose().position().y();
@@ -71,17 +71,17 @@ void LogicalCameraPlugin::onUpdate ()
         model_msg.pose.orientation.z = logical_image.model(i).pose().orientation().z();
         model_msg.pose.orientation.w = logical_image.model(i).pose().orientation().w();
 
-        model_msg.size.x = bounding_box.GetXLength();
-        model_msg.size.y = bounding_box.GetYLength();
-        model_msg.size.z = bounding_box.GetZLength();
-
-        model_msg.min.x = bounding_box.GetCenter().x - bounding_box.GetSize().x/2.0;
-        model_msg.min.y = bounding_box.GetCenter().y - bounding_box.GetSize().y/2.0;
-        model_msg.min.z = bounding_box.GetCenter().z - bounding_box.GetSize().z/2.0;
-
-        model_msg.max.x = bounding_box.GetCenter().x + bounding_box.GetSize().x/2.0;
-        model_msg.max.y = bounding_box.GetCenter().y + bounding_box.GetSize().y/2.0;
-        model_msg.max.z = bounding_box.GetCenter().z + bounding_box.GetSize().z/2.0;
+//        model_msg.size.x = bounding_box.GetXLength();
+//        model_msg.size.y = bounding_box.GetYLength();
+//        model_msg.size.z = bounding_box.GetZLength();
+//
+//        model_msg.min.x = bounding_box.GetCenter().x - bounding_box.GetSize().x/2.0;
+//        model_msg.min.y = bounding_box.GetCenter().y - bounding_box.GetSize().y/2.0;
+//        model_msg.min.z = bounding_box.GetCenter().z - bounding_box.GetSize().z/2.0;
+//
+//        model_msg.max.x = bounding_box.GetCenter().x + bounding_box.GetSize().x/2.0;
+//        model_msg.max.y = bounding_box.GetCenter().y + bounding_box.GetSize().y/2.0;
+//        model_msg.max.z = bounding_box.GetCenter().z + bounding_box.GetSize().z/2.0;
 
         model_msg.name = logical_image.model(i).name();
         model_msg.type = logical_image.model(i).name().substr(0,3);
