@@ -4,6 +4,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
 #include <gazebo_msgs/ModelStates.h>
+#include <tf/transform_broadcaster.h>
 
 #include "myslam_sim_gazebo/LogicalImage.h"
 
@@ -20,6 +21,7 @@ namespace MYSLAM {
 			static int FRAMECOUNTER; 
 			static int KEYFRAMECOUNTER; 
 			static int CLASSIDCOUNTER; 
+
 
 		private:
 			Graph* _graph;

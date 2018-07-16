@@ -15,6 +15,7 @@ namespace MYSLAM {
         _pub_wall_optimized_pq = _rosnodehandle.advertise<visualization_msgs::Marker> ("wall_optimized_pq",1);
         _pub_wall_optimized_rt = _rosnodehandle.advertise<visualization_msgs::Marker> ("wall_optimized_rt",1);
         _pub_objects = _rosnodehandle.advertise<visualization_msgs::Marker> ("objects",1);
+        _pub_objects_id = _rosnodehandle.advertise<visualization_msgs::Marker> ("objectsid",1);
         _pub_objects_gt = _rosnodehandle.advertise<visualization_msgs::Marker> ("objectsgt",1);
         _pub_cloud = _rosnodehandle.advertise<sensor_msgs::PointCloud2> ("filtered_cloud",1);
     }
@@ -185,16 +186,8 @@ namespace MYSLAM {
 
 		MYSLAM::ObjectRviz obj (o->_type);
 
-		obj.marker.header.frame_id = "base_link";
+		obj.marker.header.frame_id = "map";
 		obj.marker.id = objects[i]; //marker_id++;
-//		marker.type = visualization_msgs::Marker::MESH_RESOURCE;
-//		marker.mesh_resource = "package://myslam_sim_resources/models/cafe_table/meshes/cafe_table.dae";
-//		marker.mesh_resource = r.meshmap [o->_type];
-//		marker.action = visualization_msgs::Marker::ADD;
-//		marker.scale.x = 0.05;
-//		marker.scale.y = 0.05;
-//		marker.scale.z = 0.05;
-//		marker.color.a = 1.0;
 
 		Eigen::Quaternionf q;
 		float roll = 0.0, pitch = 0.0, yaw = o->_pose.z();
@@ -210,46 +203,28 @@ namespace MYSLAM {
 		obj.marker.pose.orientation.z = q.z();
 		obj.marker.pose.orientation.w = q.w();
 
-//		marker.color.r = 1.0;
-//		marker.color.g = 0.0;
-//		marker.color.b = 0.0;
-
 		obj.marker.lifetime = ros::Duration();
 		_pub_objects.publish(obj.marker);
+
+		// marker for object's id
+//		visualization_msgs::Marker mText;
+//		mText.header.frame_id = "map";
+//
+//	        mText.id = objects[i]; //mText_id++;
+//		mText.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
+//		mText.action = visualization_msgs::Marker::ADD;
+//		mText.text = std::to_string(o->_id);
+//
+//		mText.scale.z = 1.0;
+//		mText.color.a = 1.0;
+//
+//		mText.pose.position.x = o->_pose.x();
+//		mText.pose.position.y = o->_pose.y();
+//		mText.pose.position.z = 1.0;
+//
+//		mText.lifetime = ros::Duration();
+//		_pub_objects_id.publish(mText);
 	}
-    }
-
-    void Visualizer::visualizeObjects (int object) {
-
-	visualization_msgs::Marker marker;
-	Object::Ptr o = _graph->_objectMap [object];
-
-	marker.header.frame_id = "base_link";
-	marker.id = object; //marker_id++;
-	marker.type = visualization_msgs::Marker::MESH_RESOURCE;
-//	marker.type = visualization_msgs::Marker::CUBE;
-	marker.mesh_resource = "package://myslam_sim_resources/models/cafe_table/meshes/cafe_table.dae";
-	marker.action = visualization_msgs::Marker::ADD;
-	marker.scale.x = 0.05;
-	marker.scale.y = 0.05;
-	marker.scale.z = 0.05;
-	marker.color.a = 1.0;
-
-	geometry_msgs::Pose pose;
-	pose.position.x = o->_pose.x();
-	pose.position.y = o->_pose.y();
-	pose.position.z = 0.0;
-	pose.orientation.x = 0.0;
-	pose.orientation.y = 0.0;
-	pose.orientation.z = 0.0;
-	pose.orientation.w = 1.0;
-
-	marker.color.r = 1.0;
-	marker.color.g = 0.0;
-	marker.color.b = 0.0;
-
-	marker.lifetime = ros::Duration();
-	_pub_objects.publish(marker);
     }
 
     void Visualizer::visualizeObjectsGT (const gazebo_msgs::ModelStates::ConstPtr& o) {
@@ -262,16 +237,9 @@ namespace MYSLAM {
 
 		MYSLAM::ObjectRviz obj (o->name[i].substr(0,3));
 
-		obj.marker.header.frame_id = "base_link";
+		obj.marker.header.frame_id = "map";
 		obj.marker.id = 100000 + i; //marker_id++;
 		obj.marker.color.a = 0.2;
-//		marker.type = visualization_msgs::Marker::MESH_RESOURCE;
-//		marker.mesh_resource = "package://myslam_sim_resources/models/cafe_table/meshes/cafe_table.dae";
-//		marker.mesh_resource = r.meshmap [o->_type];
-//		marker.action = visualization_msgs::Marker::ADD;
-//		marker.scale.x = 0.05;
-//		marker.scale.y = 0.05;
-//		marker.scale.z = 0.05;
 		obj.marker.pose = o->pose[i];
 
 		obj.marker.lifetime = ros::Duration();

@@ -6,6 +6,7 @@
 #include <message_filters/subscriber.h>
 #include <message_filters/synchronizer.h>
 #include <message_filters/sync_policies/approximate_time.h>
+#include <tf/transform_broadcaster.h>
 
 #include "myslam_sim_gazebo/Model.h"
 #include "myslam_sim_gazebo/simulation.h"
@@ -32,6 +33,18 @@ namespace MYSLAM {
 	void Simulation::callback (const nav_msgs::Odometry::ConstPtr& odom,
 		const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg)
 	{
+		static tf::TransformBroadcaster br;
+
+		// odom --> map
+		tf::Transform trBaselinkToOdom;
+		trBaselinkToOdom.setOrigin (tf::Vector3 (odom->pose.pose.position.x, odom->pose.pose.position.y, odom->pose.pose.position.z));
+		tf::Quaternion qOdom ( odom->pose.pose.orientation.x,
+				odom->pose.pose.orientation.y,
+				odom->pose.pose.orientation.y,
+				odom->pose.pose.orientation.w);
+		trBaselinkToOdom.setRotation (qOdom);
+		br.sendTransform (tf::StampedTransform (trBaselinkToOdom, odom->header.stamp, "odom", "base_link"));
+
 		if (FRAMECOUNTER % 15 != 0) {
 			FRAMECOUNTER++;
 			return;
@@ -45,6 +58,7 @@ namespace MYSLAM {
 		Converter c;
 		c.odomToSE2 (odom, *currentOdom);
 		currentPose->_pose = currentOdom->toVector();
+		currentPose->_timestamp = odom->header.stamp.toSec();
 
 		if (FRAMECOUNTER == 0)
 		{
@@ -120,12 +134,13 @@ namespace MYSLAM {
 		dafile << "---------------------------------------------" << std::endl;
 		dafile.close();
 
-		// visualize in rviz
-		Visualizer v (*_nh, *_graph);
-		v.visualizeObjects (obj2show);
-//		for (int i = 0; i < obj2show.size(); i++) 
-//			v.visualizeObjects (obj2show[i]);
-
+		// odom --> map
+		tf::Transform trOdomToMap;
+		trOdomToMap.setOrigin (tf::Vector3 (currentPose->_pose.x(), currentPose->_pose.y(), 0.0));
+		tf::Quaternion q;
+		q.setRPY (0, 0, currentPose->_pose.z());
+		trOdomToMap.setRotation (q);
+		br.sendTransform (tf::StampedTransform (trOdomToMap, odom->header.stamp, "map", "odom"));
 
 		int N = _graph->_activePoses.size();
 	//    	int M = graph._activeWalls.size();
@@ -134,10 +149,12 @@ namespace MYSLAM {
 		int E = _graph->_activeEdges.size() + N - 1 + P;
 	//    	int V = 3*N + 2*M + 3*O;
 
-	//    	if (/*M >= 1 &&*/ N >= 9 && O >= 2)
+		Visualizer v (*_nh, *_graph);
+		v.visualizeObjects (obj2show);
 		if (KEYFRAMECOUNTER % 3 == 0)
 		{
 			_opt->localOptimize();
+			v.visualizeObjects (obj2show);
 		}
 
 		_lastOdom = currentOdom;

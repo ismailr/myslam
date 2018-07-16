@@ -252,10 +252,10 @@ namespace MYSLAM {
                     }
                 }
 
-                if (shortest < 0.05) {
+                if (shortest < 0.1) {
                     objectsids[0] = n1;
                     objectsids[1] = n2;
-                } else if (shortest_ < 0.05) {
+                } else if (shortest_ < 0.1) {
                     objectsids[0] = n1_;
                     objectsids[1] = n2_;
                 } else {
@@ -309,7 +309,7 @@ namespace MYSLAM {
                 } 
             }
 
-            if (shortest < 0.05)
+            if (shortest < 0.1)
                 objectsids[i] = ni;
             else
                 objectsids[i] = -1;

@@ -27,7 +27,6 @@ namespace MYSLAM {
             void visualizeWallMeasuredRt (double, double, bool local = false);
             void visualizeCloud (pcl::PointCloud<pcl::PointXYZ>::Ptr&);
 	    void visualizeObjects (std::vector<int>& objects); 
-	    void visualizeObjects (int);
 	    void visualizeObjectsGT (const gazebo_msgs::ModelStates::ConstPtr& o);
 
         private:
@@ -40,6 +39,7 @@ namespace MYSLAM {
             ros::Publisher _pub_cloud;
             ros::Publisher _pub_objects;
             ros::Publisher _pub_objects_gt;
+            ros::Publisher _pub_objects_id;
     };
 }
 
