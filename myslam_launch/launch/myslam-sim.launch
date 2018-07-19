@@ -28,6 +28,7 @@
 		<param name="publish_frequency" type="double" value="30.0" />
 	</node>
 
+<!--	<node pkg="myslam_sim_gazebo" type="baselink2odom.py" name="baselink2odom" output="screen" />  -->
 	<node pkg="myslam_sim_gazebo" type="myslam_sim_gazebo" name="myslam_sim_gazebo" 
 		args="odom:=odom logcam:=logical_camera_image" output="screen" /> 
 	<node pkg="myslam_sim_gazebo" type="objects_truth" name="objects_truth" 

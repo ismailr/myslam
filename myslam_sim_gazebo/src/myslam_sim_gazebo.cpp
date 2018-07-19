@@ -11,6 +11,7 @@ int main (int argc, char** argv)
 {
 	std::remove ("/home/ism/data/code/rosws/result/finalpose.dat");
 	std::remove ("/home/ism/data/code/rosws/result/odom.dat");
+//	std::remove ("/home/ism/data/code/rosws/result/nodom.dat");
 	std::remove ("/home/ism/data/code/rosws/result/data.g2o");
 	std::remove ("/home/ism/data/code/rosws/result/da.log");
 

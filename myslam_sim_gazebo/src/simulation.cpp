@@ -57,18 +57,21 @@ namespace MYSLAM {
 		// Convert odom to SE2 to Pose::Ptr
 		Converter c;
 		c.odomToSE2 (odom, *currentOdom);
-		currentPose->_pose = currentOdom->toVector();
-		currentPose->_timestamp = odom->header.stamp.toSec();
 
 		if (FRAMECOUNTER == 0)
 		{
 			_lastOdom = currentOdom;
-			_lastPose = currentPose;
+			_lastPose->_pose = currentOdom->toVector();
+			_lastPose->_timestamp = odom->header.stamp.toSec();
+			_graph->insertNode (_lastPose);
 			FRAMECOUNTER++;
-			_graph->insertNode (currentPose);
 			return;
 		}
 
+		SE2 delta = _lastOdom->inverse() * *currentOdom;
+		SE2 lastPose; lastPose.fromVector (_lastPose->_pose);  
+		currentPose->_pose = (lastPose * delta).toVector();
+		currentPose->_timestamp = odom->header.stamp.toSec();
 		_graph->insertNode (currentPose);
 
 		std::vector<std::tuple<int, Eigen::Vector3d> > data;

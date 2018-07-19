@@ -7,6 +7,7 @@ project(myslam_sim_gazebo)
 find_package(catkin REQUIRED COMPONENTS
   gazebo_ros
   roscpp
+  rospy
   geometry_msgs
   nav_msgs
   message_filters
@@ -113,7 +114,7 @@ DEPENDENCIES
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES myslam_sim_gazebo
-CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system myslam_visualizer
+CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system myslam_visualizer rospy
 #  DEPENDS system_lib
 )
 
