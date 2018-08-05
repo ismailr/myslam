@@ -205,25 +205,6 @@ namespace MYSLAM {
 
 		obj.marker.lifetime = ros::Duration();
 		_pub_objects.publish(obj.marker);
-
-		// marker for object's id
-//		visualization_msgs::Marker mText;
-//		mText.header.frame_id = "map";
-//
-//	        mText.id = objects[i]; //mText_id++;
-//		mText.type = visualization_msgs::Marker::TEXT_VIEW_FACING;
-//		mText.action = visualization_msgs::Marker::ADD;
-//		mText.text = std::to_string(o->_id);
-//
-//		mText.scale.z = 1.0;
-//		mText.color.a = 1.0;
-//
-//		mText.pose.position.x = o->_pose.x();
-//		mText.pose.position.y = o->_pose.y();
-//		mText.pose.position.z = 1.0;
-//
-//		mText.lifetime = ros::Duration();
-//		_pub_objects_id.publish(mText);
 	}
     }
 
@@ -245,5 +226,35 @@ namespace MYSLAM {
 		obj.marker.lifetime = ros::Duration();
 		_pub_objects_gt.publish(obj.marker);
 	}
+    }
+
+	void Visualizer::visualizeObjects () {
+
+		for (auto it = _graph->_objectMap.begin(); it != _graph->_objectMap.end(); it++) {
+			visualization_msgs::Marker marker;
+			Object::Ptr o = it->second;
+
+			MYSLAM::ObjectRviz obj (o->_type);
+
+			obj.marker.header.frame_id = "map";
+			obj.marker.id = it->first; //marker_id++;
+
+			Eigen::Quaternionf q;
+			float roll = 0.0, pitch = 0.0, yaw = o->_pose.z();
+			q = Eigen::AngleAxisf (roll, Eigen::Vector3f::UnitX())
+				* Eigen::AngleAxisf (pitch, Eigen::Vector3f::UnitY())
+				* Eigen::AngleAxisf (yaw, Eigen::Vector3f::UnitZ());
+
+			obj.marker.pose.position.x = o->_pose.x();
+			obj.marker.pose.position.y = o->_pose.y();
+			obj.marker.pose.position.z = 0.0;
+			obj.marker.pose.orientation.x = q.x();
+			obj.marker.pose.orientation.y = q.y();
+			obj.marker.pose.orientation.z = q.z();
+			obj.marker.pose.orientation.w = q.w();
+
+			obj.marker.lifetime = ros::Duration();
+			_pub_objects.publish(obj.marker);
+		}
     }
 }

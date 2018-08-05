@@ -11,7 +11,7 @@ int main (int argc, char** argv)
 {
 	std::remove ("/home/ism/data/code/rosws/result/finalpose.dat");
 	std::remove ("/home/ism/data/code/rosws/result/odom.dat");
-//	std::remove ("/home/ism/data/code/rosws/result/nodom.dat");
+	std::remove ("/home/ism/data/code/rosws/result/groundtruth.dat");
 	std::remove ("/home/ism/data/code/rosws/result/data.g2o");
 	std::remove ("/home/ism/data/code/rosws/result/da.log");
 
@@ -31,7 +31,7 @@ int main (int argc, char** argv)
     message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (100), 
         subodom, sublogcam);
 
-    sync.registerCallback (boost::bind (&MYSLAM::Simulation::callback, &sim, _1, _2/*, _3, _4, _5, _6, _7*/));
+    sync.registerCallback (boost::bind (&MYSLAM::Simulation::callback2, &sim, _1, _2/*, _3, _4, _5, _6, _7*/));
 
     ros::spin();
 

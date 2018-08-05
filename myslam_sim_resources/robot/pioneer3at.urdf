@@ -551,6 +551,12 @@
       <robotBaseFrame>base_link</robotBaseFrame>
       <torque>200</torque>
       <topicName>cmd_vel</topicName>
+      <commandTopic>cmd_vel</commandTopic>
+      <odometryTopic>odom</odometryTopic>
+      <odometryFrame>odom</odometryFrame>
+      <covariance_x>0.001</covariance_x>
+      <covariance_y>0.001</covariance_y>
+      <covariance_yaw>0.1</covariance_yaw>
     </plugin>
   </gazebo>
 
@@ -611,7 +617,7 @@
               <cameraName>camera1</cameraName>
               <imageTopicName>image_raw</imageTopicName>
               <cameraInfoTopicName>camera_info</cameraInfoTopicName>
-              <frameName>camera_link</frameName>
+              <frameName>amera_link</frameName>
               <hackBaseline>0.07</hackBaseline>
               <distortionK1>0.0</distortionK1>
               <distortionK2>0.0</distortionK2>
@@ -654,7 +660,7 @@
 
   <gazebo reference="logical_camera_link">
       <sensor type="logical_camera" name="logical_camera1">
-          <logical_camera name="head">
+          <logical_camera>
               <horizontal_fov>1.3962634</horizontal_fov>
               <near>0.02</near>
               <far>5.0</far>
