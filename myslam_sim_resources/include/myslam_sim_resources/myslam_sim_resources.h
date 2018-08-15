@@ -29,6 +29,12 @@ namespace MYSLAM {
 		m ["hyd"] = 10;
 		m ["red"] = 11;
 		m ["tab"] = 12;
+		m ["wro"] = 13;
+		m ["doo"] = 14;
+		m ["lad"] = 15;
+		m ["ybl"] = 16;
+		m ["dum"] = 17;
+		m ["spe"] = 18;
 
 		int type = m [s];
 
@@ -177,6 +183,78 @@ namespace MYSLAM {
 					    marker.scale.x = 0.2;
 					    marker.scale.y = 0.2;
 					    marker.scale.z = 0.2;
+					    marker.color.r = 1.0;
+					    marker.color.g = 1.0;
+					    marker.color.b = 1.0;
+					    break;
+				    }
+			case 13: {
+					    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+					    marker.mesh_resource = "package://myslam_sim_resources/models/warehouse_robot/meshes/robot.dae"; 
+					    marker.mesh_use_embedded_materials = true;
+					    marker.scale.x = 0.001;
+					    marker.scale.y = 0.001;
+					    marker.scale.z = 0.001;
+					    marker.color.r = 1.0;
+					    marker.color.g = 1.0;
+					    marker.color.b = 1.0;
+					    break;
+				    }
+			case 14: {
+					    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+					    marker.mesh_resource = "package://myslam_sim_resources/models/hinged_door/meshes/door.dae"; 
+					    marker.mesh_use_embedded_materials = true;
+					    marker.scale.x = 0.2;
+					    marker.scale.y = 0.2;
+					    marker.scale.z = 0.2;
+					    marker.color.r = 1.0;
+					    marker.color.g = 1.0;
+					    marker.color.b = 1.0;
+					    break;
+				    }
+			case 15: {
+					    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+					    marker.mesh_resource = "package://myslam_sim_resources/models/drc_practice_ladder/meshes/ladder.dae"; 
+					    marker.mesh_use_embedded_materials = true;
+					    marker.scale.x = 0.8;
+					    marker.scale.y = 0.8;
+					    marker.scale.z = 0.8;
+					    marker.color.r = 1.0;
+					    marker.color.g = 1.0;
+					    marker.color.b = 1.0;
+					    break;
+				    }
+			case 16: {
+					    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+					    marker.mesh_resource = "package://myslam_sim_resources/models/drc_practice_yellow_parking_block/meshes/block.dae"; 
+					    marker.mesh_use_embedded_materials = true;
+					    marker.scale.x = 0.02;
+					    marker.scale.y = 0.02;
+					    marker.scale.z = 0.02;
+					    marker.color.r = 1.0;
+					    marker.color.g = 1.0;
+					    marker.color.b = 1.0;
+					    break;
+				    }
+			case 17: {
+					    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+					    marker.mesh_resource = "package://myslam_sim_resources/models/dumpster/meshes/dumpster.dae"; 
+					    marker.mesh_use_embedded_materials = true;
+					    marker.scale.x = 0.04;
+					    marker.scale.y = 0.04;
+					    marker.scale.z = 0.04;
+					    marker.color.r = 1.0;
+					    marker.color.g = 1.0;
+					    marker.color.b = 1.0;
+					    break;
+				    }
+			case 18: {
+					    marker.type = visualization_msgs::Marker::MESH_RESOURCE;
+					    marker.mesh_resource = "package://myslam_sim_resources/models/speed_limit_sign/meshes/speed_limit_sign.dae"; 
+					    marker.mesh_use_embedded_materials = true;
+					    marker.scale.x = 0.6;
+					    marker.scale.y = 0.6;
+					    marker.scale.z = 0.6;
 					    marker.color.r = 1.0;
 					    marker.color.g = 1.0;
 					    marker.color.b = 1.0;

@@ -2,6 +2,8 @@
 #define __LAYOUT_PREDICTION_HELPERS__
 
 #include <random>
+#include <map>
+#include <utility>
 
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PointStamped.h>
@@ -90,5 +92,18 @@ namespace nRandMat{
 }
 
 double pi_to_pi (double phi); 
+
+template<typename A, typename B>
+std::pair<B,A> flip_pair (const std::pair<A,B>& p) {
+	return std::pair<B,A>(p.second,p.first);
+}
+
+template<typename A, typename B>
+std::multimap<B,A> flip_map (const std::map<A,B> &src) {
+	std::multimap<B,A> dst;
+	std::transform (src.begin(), src.end(), std::inserter (dst, dst.begin()),
+			flip_pair<A,B>);
+	return dst;
+}
 
 #endif

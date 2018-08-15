@@ -63,7 +63,7 @@ namespace MYSLAM {
 		}
 
 		// Keyframe is every 15th frame
-		if (FRAMECOUNTER % 15 != 0) {
+		if (FRAMECOUNTER % MYSLAM::KEYFRAME_POINT != 0) {
 			FRAMECOUNTER++;
 //			*_lastOdom = odomSE2; 
 			return;
@@ -129,6 +129,7 @@ namespace MYSLAM {
 		std::vector<int> result = da.associate (currentPose, data);
 		std::vector<int> obj2show;
 
+
 		dafile << "DASSOCIATION: ";
 		for (int i = 0; i < result.size(); i++) {
 			Object::Ptr o;
@@ -157,8 +158,12 @@ namespace MYSLAM {
 			    } else {
 				// wrong data association !!!
 				// for debugging purpose
-				if (omap[logimg->models[i].name] != result[i])
-					dafile << std::endl << "ALERT!!! WRONG DA: " << omap[logimg->models[i].name] << " <-- " << result[i] << std::endl; 
+				if (omap[logimg->models[i].name] != result[i]) {
+					if (omap[logimg->models[i].name] == 0)
+						dafile << std::endl << "ALERT!!! WRONG DA: " << -1 << " <-- " << result[i] << std::endl;
+					else
+						dafile << std::endl << "ALERT!!! WRONG DA: " << omap[logimg->models[i].name] << " <-- " << result[i] << std::endl; 
+				}
 
 				o = _graph->_objectMap[result[i]];
 				o->_active = true;
@@ -196,7 +201,7 @@ namespace MYSLAM {
 
 		Visualizer v (*_nh, *_graph);
 //		v.visualizeObjects (obj2show);
-		if (KEYFRAMECOUNTER % 3 == 0)
+		if (KEYFRAMECOUNTER % MYSLAM::OPTIMIZATION_POINT == 0)
 		{
 			_opt->localOptimize();
 			v.visualizeObjects (obj2show);
@@ -215,15 +220,21 @@ namespace MYSLAM {
 	void Simulation::gzCallback (const gazebo_msgs::ModelStates::ConstPtr& model) {
 		Visualizer v (*_nh, *_graph);
 		v.visualizeObjectsGT (model);
+		saveData ("/home/ism/data/code/rosws/result/objectsgt.dat", model);
 	}
 
 	void Simulation::addingNoise (const SE2& odom, SE2& noisy_odom) {
 		
 		// noise parameter
-		double a1 = 0.1;
-		double a2 = 5.0 * M_PI/180.0;
-		double a3 = 0.1;
-		double a4 = 15.0 * M_PI/180.0;
+//		double a1 = 0.01;
+//		double a2 = 5.0 * M_PI/180.0;
+//		double a3 = 0.01;
+//		double a4 = 5.0 * M_PI/180.0;
+
+		double a1 = MYSLAM::A1;
+		double a2 = MYSLAM::A2;
+		double a3 = MYSLAM::A3;
+		double a4 = MYSLAM::A4;
 
 //		double x1 = _lastOdom->translation().x();
 //		double y1 = _lastOdom->translation().y();
@@ -270,10 +281,12 @@ namespace MYSLAM {
 	void Simulation::callback2 (const nav_msgs::Odometry::ConstPtr& odom,
 		const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg)
 	{
+		if (logimg->models.size() < 2) return;
+
 		bool firstFrame = false;
 		bool keyframe = false;
 		if (FRAMECOUNTER == 0) firstFrame = true;
-		if (FRAMECOUNTER % 15 == 0) keyframe = true;
+		if (FRAMECOUNTER % MYSLAM::KEYFRAME_POINT == 0) keyframe = true;
 
 		// Convert odom to SE2 for easiness when dealing with orientation
 		SE2 currentOdom;
@@ -309,8 +322,16 @@ namespace MYSLAM {
 		currentPose->_timestamp = odom->header.stamp.toSec();
 
 		if (keyframe) {
+			ofstream g;
+			g.open("/home/ism/data/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
+			g << "*****" << FRAMECOUNTER << "*****" << std::endl;
+			g.close();
+
 			addNodeToMap (currentPose, logimg, odom->header.stamp.toSec());
-			if (KEYFRAMECOUNTER % 3 == 0) _opt->localOptimize();
+			if (KEYFRAMECOUNTER % MYSLAM::OPTIMIZATION_POINT == 0) {
+			       _opt->localOptimize3();
+			       _opt->localOptimize();
+			}
 			KEYFRAMECOUNTER++;
 		}
 
@@ -327,23 +348,39 @@ namespace MYSLAM {
 		publishTransform (currentNoisyOdom, currentPose->_id, odom->header.stamp.toSec());
 		saveData ("/home/ism/data/code/rosws/result/groundtruth.dat", currentOdom);
 		saveData ("/home/ism/data/code/rosws/result/odom.dat", currentNoisyOdom);
+		saveData ("/home/ism/data/code/rosws/result/objects.dat");
 
 		Visualizer v (*_nh, *_graph);
 		v.visualizeObjects();
 	}
 
-	void Simulation::addNodeToMap (Pose::Ptr& currentPose, const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg, double timestamp) {
+	void Simulation::addNodeToMap (Pose::Ptr& currentPose, const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg, double timestamp) {
 
 		_graph->insertNode (currentPose);
+
+		// limit distance and orientation view of logical camera
+		myslam_sim_gazebo::LogicalImage::Ptr logimg (new myslam_sim_gazebo::LogicalImage);
+		logimg->header = _logimg->header;
+		logimg->pose = _logimg->pose;
+		for (int i = 0; i < _logimg->models.size(); i++) {
+			Eigen::Vector2d p2 (_logimg->models[i].pose.position.x, _logimg->models[i].pose.position.y);
+			double d = (double) p2.norm();
+			double theta = normalize_theta (atan2 (_logimg->models[i].pose.position.y, _logimg->models[i].pose.position.x));
+
+			if (d < 5.0 && std::abs(theta) < 1.396) logimg->models.push_back (_logimg->models[i]);
+		}
+
+		if (logimg->models.size() < 3) return;
 
 		std::vector<std::tuple<int, Eigen::Vector3d> > data;
 
 		std::ofstream dafile;
 		dafile.open ("/home/ism/data/code/rosws/result/da.log", std::ios::out | std::ios::app);
+		dafile << "*****" << FRAMECOUNTER << "*****" << std::endl;
 		dafile << "DETECTED OBJ: ";
 		for (int i = 0; i < logimg->models.size(); i++) {
 
-			if (oid.empty() || oid.count (logimg->models[i].type) == 0)
+			if (oid.empty() || oid.count (logimg->models[i].type) < 1)
 				oid [logimg->models[i].type] = CLASSIDCOUNTER++;
 
 			tf::Quaternion q ( logimg->models[i].pose.orientation.x,
@@ -361,14 +398,15 @@ namespace MYSLAM {
 
 			data.push_back (std::make_tuple (classid, measurement));
 
-			if (omap.count (logimg->models[i].name) != 0)
+			if (omap.count (logimg->models[i].name) > 0)
 				dafile << omap[logimg->models[i].name] << " ";
 			else
 				dafile << "-1 ";
 		}
 		dafile << std::endl;
 		DataAssociation da (*_graph);
-		std::vector<int> result = da.associate (currentPose, data);
+//		std::vector<int> result = da.associate (currentPose, data);
+		std::vector<int> result = da.associateByPPF (currentPose, data);
 
 		dafile << "DASSOCIATION: ";
 		for (int i = 0; i < result.size(); i++) {
@@ -376,7 +414,7 @@ namespace MYSLAM {
 			if (result[i] == -1) {
 				// wrong data association !!!
 				// for debugging purpose
-				if (omap.count (logimg->models[i].name) != 0)
+				if (omap.count (logimg->models[i].name) > 0)
 					dafile << std::endl << "ALERT!!! OBJECT ALREADY ON MAP" << std::endl;
 
 				Object::Ptr ob (new Object);
@@ -390,15 +428,20 @@ namespace MYSLAM {
 				o->_seenBy.insert (currentPose->_id);
 				currentPose->_detectedObjects.insert (o->_id);
 				_graph->insertNode (o);
-				omap [logimg->models[i].name] = o->_id;
-				dafile << "-1 ";
+				if (omap.count (logimg->models[i].name) < 1)
+					omap [logimg->models[i].name] = o->_id;
+				dafile << "(" << o->_id << ")";
 
 
 			    } else {
 				// wrong data association !!!
 				// for debugging purpose
-				if (omap[logimg->models[i].name] != result[i])
-					dafile << std::endl << "ALERT!!! WRONG DA: " << omap[logimg->models[i].name] << " <-- " << result[i] << std::endl; 
+				if (omap[logimg->models[i].name] != result[i]) {
+					if (omap[logimg->models[i].name] == 0)
+						dafile << std::endl << "ALERT!!! WRONG DA: " << -1 << " <-- " << result[i] << std::endl;
+					else
+						dafile << std::endl << "ALERT!!! WRONG DA: " << omap[logimg->models[i].name] << " <-- " << result[i] << std::endl; 
+				}
 
 				o = _graph->_objectMap[result[i]];
 				o->_active = true;
@@ -451,6 +494,44 @@ namespace MYSLAM {
 		std::ofstream f;
 		f.open (path, std::ios::out | std::ios::app);
 		f << data.toVector().transpose() << std::endl;
+		f.close();
+	}
+
+	void Simulation::saveData (std::string path) {
+
+		std::ofstream f;
+		f.open (path, std::ios::out); 
+
+		for (auto it = _graph->_objectMap.begin(); it != _graph->_objectMap.end(); it++) {
+			f << it->first << " " << it->second->_pose.transpose() << std::endl;
+		}
+
+		f.close();
+	}
+
+	void Simulation::saveData (std::string path, const gazebo_msgs::ModelStates::ConstPtr& o) {
+
+		std::ofstream f;
+		f.open (path, std::ios::out); 
+
+		for (int i = 0; i < o->name.size(); i++) {
+
+			if (o->name[i] == "ground_plane" || o->name[i] == "robot") continue;
+
+			tf::Quaternion q ( o->pose[i].orientation.x,
+					o->pose[i].orientation.y,
+					o->pose[i].orientation.z,
+					o->pose[i].orientation.w);
+			double r, p, y;
+			tf::Matrix3x3 (q).getRPY (r,p,y);
+
+			Eigen::Vector3d pose (	o->pose[i].position.x,
+						o->pose[i].position.y,
+						y);
+
+			f << pose.transpose() << std::endl;
+		}
+
 		f.close();
 	}
 }

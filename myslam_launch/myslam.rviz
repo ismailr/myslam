@@ -71,7 +71,7 @@ Visualization Manager:
       Marker Topic: /objects
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -79,7 +79,7 @@ Visualization Manager:
       Marker Topic: /objectsgt
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/Axes
@@ -121,9 +121,9 @@ Visualization Manager:
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 4.475171089172363
-        Y: 0.412501722574234
-        Z: -0.5803631544113159
+        X: 0.28508758544921875
+        Y: 0.501684844493866
+        Z: -0.5828202366828918
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false

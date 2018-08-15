@@ -5,6 +5,7 @@
 #include <gazebo/gazebo.hh>
 #include <gazebo/rendering/rendering.hh>
 #include <gazebo/sensors/sensors.hh>
+#include <libconfig.h++>
 
 #include <ros/ros.h>
 #include <std_msgs/String.h>

@@ -134,6 +134,7 @@ include_directories(
 ## Declare a C++ library
 add_library(logcam_plugin SHARED
     src/logcam_plugin.cpp
+    src/settings.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -145,11 +146,13 @@ add_library(logcam_plugin SHARED
 add_executable(myslam_sim_gazebo
     src/myslam_sim_gazebo.cpp
     src/simulation.cpp
+    src/settings.cpp
 )
 
 add_executable(objects_truth
     src/objects_truth.cpp
     src/simulation.cpp
+    src/settings.cpp
 )
 
 ## Add cmake target dependencies of the executable
@@ -160,16 +163,19 @@ add_executable(objects_truth
 target_link_libraries(myslam_sim_gazebo
     ${catkin_LIBRARIES}
     #    ${GAZEBO_LIBRARIES}
+    "/usr/lib/x86_64-linux-gnu/libconfig++.so"
 )
 
 target_link_libraries(objects_truth
     ${catkin_LIBRARIES}
     #    ${GAZEBO_LIBRARIES}
+    "/usr/lib/x86_64-linux-gnu/libconfig++.so"
 )
 
 target_link_libraries(logcam_plugin
   ${catkin_LIBRARIES}
   #  ${GAZEBO_LIBRARIES}
+  "/usr/lib/x86_64-linux-gnu/libconfig++.so"
 )
 
 add_definitions(-std=c++14)

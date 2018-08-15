@@ -142,6 +142,7 @@ add_library(myslam_system SHARED
     src/types_myslam.cpp
     src/wall.cpp
     src/wall_measurement.cpp
+    src/settings.cpp
 )
 
 ## Add cmake target dependencies of the library
@@ -167,6 +168,7 @@ target_link_libraries(myslam_system
         ${G2O_TYPES_SLAM3D}
         ${G2O_TYPES_SLAM2D}
         ${G2O_OPENGL_HELPER}
+	"/usr/lib/x86_64-linux-gnu/libconfig++.so"
 )
 
 add_definitions(-std=c++14)

@@ -4,6 +4,7 @@
 #include <message_filters/sync_policies/approximate_time.h>
 
 #include "myslam_sim_gazebo/simulation.h"
+#include "myslam_sim_gazebo/settings.h"
 
 using namespace MYSLAM;
 
@@ -12,8 +13,14 @@ int main (int argc, char** argv)
 	std::remove ("/home/ism/data/code/rosws/result/finalpose.dat");
 	std::remove ("/home/ism/data/code/rosws/result/odom.dat");
 	std::remove ("/home/ism/data/code/rosws/result/groundtruth.dat");
+	std::remove ("/home/ism/data/code/rosws/result/objects.dat");
+	std::remove ("/home/ism/data/code/rosws/result/objectsgt.dat");
 	std::remove ("/home/ism/data/code/rosws/result/data.g2o");
 	std::remove ("/home/ism/data/code/rosws/result/da.log");
+	std::remove ("/home/ism/data/code/rosws/result/threshold.log");
+
+	const char *fileconfig = "/home/ism/data/code/rosws/src/myslam/myslam_sim_gazebo/src/myslam_sim.cfg";
+	MYSLAM::loadConfFile (fileconfig);
 
 	ros::init (argc,argv,"myslam_sim_gazebo");
 	ros::NodeHandle nh;

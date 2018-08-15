@@ -86,9 +86,9 @@ namespace MYSLAM {
                 pm->setMeasurement (u->estimate().inverse() * v->estimate());
                 pm->information () = poseCovMatrix.inverse();
 
-//                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-//                pm->setRobustKernel (rk);
-//                rk->setDelta (sqrt(5.99));
+                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+                pm->setRobustKernel (rk);
+                rk->setDelta (sqrt(5.99));
 
                 o->addEdge (pm);
             }
@@ -126,7 +126,7 @@ namespace MYSLAM {
             ObjectVertex *v = new ObjectVertex; 
             v->setId (object->_id); 
             v->setEstimate (vse2);
-//            v->setMarginalized (true);
+            v->setMarginalized (true);
             o->addVertex (v); 
         }
 
@@ -144,9 +144,9 @@ namespace MYSLAM {
             wm->setMeasurementData (data);
             wm->information() = wallCovMatrix.inverse();
             
-//            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-//            wm->setRobustKernel (rk);
-//            rk->setDelta (sqrt(1000.99));
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            wm->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
 
             o->addEdge (wm);
         }
@@ -163,9 +163,9 @@ namespace MYSLAM {
             om->setMeasurement (data);
             om->information() = objectCovMatrix.inverse();
             
-//            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-//            om->setRobustKernel (rk);
-//            rk->setDelta (sqrt(1000.99));
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            om->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
 
             o->addEdge (om);
         }
@@ -175,7 +175,7 @@ namespace MYSLAM {
         o->save(mfile);
         o->initializeOptimization();
         o->optimize(10);
-        o->save(mfile);
+//        o->save(mfile);
         mfile << std::endl << std::endl;
         mfile.close();
 
@@ -270,7 +270,7 @@ namespace MYSLAM {
             PoseVertex *v = new PoseVertex;
             v->setId (pose->_id);
             v->setEstimate (vse2);
-            v->setFixed (pose->_id == 0);
+            v->setFixed (pose->_id == 1);
             o->addVertex (v);
 
             if (it != poseMap.begin())
@@ -579,5 +579,296 @@ namespace MYSLAM {
             objectMap[*it]->_active = false;
         }
         std::cout << "DONE" << std::endl;
+    }
+
+    void Optimizer::localOptimize3()
+    {
+        typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+        typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+
+        g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
+        auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+        linearSolver->setBlockOrdering (false);
+        OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
+                g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+        o->setAlgorithm (solver);
+        o->setVerbose (false);
+
+        std::vector<int>& activePoses = _graph->_activePoses;
+        std::set<int>& activeWalls = _graph->_activeWalls;
+        std::set<int>& activeObjects = _graph->_activeObjects;
+        std::set<int>& lastActiveWalls = _graph->_lastActiveWalls;
+        std::set<int>& lastActiveObjects = _graph->_lastActiveObjects;
+        std::vector<std::tuple<int,int> >& activeEdges = _graph->_activeEdges;
+        std::vector<std::tuple<int,int> >& activePoseObjectEdges = _graph->_activePoseObjectEdges;
+        std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
+        std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
+        std::map<int, Object::Ptr>& objectMap = _graph->_objectMap;
+        std::map<std::tuple<int, int>, Eigen::Vector2d>& poseWallMap = _graph->_poseWallMap;
+        std::map<std::tuple<int, int>, Eigen::Vector3d>& poseObjectMap = _graph->_poseObjectMap;
+	std::vector<int>& path = _graph->_path;
+
+        Eigen::Matrix<double, 3, 3> poseCovMatrix;
+//        poseCovMatrix.setIdentity();
+        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
+                            0.0, 1.0e-4, 0.0,
+                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        Eigen::Matrix<double, 2, 2> wallCovMatrix;
+//        wallCovMatrix.setIdentity();
+        wallCovMatrix <<    1.0e-4, 0.0,
+                            0.0, 1.0e-4;
+        Eigen::Matrix<double, 3, 3> objectCovMatrix;
+//        poseCovMatrix.setIdentity();
+        objectCovMatrix <<    1.0e-4, 0.0, 0.0,
+                            0.0, 1.0e-4, 0.0,
+                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+
+        PoseVertex *u; 
+        for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
+        {
+            Pose* pose = poseMap[*it].get(); 
+            double& x = pose->_pose[0]; 
+            double& y = pose->_pose[1];
+            double& p = pose->_pose[2];
+
+            SE2 vse2 (x,y,p); 
+            PoseVertex *v = new PoseVertex; 
+            v->setId (pose->_id); 
+            v->setEstimate (vse2);
+            v->setFixed (pose->_id == 1); 
+            o->addVertex (v); 
+
+            if (it != activePoses.begin())
+            {
+                PoseMeasurement* pm = new PoseMeasurement;
+                pm->vertices()[0] = u;
+                pm->vertices()[1] = v;
+                pm->setMeasurement (u->estimate().inverse() * v->estimate());
+                pm->information () = poseCovMatrix.inverse();
+
+                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+                pm->setRobustKernel (rk);
+                rk->setDelta (sqrt(5.99));
+
+                o->addEdge (pm);
+            }
+
+            u = v;
+        }
+
+//        // Adding last wall to current optimization
+//        bool lastActiveWallsEmpty = _graph->_lastActiveWalls.empty();
+
+        for (std::set<int>::iterator it = activeWalls.begin();
+                it != activeWalls.end(); it++)
+        {
+            Wall* wall= wallMap[*it].get();
+            double& xx = wall->_line.xx[0];
+            double& xy = wall->_line.xx[1];
+
+            double data[2] = {xx,xy};
+            WallVertex *v = new WallVertex;
+            v->setId (wall->_id);
+            v->setEstimateDataImpl (data);
+            v->setMarginalized (true);
+            o->addVertex (v);
+        }
+
+        for (std::set<int>::iterator it = activeObjects.begin();
+                it != activeObjects.end(); it++)
+        {
+            Object* object = objectMap[*it].get(); 
+            double& x = object->_pose[0]; 
+            double& y = object->_pose[1];
+            double& p = object->_pose[2];
+
+            SE2 vse2 (x,y,p); 
+            ObjectVertex *v = new ObjectVertex; 
+            v->setId (object->_id); 
+            v->setEstimate (vse2);
+            v->setMarginalized (true);
+            o->addVertex (v); 
+        }
+
+        for (std::vector<std::tuple<int,int> >::iterator it = activeEdges.begin();
+                it != activeEdges.end(); it++)
+        {
+            double& xx_ = poseWallMap[*it].x();
+            double& xy_ = poseWallMap[*it].y();
+            double data[2] = {xx_,xy_};
+
+            WallMeasurement* wm = new WallMeasurement;
+
+            wm->vertices()[0] = o->vertex (std::get<0>(*it));
+            wm->vertices()[1] = o->vertex (std::get<1>(*it));
+            wm->setMeasurementData (data);
+            wm->information() = wallCovMatrix.inverse();
+            
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            wm->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
+
+            o->addEdge (wm);
+        }
+
+        for (std::vector<std::tuple<int,int> >::iterator it = activePoseObjectEdges.begin();
+                it != activePoseObjectEdges.end(); it++)
+        {
+            SE2 data; data.fromVector (poseObjectMap[*it]);
+
+            ObjectMeasurement* om = new ObjectMeasurement;
+
+            om->vertices()[0] = o->vertex (std::get<0>(*it));
+            om->vertices()[1] = o->vertex (std::get<1>(*it));
+            om->setMeasurement (data);
+            om->information() = objectCovMatrix.inverse();
+            
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            om->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
+
+            o->addEdge (om);
+        }
+
+	std::set<int> poseSet;
+	std::set<std::tuple<int,int> > poseObjectSet;
+	for (auto it = activeObjects.begin(); it != activeObjects.end(); it++) {
+		for (auto jt = objectMap[*it]->_seenBy.begin(); jt != objectMap[*it]->_seenBy.end(); jt++) {
+			if (std::find(activePoses.begin(), activePoses.end(), *jt) == activePoses.end()) {
+				poseSet.insert (*jt);
+				poseObjectSet.insert (std::make_tuple (*jt, *it));
+			}
+		}
+	}
+
+	PoseVertex* v1;
+	for (auto it = poseSet.begin(); it != poseSet.end(); it++) {
+		Pose* pose = poseMap[*it].get(); 
+		double& x = pose->_pose[0]; 
+		double& y = pose->_pose[1];
+		double& p = pose->_pose[2];
+
+		SE2 vse2 (x,y,p); 
+		PoseVertex *v2 = new PoseVertex; 
+		v2->setId (pose->_id); 
+		v2->setEstimate (vse2);
+		v2->setFixed (it == poseSet.begin());
+		o->addVertex (v2); 
+
+		if (it != poseSet.begin()) {
+			int previd = v1->id();
+			int currentid = v2->id();
+			auto iter_previd = std::find (path.begin(), path.end(), previd);
+			if (iter_previd == path.end()) continue;
+			if (*(iter_previd + 1) == currentid) {
+				PoseMeasurement* pm = new PoseMeasurement;
+				pm->vertices()[0] = v1;
+				pm->vertices()[1] = v2;
+				pm->setMeasurement (v1->estimate().inverse() * v2->estimate());
+				pm->information () = poseCovMatrix.inverse();
+
+					g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+					pm->setRobustKernel (rk);
+					rk->setDelta (sqrt(5.99));
+
+				o->addEdge (pm);
+			}
+		}
+
+		v1 = v2;
+	}
+
+	for (auto it = poseObjectSet.begin(); it != poseObjectSet.end(); it++) {
+		SE2 data; data.fromVector (poseObjectMap[*it]);
+
+		ObjectMeasurement* om = new ObjectMeasurement;
+
+		om->vertices()[0] = o->vertex (std::get<0>(*it));
+		om->vertices()[1] = o->vertex (std::get<1>(*it));
+		om->setMeasurement (data);
+		om->information() = objectCovMatrix.inverse();
+
+		    g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+		    om->setRobustKernel (rk);
+		    rk->setDelta (sqrt(5.99));
+
+		o->addEdge (om);
+	}
+
+        std::ofstream mfile;
+        mfile.open ("/home/ism/data/code/rosws/result/data.g2o", std::ios::out | std::ios::app);
+        o->save(mfile);
+        o->initializeOptimization();
+        o->optimize(10);
+        o->save(mfile);
+        mfile << std::endl << std::endl;
+        mfile.close();
+
+        std::ofstream posefile;
+        posefile.open ("/home/ism/data/code/rosws/result/finalpose.dat", std::ios::out | std::ios::app);
+        for (std::vector<int>::iterator it = activePoses.begin();
+                it != activePoses.end(); it++)
+        {
+            PoseVertex* optv = dynamic_cast<PoseVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            poseMap[*it]->_pose[0] = x;
+            poseMap[*it]->_pose[1] = y;
+            poseMap[*it]->_pose[2] = p;
+
+            if (*it == 0 || it != activePoses.begin())
+                posefile << x << " " << y << " " << p << std::endl;
+        }
+        posefile.close();
+
+        for (std::set<int>::iterator it = activeWalls.begin();
+                it != activeWalls.end(); it++)
+        {
+            WallVertex* optv = dynamic_cast<WallVertex*> (o->vertex (*it));
+            double xx = optv->estimate().x();
+            double xy = optv->estimate().y();
+
+            wallMap[*it]->_line.xx[0] = xx;
+            wallMap[*it]->_line.xx[1] = xy;
+            wallMap[*it]->updateParams ();
+        }
+
+        for (std::set<int>::iterator it = activeObjects.begin();
+                it != activeObjects.end(); it++)
+        {
+            ObjectVertex* optv = dynamic_cast<ObjectVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            objectMap[*it]->_pose[0] = x;
+            objectMap[*it]->_pose[1] = y;
+            objectMap[*it]->_pose[2] = p;
+        }
+
+	for (auto it = poseSet.begin(); it != poseSet.end(); it++) {
+            PoseVertex* optv = dynamic_cast<PoseVertex*> (o->vertex (*it));
+            double x = optv->estimate().translation().x();
+            double y = optv->estimate().translation().y();
+            double p = optv->estimate().rotation().angle();
+
+            poseMap[*it]->_pose[0] = x;
+            poseMap[*it]->_pose[1] = y;
+            poseMap[*it]->_pose[2] = p;
+	}
+
+//        int fixPoseForNextIter = activePoses.back();
+//        activePoses.clear();
+//        lastActiveWalls.clear();
+//        lastActiveWalls = activeWalls;
+//        lastActiveObjects.clear();
+//        lastActiveObjects = activeObjects;
+//        activeWalls.clear();
+//        activeObjects.clear();
+//        activeEdges.clear();
+//        activePoseObjectEdges.clear();
+//        activePoses.push_back (fixPoseForNextIter);
     }
 }

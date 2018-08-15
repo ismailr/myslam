@@ -7,8 +7,10 @@
 #include <nav_msgs/Odometry.h>
 #include <gazebo_msgs/ModelStates.h>
 #include <tf/transform_broadcaster.h>
+#include <libconfig.h++>
 
 #include "myslam_sim_gazebo/LogicalImage.h"
+#include "myslam_sim_gazebo/settings.h"
 
 #include "myslam_system/optimizer.h"
 
@@ -25,6 +27,8 @@ namespace MYSLAM {
 			void addNodeToMap (Pose::Ptr&, const myslam_sim_gazebo::LogicalImage::ConstPtr&, double);
 			void publishTransform (SE2& /* odom */, int /* robot's pose id */, double /* timestamp */);
 			void saveData (std::string, SE2&);
+			void saveData (std::string);
+			void saveData (std::string, const gazebo_msgs::ModelStates::ConstPtr& models);
 
 			static int FRAMECOUNTER; 
 			static int KEYFRAMECOUNTER; 
@@ -38,8 +42,8 @@ namespace MYSLAM {
 			SE2* _lastNoisyOdom;
 			ros::NodeHandle* _nh;
 
-			std::map<std::string,int> oid;
-			std::map<std::string, int> omap;
+			std::map<std::string,int> oid; // object_type --> id
+			std::map<std::string, int> omap; // object_name --> id
 	};
 }
 

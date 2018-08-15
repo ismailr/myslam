@@ -602,7 +602,7 @@
               </image>
               <clip>
                   <near>0.02</near>
-                  <far>300</far>
+                  <far>5.0</far>
               </clip>
               <noise>
                   <type>gaussian</type>
@@ -661,7 +661,7 @@
   <gazebo reference="logical_camera_link">
       <sensor type="logical_camera" name="logical_camera1">
           <logical_camera>
-              <horizontal_fov>1.3962634</horizontal_fov>
+              <horizontal_fov>1.3962634</horizontal_fov> 
               <near>0.02</near>
               <far>5.0</far>
               <aspect_ratio>1.778</aspect_ratio>
@@ -670,8 +670,8 @@
               <robotNamespace>/</robotNamespace>
           </plugin>
           <visualize>true</visualize>
-          <alwaysOn>true</alwaysOn>
-          <updateRate>10</updateRate>
+	  <!--          <alwaysOn>true</alwaysOn>
+	  <updateRate>10</updateRate> -->
       </sensor>
   </gazebo>
 </robot>
