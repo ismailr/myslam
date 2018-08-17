@@ -39,15 +39,15 @@ namespace MYSLAM {
 	    Eigen::Vector3d localToGlobal (Pose::Ptr, Eigen::Vector3d);
 
 	    // threshold
-//	    double tPPF1 = 1.0;
-//	    double tPPF2 = 5.0 * M_PI/180.0;
-//	    double tPPF3 = tPPF2;
-//	    double tPPF4 = 1.0 * M_PI/180.0;
+	    double tPPF1 = 2.0;
+	    double tPPF2 = 10.0 * M_PI/180.0;
+	    double tPPF3 = tPPF2;
+	    double tPPF4 = 1.0 * M_PI/180.0;
 
-	    double tPPF1; 
-	    double tPPF2; 
-	    double tPPF3; 
-	    double tPPF4;
+//	    double tPPF1; 
+//	    double tPPF2; 
+//	    double tPPF3; 
+//	    double tPPF4;
 
 	    std::vector<double> iPPF1; // PPF1 of input
 	    std::vector<double> iPPF2;

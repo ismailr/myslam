@@ -11,14 +11,15 @@
 namespace MYSLAM {
 
     DataAssociation::DataAssociation(Graph& graph)
-        :_graph (&graph), N (0),
-	tPPF1 (MYSLAM::TPPF1),
-	tPPF2 (MYSLAM::TPPF2),
-	tPPF3 (MYSLAM::TPPF3),
-	tPPF4 (MYSLAM::TPPF4)
+        :_graph (&graph), N (0)
     {
 	const char *fileconfig = "/home/ism/data/code/rosws/src/myslam/myslam_system/src/myslam.cfg";
 	MYSLAM::loadConfFile (fileconfig);
+
+//	tPPF1 = MYSLAM::TPPF1;
+//	tPPF2 = MYSLAM::TPPF2;
+//	tPPF3 = MYSLAM::TPPF3;
+//	tPPF4 = MYSLAM::TPPF4;
     }
 
     int DataAssociation::associate (Pose::Ptr pose, int classid, Eigen::Vector3d measurement) {

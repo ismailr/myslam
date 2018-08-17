@@ -328,7 +328,7 @@ namespace MYSLAM {
 			g.close();
 
 			addNodeToMap (currentPose, logimg, odom->header.stamp.toSec());
-			if (KEYFRAMECOUNTER % MYSLAM::OPTIMIZATION_POINT == 0) {
+			if (KEYFRAMECOUNTER % MYSLAM::OPTIMIZATION_POINT == 0 && _graph->_activeObjects.size() != 0) {
 			       _opt->localOptimize3();
 			       _opt->localOptimize();
 			}
