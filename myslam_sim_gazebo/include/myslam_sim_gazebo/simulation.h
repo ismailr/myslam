@@ -27,12 +27,14 @@ namespace MYSLAM {
 			void addNodeToMap (Pose::Ptr&, const myslam_sim_gazebo::LogicalImage::ConstPtr&, double);
 			void publishTransform (SE2& /* odom */, int /* robot's pose id */, double /* timestamp */);
 			void saveData (std::string, SE2&);
-			void saveData (std::string);
+			void saveData (std::string, std::string);
 			void saveData (std::string, const gazebo_msgs::ModelStates::ConstPtr& models);
 
 			static int FRAMECOUNTER; 
 			static int KEYFRAMECOUNTER; 
 			static int CLASSIDCOUNTER; 
+			static int NUM_OBSV;
+			static int NUM_FALSE_DA;
 
 		private:
 			Graph* _graph;

@@ -40,9 +40,9 @@ namespace MYSLAM {
 
 	    // threshold
 	    double tPPF1 = 2.0;
-	    double tPPF2 = 10.0 * M_PI/180.0;
+	    double tPPF2 = 20.0 * M_PI/180.0;
 	    double tPPF3 = tPPF2;
-	    double tPPF4 = 1.0 * M_PI/180.0;
+	    double tPPF4 = 20.0 * M_PI/180.0;
 
 //	    double tPPF1; 
 //	    double tPPF2; 

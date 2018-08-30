@@ -23,6 +23,7 @@ namespace gazebo {
         protected:
             ros::NodeHandle *nh;
             ros::Publisher image_pub;
+	    ros::Publisher landmark_pub;
 
         private:
             virtual void onUpdate();

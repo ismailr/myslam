@@ -49,19 +49,19 @@ namespace MYSLAM {
         std::map<std::tuple<int, int>, Eigen::Vector3d>& poseObjectMap = _graph->_poseObjectMap;
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
-//        poseCovMatrix.setIdentity();
-        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
-                            0.0, 1.0e-4, 0.0,
-                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        poseCovMatrix.setIdentity();
+//        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
+//                            0.0, 1.0e-4, 0.0,
+//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-//        wallCovMatrix.setIdentity();
-        wallCovMatrix <<    1.0e-4, 0.0,
-                            0.0, 1.0e-4;
+        wallCovMatrix.setIdentity();
+//        wallCovMatrix <<    1.0e-4, 0.0,
+//                            0.0, 1.0e-4;
         Eigen::Matrix<double, 3, 3> objectCovMatrix;
-//        poseCovMatrix.setIdentity();
-        objectCovMatrix <<    1.0e-4, 0.0, 0.0,
-                            0.0, 1.0e-4, 0.0,
-                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+//        objectCovMatrix.setIdentity();
+        objectCovMatrix <<    100.0, 0.0, 0.0,
+                            0.0, 100.0, 0.0,
+                            0.0, 0.0, 10.;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
@@ -75,7 +75,8 @@ namespace MYSLAM {
             PoseVertex *v = new PoseVertex; 
             v->setId (pose->_id); 
             v->setEstimate (vse2);
-            v->setFixed (pose->_id == 0 || it == activePoses.begin()); 
+//            v->setFixed (pose->_id == 0 || it == activePoses.begin()); 
+            v->setFixed (it == activePoses.begin()); 
             o->addVertex (v); 
 
             if (it != activePoses.begin())
@@ -126,7 +127,7 @@ namespace MYSLAM {
             ObjectVertex *v = new ObjectVertex; 
             v->setId (object->_id); 
             v->setEstimate (vse2);
-            v->setMarginalized (true);
+//            v->setMarginalized (true);
             o->addVertex (v); 
         }
 
@@ -171,16 +172,16 @@ namespace MYSLAM {
         }
 
         std::ofstream mfile;
-        mfile.open ("/home/ism/data/code/rosws/result/data.g2o", std::ios::out | std::ios::app);
+        mfile.open ("/home/ism/code/rosws/result/data.g2o", std::ios::out | std::ios::app);
         o->save(mfile);
         o->initializeOptimization();
         o->optimize(10);
-//        o->save(mfile);
+        o->save(mfile);
         mfile << std::endl << std::endl;
         mfile.close();
 
-        std::ofstream posefile;
-        posefile.open ("/home/ism/data/code/rosws/result/finalpose.dat", std::ios::out | std::ios::app);
+//        std::ofstream posefile;
+//        posefile.open ("/home/ism/code/rosws/result/finalpose.dat", std::ios::out | std::ios::app);
         for (std::vector<int>::iterator it = activePoses.begin();
                 it != activePoses.end(); it++)
         {
@@ -193,10 +194,10 @@ namespace MYSLAM {
             poseMap[*it]->_pose[1] = y;
             poseMap[*it]->_pose[2] = p;
 
-            if (*it == 0 || it != activePoses.begin())
-                posefile << x << " " << y << " " << p << std::endl;
+//            if (*it == 0 || it != activePoses.begin())
+//                posefile << x << " " << y << " " << p << std::endl;
         }
-        posefile.close();
+//        posefile.close();
 
         for (std::set<int>::iterator it = activeWalls.begin();
                 it != activeWalls.end(); it++)
@@ -333,8 +334,8 @@ namespace MYSLAM {
         o->initializeOptimization();
         o->optimize(100);
 
-        std::ofstream posefile;
-        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+//        std::ofstream posefile;
+//        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
         for (std::map<int,Pose::Ptr>::iterator it = poseMap.begin();
                 it != poseMap.end(); it++)
         {
@@ -347,9 +348,9 @@ namespace MYSLAM {
             poseMap[id]->_pose[0] = x;
             poseMap[id]->_pose[1] = y;
             poseMap[id]->_pose[2] = p;
-            posefile << x << " " << y << " " << p << std::endl;
+//            posefile << x << " " << y << " " << p << std::endl;
         }
-        posefile.close();
+//        posefile.close();
 
         for (std::map<int,Wall::Ptr>::iterator it = wallMap.begin();
                 it != wallMap.end(); it++)
@@ -388,19 +389,19 @@ namespace MYSLAM {
         std::vector<int>& path = _graph->_path;
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
-//        poseCovMatrix.setIdentity();
-        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
-                            0.0, 1.0e-4, 0.0,
-                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        poseCovMatrix.setIdentity();
+//        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
+//                            0.0, 1.0e-4, 0.0,
+//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-//        wallCovMatrix.setIdentity();
-        wallCovMatrix <<    1.0e-4, 0.0,
-                            0.0, 1.0e-4;
+        wallCovMatrix.setIdentity();
+//        wallCovMatrix <<    1.0e-4, 0.0,
+//                            0.0, 1.0e-4;
         Eigen::Matrix<double, 3, 3> objectCovMatrix;
-//        poseCovMatrix.setIdentity();
-        objectCovMatrix <<  1.0e-4, 0.0, 0.0,
-                            0.0, 1.0e-4, 0.0,
-                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        objectCovMatrix.setIdentity();
+//        objectCovMatrix <<  1.0e-4, 0.0, 0.0,
+//                            0.0, 1.0e-4, 0.0,
+//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
 
         std::set<int> activeObjects = pose->_detectedObjects;
 
@@ -528,9 +529,8 @@ namespace MYSLAM {
         o->initializeOptimization(); 
         o->optimize(10);
 
-        std::cout << "RECOVER POSE" << std::endl;
         std::ofstream posefile;
-        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
+//        posefile.open ("/home/ism/tmp/finalpose.dat", std::ios::out | std::ios::app);
         for (auto it = activePoses.begin(); it != activePoses.end(); it++)
         {
             PoseVertex* optv = dynamic_cast<PoseVertex*> (o->vertex (*it));
@@ -544,10 +544,9 @@ namespace MYSLAM {
 
             poseMap[*it]->_active = false;
 
-            posefile << x << " " << y << " " << p << std::endl;
+//            posefile << x << " " << y << " " << p << std::endl;
         }
-        posefile.close();
-        std::cout << "DONE" << std::endl;
+//        posefile.close();
 
 //        std::cout << "RECOVER WALL" << std::endl;
 //        for (auto it = wallMap.begin(); it != wallMap.end(); it++)
@@ -564,7 +563,6 @@ namespace MYSLAM {
 //        }
 //        std::cout << "DONE" << std::endl;
 
-        std::cout << "RECOVER OBJECTS" << std::endl;
         for (auto it = activeObjects.begin(); it != activeObjects.end(); it++)
         {
             ObjectVertex* optv = dynamic_cast<ObjectVertex*> (o->vertex (*it));
@@ -578,7 +576,6 @@ namespace MYSLAM {
 
             objectMap[*it]->_active = false;
         }
-        std::cout << "DONE" << std::endl;
     }
 
     void Optimizer::localOptimize3()
@@ -609,19 +606,19 @@ namespace MYSLAM {
 	std::vector<int>& path = _graph->_path;
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
-//        poseCovMatrix.setIdentity();
-        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
-                            0.0, 1.0e-4, 0.0,
-                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        poseCovMatrix.setIdentity();
+//        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
+//                            0.0, 1.0e-4, 0.0,
+//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-//        wallCovMatrix.setIdentity();
-        wallCovMatrix <<    1.0e-4, 0.0,
-                            0.0, 1.0e-4;
+        wallCovMatrix.setIdentity();
+//        wallCovMatrix <<    1.0e-4, 0.0,
+//                            0.0, 1.0e-4;
         Eigen::Matrix<double, 3, 3> objectCovMatrix;
-//        poseCovMatrix.setIdentity();
-        objectCovMatrix <<    1.0e-4, 0.0, 0.0,
-                            0.0, 1.0e-4, 0.0,
-                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+        objectCovMatrix.setIdentity();
+//        objectCovMatrix <<    1.0e-4, 0.0, 0.0,
+//                            0.0, 1.0e-4, 0.0,
+//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
@@ -796,7 +793,7 @@ namespace MYSLAM {
 	}
 
         std::ofstream mfile;
-        mfile.open ("/home/ism/data/code/rosws/result/data.g2o", std::ios::out | std::ios::app);
+        mfile.open ("/home/ism/code/rosws/result/data.g2o", std::ios::out | std::ios::app);
         o->save(mfile);
         o->initializeOptimization();
         o->optimize(10);
@@ -805,7 +802,7 @@ namespace MYSLAM {
         mfile.close();
 
         std::ofstream posefile;
-        posefile.open ("/home/ism/data/code/rosws/result/finalpose.dat", std::ios::out | std::ios::app);
+        posefile.open ("/home/ism/code/rosws/result/finalpose.dat", std::ios::out | std::ios::app);
         for (std::vector<int>::iterator it = activePoses.begin();
                 it != activePoses.end(); it++)
         {

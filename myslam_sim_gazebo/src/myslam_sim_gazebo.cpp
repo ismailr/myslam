@@ -10,16 +10,16 @@ using namespace MYSLAM;
 
 int main (int argc, char** argv)
 {
-	std::remove ("/home/ism/data/code/rosws/result/finalpose.dat");
-	std::remove ("/home/ism/data/code/rosws/result/odom.dat");
-	std::remove ("/home/ism/data/code/rosws/result/groundtruth.dat");
-	std::remove ("/home/ism/data/code/rosws/result/objects.dat");
-	std::remove ("/home/ism/data/code/rosws/result/objectsgt.dat");
-	std::remove ("/home/ism/data/code/rosws/result/data.g2o");
-	std::remove ("/home/ism/data/code/rosws/result/da.log");
-	std::remove ("/home/ism/data/code/rosws/result/threshold.log");
+	std::remove ("/home/ism/code/rosws/result/finalpose.dat");
+	std::remove ("/home/ism/code/rosws/result/odom.dat");
+	std::remove ("/home/ism/code/rosws/result/groundtruth.dat");
+	std::remove ("/home/ism/code/rosws/result/objects.dat");
+	std::remove ("/home/ism/code/rosws/result/objectsgt.dat");
+	std::remove ("/home/ism/code/rosws/result/data.g2o");
+	std::remove ("/home/ism/code/rosws/result/da.log");
+	std::remove ("/home/ism/code/rosws/result/threshold.log");
 
-	const char *fileconfig = "/home/ism/data/code/rosws/src/myslam/myslam_sim_gazebo/src/myslam_sim.cfg";
+	const char *fileconfig = "/home/ism/code/rosws/src/myslam/myslam_sim_gazebo/src/myslam_sim.cfg";
 	MYSLAM::loadConfFile (fileconfig);
 
 	ros::init (argc,argv,"myslam_sim_gazebo");

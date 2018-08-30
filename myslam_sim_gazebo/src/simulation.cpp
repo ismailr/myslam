@@ -19,6 +19,8 @@ namespace MYSLAM {
 	int Simulation::FRAMECOUNTER = 0;
 	int Simulation::KEYFRAMECOUNTER = 0;
 	int Simulation::CLASSIDCOUNTER = 0;
+	int Simulation::NUM_OBSV = 0;
+	int Simulation::NUM_FALSE_DA = 0;
 
 	Simulation::Simulation(Graph& g, Optimizer& o, ros::NodeHandle& nh) 
 		: _graph (&g), _opt (&o), _nh (&nh) {
@@ -51,13 +53,13 @@ namespace MYSLAM {
 
 		// logging odom (this actually is a ground truth)
 		std::ofstream gtfile;
-		gtfile.open ("/home/ism/data/code/rosws/result/groundtruth.dat", std::ios::out | std::ios::app);
+		gtfile.open ("/home/ism/code/rosws/result/groundtruth.dat", std::ios::out | std::ios::app);
 		gtfile << odomSE2.toVector().transpose() << std::endl;
 		gtfile.close();
 
 		// not enough objects in a frame
 		// TODO: handle this, should even handle situation when sensor only detect 1 object
-		if (logimg->models.size() < 3) {
+		if (logimg->models.size() < 2) {
 //			*_lastOdom = odomSE2; 
 		       	return;
 		}
@@ -97,7 +99,7 @@ namespace MYSLAM {
 		std::vector<std::tuple<int, Eigen::Vector3d> > data;
 
 		std::ofstream dafile;
-		dafile.open ("/home/ism/data/code/rosws/result/da.log", std::ios::out | std::ios::app);
+		dafile.open ("/home/ism/code/rosws/result/da.log", std::ios::out | std::ios::app);
 		dafile << "DETECTED OBJ: ";
 		for (int i = 0; i < logimg->models.size(); i++) {
 
@@ -220,7 +222,7 @@ namespace MYSLAM {
 	void Simulation::gzCallback (const gazebo_msgs::ModelStates::ConstPtr& model) {
 		Visualizer v (*_nh, *_graph);
 		v.visualizeObjectsGT (model);
-		saveData ("/home/ism/data/code/rosws/result/objectsgt.dat", model);
+		saveData ("/home/ism/code/rosws/result/objectsgt.dat", model);
 	}
 
 	void Simulation::addingNoise (const SE2& odom, SE2& noisy_odom) {
@@ -321,9 +323,11 @@ namespace MYSLAM {
 		currentPose->_pose = (lastPose * delta).toVector();
 		currentPose->_timestamp = odom->header.stamp.toSec();
 
+		Visualizer v (*_nh, *_graph);
+		v.visualizeObjects(); // before optimization
 		if (keyframe) {
 			ofstream g;
-			g.open("/home/ism/data/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
+			g.open("/home/ism/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
 			g << "*****" << FRAMECOUNTER << "*****" << std::endl;
 			g.close();
 
@@ -332,6 +336,7 @@ namespace MYSLAM {
 			       _opt->localOptimize3();
 			       _opt->localOptimize();
 			}
+//			v.visualizeObjects(); // after optimization
 			KEYFRAMECOUNTER++;
 		}
 
@@ -346,12 +351,13 @@ namespace MYSLAM {
 		FRAMECOUNTER++;
 
 		publishTransform (currentNoisyOdom, currentPose->_id, odom->header.stamp.toSec());
-		saveData ("/home/ism/data/code/rosws/result/groundtruth.dat", currentOdom);
-		saveData ("/home/ism/data/code/rosws/result/odom.dat", currentNoisyOdom);
-		saveData ("/home/ism/data/code/rosws/result/objects.dat");
+		saveData ("/home/ism/code/rosws/result/groundtruth.dat", currentOdom);
+		saveData ("/home/ism/code/rosws/result/odom.dat", currentNoisyOdom);
+		saveData ("/home/ism/code/rosws/result/objects.dat", "object");
+//		saveData ("/home/ism/code/rosws/result/finalpose.dat", "pose");
 
-		Visualizer v (*_nh, *_graph);
-		v.visualizeObjects();
+//		Visualizer v (*_nh, *_graph);
+//		v.visualizeObjects();
 	}
 
 	void Simulation::addNodeToMap (Pose::Ptr& currentPose, const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg, double timestamp) {
@@ -375,7 +381,7 @@ namespace MYSLAM {
 		std::vector<std::tuple<int, Eigen::Vector3d> > data;
 
 		std::ofstream dafile;
-		dafile.open ("/home/ism/data/code/rosws/result/da.log", std::ios::out | std::ios::app);
+		dafile.open ("/home/ism/code/rosws/result/da.log", std::ios::out | std::ios::app);
 		dafile << "*****" << FRAMECOUNTER << "*****" << std::endl;
 		dafile << "DETECTED OBJ: ";
 		for (int i = 0; i < logimg->models.size(); i++) {
@@ -409,13 +415,16 @@ namespace MYSLAM {
 		std::vector<int> result = da.associateByPPF (currentPose, data);
 
 		dafile << "DASSOCIATION: ";
+		Simulation::NUM_OBSV += result.size();
 		for (int i = 0; i < result.size(); i++) {
 			Object::Ptr o;
 			if (result[i] == -1) {
 				// wrong data association !!!
 				// for debugging purpose
-				if (omap.count (logimg->models[i].name) > 0)
+				if (omap.count (logimg->models[i].name) > 0) {
 					dafile << std::endl << "ALERT!!! OBJECT ALREADY ON MAP" << std::endl;
+					Simulation::NUM_FALSE_DA++;
+				}
 
 				Object::Ptr ob (new Object);
 				o = ob;
@@ -437,10 +446,14 @@ namespace MYSLAM {
 				// wrong data association !!!
 				// for debugging purpose
 				if (omap[logimg->models[i].name] != result[i]) {
-					if (omap[logimg->models[i].name] == 0)
+					if (omap[logimg->models[i].name] == 0) {
 						dafile << std::endl << "ALERT!!! WRONG DA: " << -1 << " <-- " << result[i] << std::endl;
-					else
+						Simulation::NUM_FALSE_DA++;
+					}
+					else {
 						dafile << std::endl << "ALERT!!! WRONG DA: " << omap[logimg->models[i].name] << " <-- " << result[i] << std::endl; 
+						Simulation::NUM_FALSE_DA++;
+					}
 				}
 
 				o = _graph->_objectMap[result[i]];
@@ -457,6 +470,9 @@ namespace MYSLAM {
 		dafile << std::endl;
 		dafile << "---------------------------------------------" << std::endl;
 		dafile.close();
+
+		double percentage = (double)(Simulation::NUM_OBSV - Simulation::NUM_FALSE_DA) * 100.0/(double)Simulation::NUM_OBSV;
+		std::cout << Simulation::NUM_FALSE_DA << " | " << Simulation::NUM_OBSV << " = " << percentage << "% " << std::endl;
 	}
 
 
@@ -497,13 +513,19 @@ namespace MYSLAM {
 		f.close();
 	}
 
-	void Simulation::saveData (std::string path) {
+	void Simulation::saveData (std::string path, std::string type) {
 
 		std::ofstream f;
 		f.open (path, std::ios::out); 
 
-		for (auto it = _graph->_objectMap.begin(); it != _graph->_objectMap.end(); it++) {
-			f << it->first << " " << it->second->_pose.transpose() << std::endl;
+		if (type == "object") {
+			for (auto it = _graph->_objectMap.begin(); it != _graph->_objectMap.end(); it++) {
+				f << it->first << " " << it->second->_pose.transpose() << std::endl;
+			}
+		} else if (type == "pose") {
+			for (auto it = _graph->_poseMap.begin(); it != _graph->_poseMap.end(); it++) {
+				f << it->first << " " << it->second->_pose.transpose() << std::endl;
+			}
 		}
 
 		f.close();

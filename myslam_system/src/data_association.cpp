@@ -13,7 +13,7 @@ namespace MYSLAM {
     DataAssociation::DataAssociation(Graph& graph)
         :_graph (&graph), N (0)
     {
-	const char *fileconfig = "/home/ism/data/code/rosws/src/myslam/myslam_system/src/myslam.cfg";
+	const char *fileconfig = "/home/ism/code/rosws/src/myslam/myslam_system/src/myslam.cfg";
 	MYSLAM::loadConfFile (fileconfig);
 
 //	tPPF1 = MYSLAM::TPPF1;
@@ -414,7 +414,7 @@ namespace MYSLAM {
 		}
 
 //		std::ofstream f;
-//		f.open ("/home/ism/data/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
+//		f.open ("/home/ism/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
 		std::vector<std::vector<int> > out_tmp; 
 		associateByPPF1(pose, out_tmp);
 //		f << out_tmp.size() << " --> ";
@@ -462,7 +462,9 @@ namespace MYSLAM {
 
 		for (int i = 0; i < current_seq.size(); i++) {
 			double d = calculateDiffPPFN (pose, ppf, current_seq[i]);
-			if (d < tPPF) out.push_back (current_seq[i]);
+			double d3 = calculateDiffPPFN (pose, 3, current_seq[i]);
+			double d4 = calculateDiffPPFN (pose, 4, current_seq[i]);
+			if (d < tPPF & d3 < tPPF3 && d4 < tPPF4) out.push_back (current_seq[i]);
 		}
 	}
 
@@ -572,7 +574,7 @@ namespace MYSLAM {
 		}
 
 		ofstream f;
-		f.open("/home/ism/data/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
+		f.open("/home/ism/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
 		std::map<double,int> s;
 		for (int i = 0; i < data.size(); i++) {
 			double d = calculateDiffPPFN (pose, 1, data[i]);

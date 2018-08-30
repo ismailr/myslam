@@ -238,6 +238,7 @@ namespace MYSLAM {
 
 			obj.marker.header.frame_id = "map";
 			obj.marker.id = it->first; //marker_id++;
+			obj.marker.ns = "myslam";
 
 			Eigen::Quaternionf q;
 			float roll = 0.0, pitch = 0.0, yaw = o->_pose.z();

@@ -10,10 +10,10 @@
 	rendering, but instead enables recording). The arg definition has been left here to prevent breaking downstream
 	launch files, but it does nothing. -->
 	<arg name="headless" default="false"/>
-	<arg name="debug" default="true"/>
+	<arg name="debug" default="false"/>
 	<arg name="physics" default="ode"/>
 	<arg name="verbose" default="false"/>
-	<arg name="world_name" default="$(find myslam_sim_resources)/worlds/sim-nowall.world"/> <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
+	<arg name="world_name" default="$(find myslam_sim_resources)/worlds/sim-nowall-2.world"/> <!-- Note: the world_name is with respect to GAZEBO_RESOURCE_PATH environmental variable -->
 	<arg name="respawn_gazebo" default="false"/>
 	<arg name="use_clock_frequency" default="false"/>
 	<arg name="pub_clock_frequency" default="100"/>
