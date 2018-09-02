@@ -12,6 +12,8 @@
 #include "myslam_sim_gazebo/LogicalImage.h"
 #include "myslam_sim_gazebo/settings.h"
 
+#include "mrpt_msgs/ObservationRangeBearing.h"
+
 namespace gazebo {
     class LogicalCameraPlugin : public SensorPlugin {
         public:

@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   message_generation
   myslam_system
   myslam_visualizer
+  mrpt_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -114,7 +115,7 @@ DEPENDENCIES
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES myslam_sim_gazebo
-CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system myslam_visualizer rospy
+CATKIN_DEPENDS gazebo_ros roscpp std_msgs sensor_msgs message_runtime geometry_msgs nav_msgs message_filters myslam_system myslam_visualizer rospy mrpt_msgs
 #  DEPENDS system_lib
 )
 
