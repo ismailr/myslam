@@ -7,11 +7,8 @@ namespace MYSLAM {
     double A2;
     double A3;
     double A4;
-    double B1;
-    double B2;
-    double B3;
-    double B4;
-    double B5;
+    double DIST_NOISE;
+    double THETA_NOISE;
 
     void loadConfFile(const char* fileconfig)
     {
@@ -32,11 +29,8 @@ namespace MYSLAM {
           cfg.lookupValue ("a2", A2);
           cfg.lookupValue ("a3", A3);
           cfg.lookupValue ("a4", A4);
-          cfg.lookupValue ("b1", B1);
-          cfg.lookupValue ("b2", B2);
-          cfg.lookupValue ("b3", B3);
-          cfg.lookupValue ("b4", B4);
-          cfg.lookupValue ("b5", B5);
+          cfg.lookupValue ("dist_noise", DIST_NOISE);
+          cfg.lookupValue ("theta_noise", THETA_NOISE);
         } catch (SettingNotFoundException &nfex) {
             cerr << "Configuration not found!" << endl;
         }
