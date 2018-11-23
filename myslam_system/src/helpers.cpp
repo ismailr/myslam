@@ -120,6 +120,11 @@ double normalize_angle (double a)
     return angle;
 }
 
+double smallest_diff_angle (double a, double b) {
+	double diff = std::abs(normalize_angle(a)-normalize_angle(b));
+	return std::min (2*M_PI - diff, diff);
+}
+
 unsigned long int Generator::id = 0;
 
 namespace nRandMat {

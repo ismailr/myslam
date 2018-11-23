@@ -1,0 +1,7 @@
+<launch>
+	<include file="$(find darknet_ros)/launch/yolo_v3.launch">
+	</include>
+	<node pkg="webcam" type="webcam" name="webcam" required="true" /> 
+<!--	<node pkg="rviz" type="rviz" name="rviz" args="-d $(find myslam_launch)myslam.rviz" /> -->
+</launch>
+

@@ -5,9 +5,7 @@
 #include <tuple>
 #include <set>
 
-#include "myslam_system/wall.h"
-#include "myslam_system/pose.h"
-#include "myslam_system/object.h"
+#include "myslam_system/types_myslam.h"
 
 namespace MYSLAM {
     class Graph

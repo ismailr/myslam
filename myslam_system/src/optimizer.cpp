@@ -50,18 +50,18 @@ namespace MYSLAM {
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
         poseCovMatrix.setIdentity();
-//        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
-//                            0.0, 1.0e-4, 0.0,
-//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+//        poseCovMatrix <<    0.0169, 0.0, 0.0,
+//                            0.0, 0.0169, 0.0,
+//                            0.0, 0.0, 0.000076213;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-        wallCovMatrix.setIdentity();
+//        wallCovMatrix.setIdentity();
 //        wallCovMatrix <<    1.0e-4, 0.0,
 //                            0.0, 1.0e-4;
         Eigen::Matrix<double, 3, 3> objectCovMatrix;
-//        objectCovMatrix.setIdentity();
-        objectCovMatrix <<    100.0, 0.0, 0.0,
-                            0.0, 100.0, 0.0,
-                            0.0, 0.0, 10.;
+        objectCovMatrix.setIdentity();
+//        objectCovMatrix <<  1e-5  , 0.0, 0.0,
+//                            0.0, 1e-5, 0.0,
+//                            0.0, 0.0, 0.2*0.2*M_PI*M_PI/180*180;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)
@@ -248,7 +248,7 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (true);
+        o->setVerbose (false);
 
         std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
@@ -271,7 +271,7 @@ namespace MYSLAM {
             PoseVertex *v = new PoseVertex;
             v->setId (pose->_id);
             v->setEstimate (vse2);
-            v->setFixed (pose->_id == 1);
+            v->setFixed (pose->_id == 0);
             o->addVertex (v);
 
             if (it != poseMap.begin())
@@ -379,7 +379,7 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (true);
+        o->setVerbose (false);
 
         std::map<int, Pose::Ptr>& poseMap = _graph->_poseMap;
         std::map<int, Wall::Ptr>& wallMap = _graph->_wallMap;
@@ -607,18 +607,18 @@ namespace MYSLAM {
 
         Eigen::Matrix<double, 3, 3> poseCovMatrix;
         poseCovMatrix.setIdentity();
-//        poseCovMatrix <<    1.0e-4, 0.0, 0.0,
-//                            0.0, 1.0e-4, 0.0,
-//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+//        poseCovMatrix <<    0.0169, 0.0, 0.0,
+//                            0.0, 0.0169, 0.0,
+//                            0.0, 0.0, 0.000076213;
         Eigen::Matrix<double, 2, 2> wallCovMatrix;
-        wallCovMatrix.setIdentity();
+//        wallCovMatrix.setIdentity();
 //        wallCovMatrix <<    1.0e-4, 0.0,
 //                            0.0, 1.0e-4;
         Eigen::Matrix<double, 3, 3> objectCovMatrix;
         objectCovMatrix.setIdentity();
-//        objectCovMatrix <<    1.0e-4, 0.0, 0.0,
-//                            0.0, 1.0e-4, 0.0,
-//                            0.0, 0.0, 4.*M_PI/180.*M_PI/180.;
+//        objectCovMatrix <<    100, 0.0, 0.0,
+//                            0.0, 100, 0.0,
+//                            0.0, 0.0, 900.0*M_PI*M_PI/180*180;
 
         PoseVertex *u; 
         for (std::vector<int>::iterator it = activePoses.begin(); it != activePoses.end(); it++)

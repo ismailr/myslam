@@ -44,6 +44,7 @@ line_eq points_to_line_eq (line_segment);
 line_eq points_to_line_eq (line_segment_stamped);
 
 double normalize_angle (double a);
+double smallest_diff_angle (double, double);
 
 class IdGenerator
 {

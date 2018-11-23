@@ -382,11 +382,14 @@ namespace MYSLAM {
 	    SE2 o1; o1.fromVector (v1);
 	    SE2 o2; o2.fromVector (v2);
 	    SE2 o21 = o1.inverse() * o2;
-	    return atan2 (o21.translation().y(), o21.translation().x());
+	    double angle = normalize_angle (atan2 (o21.translation().y(), o21.translation().x()));
+	    return angle;
     }
 
     double DataAssociation::calculatePPF4 (Eigen::Vector3d v1, Eigen::Vector3d v2) {
-	    return std::abs (g2o::normalize_theta(v2[2] - v1[2]));
+	    double angle1 = normalize_angle (v1[2]);
+	    double angle2 = normalize_angle (v2[2]);
+	    return smallest_diff_angle (angle1, angle2);
     }
 
 	std::vector<int> DataAssociation::associateByPPF (Pose::Ptr pose, std::vector<std::tuple<int /*classid*/, Eigen::Vector3d /*measurement*/> > data) {
@@ -402,6 +405,8 @@ namespace MYSLAM {
 		}
 
 		// calculate ppf of input
+//		std::ofstream dafile;
+//		dafile.open ("/home/ism/code/rosws/result/da-details.log", std::ios::out | std::ios::app);
 		for (int i = 0; i < N-1; i++) {
 			double ppf1 = calculatePPF1 (_measurements[i],_measurements[i+1]);
 			iPPF1.push_back (ppf1); 
@@ -411,14 +416,17 @@ namespace MYSLAM {
 			iPPF3.push_back (ppf3); 
 			double ppf4 = calculatePPF4 (_measurements[i],_measurements[i+1]);
 			iPPF4.push_back (ppf4); 
+//			dafile << i << " -- " << i+1 << " " << ppf1 << " " << ppf2 << " " << ppf3 << " " << ppf4 << std::endl;
 		}
+//		dafile << "*********************************************" << std::endl;
+//		dafile.close();
 
 //		std::ofstream f;
 //		f.open ("/home/ism/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
 		std::vector<std::vector<int> > out_tmp; 
 		associateByPPF1(pose, out_tmp);
 //		f << out_tmp.size() << " --> ";
-		associateByPPFN(pose, 2, out_tmp);
+//		associateByPPFN(pose, 2, out_tmp);
 //		f << out_tmp.size() << " --> ";
 //		associateByPPFN(pose, 3, out_tmp);
 //		f << out_tmp.size() << std::endl;
@@ -489,6 +497,9 @@ namespace MYSLAM {
 		next_set = _graph->_objectClassMap[_classids[idx+1]];
 		next_set.insert (-1);
 
+//		std::ofstream dafile;
+//		dafile.open ("/home/ism/code/rosws/result/da-details.log", std::ios::out | std::ios::app);
+
 		for (auto it = current_seq.begin(); it != current_seq.end(); it++) {
 			int o1 = it->back();
 			for (auto jt = next_set.begin(); jt != next_set.end(); jt++) {
@@ -496,16 +507,32 @@ namespace MYSLAM {
 
 				Eigen::Vector3d v1 = (o1 == -1 ? localToGlobal(pose,_measurements[idx]) : _graph->_objectMap[o1]->_pose);
 				Eigen::Vector3d v2 = (o2 == -1 ? localToGlobal(pose,_measurements[idx+1]) : _graph->_objectMap[o2]->_pose);
+//				double d1 = std::abs (calculatePPF1 (v1,v2) - iPPF1[idx]); 
+//				double d2 = std::abs (calculatePPF2 (v1,v2) - iPPF2[idx]); 
+//				double d3 = std::abs (calculatePPF2 (v2,v1) - iPPF3[idx]); 
+//				double d4 = std::abs (calculatePPF4 (v1,v2) - iPPF4[idx]); 
 				double d1 = std::abs (calculatePPF1 (v1,v2) - iPPF1[idx]); 
-				double d2 = std::abs (calculatePPF2 (v1,v2) - iPPF2[idx]); 
+				double d2 = smallest_diff_angle (calculatePPF2 (v1,v2), iPPF2[idx]); 
+				double d3 = smallest_diff_angle (calculatePPF2 (v2,v1), iPPF3[idx]); 
+				double d4 = smallest_diff_angle (calculatePPF4 (v1,v2), iPPF4[idx]); 
 
-				if (d1 < tPPF1 && d2 < tPPF2) {
+//				dafile << o1 	<< " -- " << o2
+//				       		<< " " << calculatePPF1(v1,v2) 
+//						<< " " << calculatePPF2(v1,v2) 
+//						<< " " << calculatePPF2(v2,v1) 
+//						<< " " << calculatePPF4(v1,v2) << " ";
+
+				if (d1 < tPPF1 && d2 < tPPF2 && d3 < tPPF3 && d4 < tPPF4) {
+//					dafile << "OK: " << std::endl;
 					std::vector<int> seq = *it;
 					seq.push_back (o2);
 					out.push_back (seq);
-				}
+				} 
+//				else  dafile << "NOT OK" << std::endl;
 			}
 		}
+//		dafile << "------------------------------------------" << std::endl;
+//		dafile.close();
 	}
 
 	double DataAssociation::calculateDiffPPFN (Pose::Ptr pose, int ppf, std::vector<int> id) {
@@ -517,9 +544,9 @@ namespace MYSLAM {
 
 			switch (ppf) {
 				case 1: out += std::abs (calculatePPF1 (o1,o2) - iPPF1[i]); break;
-				case 2: out += std::abs (calculatePPF2 (o1,o2) - iPPF2[i]); break;
-				case 3: out += std::abs (calculatePPF2 (o2,o1) - iPPF3[i]); break;
-				case 4: out += std::abs (calculatePPF4 (o1,o2) - iPPF4[i]); break;
+				case 2: out += smallest_diff_angle (calculatePPF2 (o1,o2), iPPF2[i]); break;
+				case 3: out += smallest_diff_angle (calculatePPF2 (o2,o1), iPPF3[i]); break;
+				case 4: out += smallest_diff_angle (calculatePPF4 (o1,o2), iPPF4[i]); break;
 				default: out += std::abs (calculatePPF1 (o1,o2) - iPPF1[i]); 
 			}
 		}
@@ -566,29 +593,37 @@ namespace MYSLAM {
 		int smallest = 100000000;
 		int index = 0;
 		for (auto it = minus1.begin(); it != minus1.end(); it++) {
-			double d = calculateDiffPPFN (pose, 1, data[it->first]);
+			double d1 = calculateDiffPPFN (pose, 1, data[it->first]);
+			double d2 = calculateDiffPPFN (pose, 2, data[it->first]);
+			double d3 = calculateDiffPPFN (pose, 3, data[it->first]);
+			double d4 = calculateDiffPPFN (pose, 4, data[it->first]);
+			double d = d1 + d2 + d3 + d4;
 			if (d < smallest) {
 				smallest = d;
 				index = it->first;
 			}
 		}
 
-		ofstream f;
-		f.open("/home/ism/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
-		std::map<double,int> s;
-		for (int i = 0; i < data.size(); i++) {
-			double d = calculateDiffPPFN (pose, 1, data[i]);
-			s[d] = i;
-		}
-
-		for (auto it = s.begin(); it != s.end(); it++) {
-			for (int j = 0; j < data[it->second].size(); j++) {
-				f << data[it->second][j] << " ";
-			}
-			f << " ------> " << it->first << std::endl;
-		}
-		f << "--------------------------------------------------" << std::endl;
-		f.close();
+//		ofstream f;
+//		f.open("/home/ism/code/rosws/result/threshold.log", std::ios::out | std::ios::app);
+//		std::map<double,int> s;
+//		for (int i = 0; i < data.size(); i++) {
+//			double d1 = calculateDiffPPFN (pose, 1, data[i]);
+//			double d2 = calculateDiffPPFN (pose, 2, data[i]);
+//			double d3 = calculateDiffPPFN (pose, 3, data[i]);
+//			double d4 = calculateDiffPPFN (pose, 4, data[i]);
+//			double d = d1 + d2 + d3 + d4;
+//			s[d] = i;
+//		}
+//
+//		for (auto it = s.begin(); it != s.end(); it++) {
+//			for (int j = 0; j < data[it->second].size(); j++) {
+//				f << data[it->second][j] << " ";
+//			}
+//			f << " ------> " << it->first << std::endl;
+//		}
+//		f << "--------------------------------------------------" << std::endl;
+//		f.close();
 
 		out = data[index];
 		return out;
