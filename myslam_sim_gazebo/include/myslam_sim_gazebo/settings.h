@@ -15,8 +15,11 @@ namespace MYSLAM {
     extern double A2;
     extern double A3;
     extern double A4;
-    extern double DIST_NOISE;
-    extern double THETA_NOISE;
+    extern double A5;
+    extern double A6;
+    extern double B1;
+    extern double B2;
+    extern double B3;
 
     void loadConfFile(const char* fileconfig);
 }

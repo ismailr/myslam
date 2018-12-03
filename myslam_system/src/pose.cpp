@@ -7,5 +7,12 @@ namespace MYSLAM {
         _pose.setZero();
     };
 
+    Pose3::Pose3() : _active (false) { 
+        _id = Generator::id++;
+        _pose.setIdentity();
+    };
+
     PoseVertex::PoseVertex(){};
+
+    Pose3Vertex::Pose3Vertex(){};
 }

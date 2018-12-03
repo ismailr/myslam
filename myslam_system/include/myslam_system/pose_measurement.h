@@ -31,6 +31,7 @@
 #include <fstream>
 
 #include <g2o/types/slam2d/edge_se2.h>
+#include <g2o/types/slam3d/edge_se3.h>
 
 #include "myslam_system/pose.h"
 
@@ -74,6 +75,31 @@ namespace MYSLAM {
                 Eigen::Vector3d measurement = _measurement.toVector();
                 _error = (measurement - prediction);
             }
+    };
+
+    class Pose3Measurement 
+    {
+        public:
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+            typedef std::shared_ptr<Pose3Measurement> Ptr;
+
+            Pose3Measurement();
+            int _from;
+            int _to;
+            g2o::Isometry3 _measurement;
+            bool _active;
+            unsigned long int _id;
+            Eigen::Matrix<double,6,6> _cov;
+            
+    };
+
+    class Pose3Edge : public EdgeSE3
+    {
+        public:
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+
+            Pose3Edge();
     };
 
 }

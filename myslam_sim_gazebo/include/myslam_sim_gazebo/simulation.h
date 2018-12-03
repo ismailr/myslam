@@ -23,18 +23,28 @@ namespace MYSLAM {
 			void callback2 (const nav_msgs::Odometry::ConstPtr& odom,
 				const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg);
 			void gzCallback (const gazebo_msgs::ModelStates::ConstPtr& model);
-			void addingNoise (const SE2&, SE2&);
+			void addingNoiseToOdom (const SE2&, SE2&);
+			void addingNoiseToObject (const myslam_sim_gazebo::LogicalImage::ConstPtr&, myslam_sim_gazebo::LogicalImage::Ptr&);
 			void addNodeToMap (Pose::Ptr&, const myslam_sim_gazebo::LogicalImage::ConstPtr&, double);
 			void publishTransform (SE2& /* odom */, int /* robot's pose id */, double /* timestamp */);
 			void saveData (std::string, SE2&);
 			void saveData (std::string, std::string);
 			void saveData (std::string, const gazebo_msgs::ModelStates::ConstPtr& models);
 
+			void calculateRMSE(double&, double&);
+
 			static int FRAMECOUNTER; 
 			static int KEYFRAMECOUNTER; 
 			static int CLASSIDCOUNTER; 
 			static int NUM_OBSV;
-			static int NUM_FALSE_DA;
+			static int NUM_TRUE_POS;
+			static int NUM_TRUE_NEG;
+			static int NUM_FALSE_POS;
+			static int NUM_FALSE_NEG;
+			static int NUM_OPT;
+			static double TIME_OPT;
+
+			std::map<int,double> time_map;
 
 		private:
 			Graph* _graph;
@@ -46,6 +56,9 @@ namespace MYSLAM {
 
 			std::map<std::string,int> oid; // object_type --> id
 			std::map<std::string, int> omap; // object_name --> id
+
+			std::map<int,Eigen::Vector3d> gtpath;
+
 	};
 }
 

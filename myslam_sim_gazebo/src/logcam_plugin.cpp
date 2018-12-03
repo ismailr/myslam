@@ -7,6 +7,8 @@
 
 using namespace gazebo;
 
+int LogicalCameraPlugin::objectid = 1;
+
 GZ_REGISTER_SENSOR_PLUGIN (LogicalCameraPlugin);
 
 void LogicalCameraPlugin::Load (sensors::SensorPtr _sensor, sdf::ElementPtr _sdf)
@@ -80,8 +82,12 @@ void LogicalCameraPlugin::onUpdate ()
 	for (int i = 0; i < n; i++) {
 		myslam_sim_gazebo::Model model_msg;
 
-		if (logical_image.model(i).name() == "ground_plane" || logical_image.model(i).name() == "indoor1")
-		    continue;
+		std::string obj_instance = logical_image.model(i).name();
+
+		if (obj_instance == "ground_plane" || obj_instance == "indoor1")
+			continue;
+		else if (string2id_map.find(obj_instance) == string2id_map.end()) 
+			string2id_map[obj_instance] = LogicalCameraPlugin::objectid++;
 
 		rendering::VisualPtr visual = scene->GetVisual (logical_image.model(i).name());
 
@@ -91,16 +97,11 @@ void LogicalCameraPlugin::onUpdate ()
 		//        math::Box bounding_box = visual->GetBoundingBox();
 
 		// add some noise
-		double position_noise = gaussian_generator<double>(0.0, MYSLAM::DIST_NOISE);
-		double orientation_noise = gaussian_generator<double>(0.0, MYSLAM::THETA_NOISE);
+//		double orientation_noise = gaussian_generator<double>(0.0, MYSLAM::THETA_NOISE);
 
 		double x = logical_image.model(i).pose().position().x();
 		double y = logical_image.model(i).pose().position().y();
 		double z = logical_image.model(i).pose().position().z();
-
-		double theta = atan2 (y,x);
-		x += position_noise * cos (theta);
-		y += position_noise * sin (theta);
 
 //		double range = sqrt (x*x + y*y);
 //		double bearing = atan2 (y,x);
@@ -114,8 +115,8 @@ void LogicalCameraPlugin::onUpdate ()
 //		range += range_noise;
 //		bearing += bearing_noise;
 //
-//		x += range * cos (bearing);
-//		y += range * sin (bearing);
+//		x = range * cos (bearing);
+//		y = range * sin (bearing);
 
 		model_msg.pose.position.x = x; 
 		model_msg.pose.position.y = y;
@@ -126,15 +127,11 @@ void LogicalCameraPlugin::onUpdate ()
 				logical_image.model(i).pose().orientation().y(),	
 				logical_image.model(i).pose().orientation().z(),	
 				logical_image.model(i).pose().orientation().w());
-		double roll, pitch, yaw;
-		tf::Matrix3x3 (q).getRPY (roll,pitch,yaw);
-
-//		double std_orientation = MYSLAM::B3 * range + MYSLAM::B4 * bearing + MYSLAM::B5 * yaw;
-
-//		double orientation_noise = gaussian_generator<double>(0.0, std_orientation);
-
-		yaw += orientation_noise;
-		q.setRPY (roll,pitch,yaw);
+//		double roll, pitch, yaw;
+//		tf::Matrix3x3 (q).getRPY (roll,pitch,yaw);
+//
+//		yaw += orientation_noise;
+//		q.setRPY (roll,pitch,yaw);
 
 		model_msg.pose.orientation.x = q.x();
 		model_msg.pose.orientation.y = q.y();
@@ -166,7 +163,7 @@ void LogicalCameraPlugin::onUpdate ()
 		landmark.range = sqrt (x*x + y*y);
 		landmark.yaw = atan2(y,x);
 		landmark.pitch = 0.0;
-		landmark.id = -1;
+		landmark.id = string2id_map[obj_instance];
 		landmarks.sensed_data.push_back (landmark);
 	}
 

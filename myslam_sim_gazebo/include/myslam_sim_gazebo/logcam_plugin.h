@@ -22,6 +22,8 @@ namespace gazebo {
 
             virtual void Load (sensors::SensorPtr _sensor, sdf::ElementPtr _sdf);
 
+	    static int objectid;
+
         protected:
             ros::NodeHandle *nh;
             ros::Publisher image_pub;
@@ -32,6 +34,8 @@ namespace gazebo {
 
             sensors::LogicalCameraSensorPtr parentSensor;
             event::ConnectionPtr updateConnection;
+
+	    std::map<std::string,int> string2id_map;
     };
 }
 

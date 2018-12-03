@@ -16,6 +16,16 @@ namespace MYSLAM {
         private:
             Graph *_graph;
     };
+
+    class Optimizer3 {
+
+        public:
+            Optimizer3 (Graph3&);
+            void localOptimize(int mode);
+
+        private:
+            Graph3 *_graph;
+    };
 }
 
 #endif

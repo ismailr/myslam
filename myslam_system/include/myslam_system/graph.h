@@ -4,6 +4,7 @@
 #include <map>
 #include <tuple>
 #include <set>
+#include <mutex>
 
 #include "myslam_system/types_myslam.h"
 
@@ -43,6 +44,30 @@ namespace MYSLAM {
             std::set<int> _lastActiveObjects;
             std::vector<std::tuple<int, int> > _activeEdges;
             std::vector<std::tuple<int, int> > _activePoseObjectEdges;
+    };
+
+    class Graph3 {
+
+        public:
+            EIGEN_MAKE_ALIGNED_OPERATOR_NEW;
+            Graph3();
+
+            std::map<int, Pose3::Ptr> _poseMap;
+            std::map<int, ObjectXYZ::Ptr> _objectMap;
+            std::map<int, std::set<int>> _objectClassMap;
+            std::map<int, Pose3Measurement::Ptr> _posePoseMap;
+            std::map<int, ObjectXYZMeasurement::Ptr> _poseObjectMap;
+
+            std::vector<int> _path;
+
+            void insertNode (Pose3::Ptr pose);
+            void insertNode (ObjectXYZ::Ptr object); 
+            void insertPosePoseEdge (int from, int to, g2o::Isometry3 d); 
+            void insertPoseObjectEdge (int from, int to, Eigen::Vector3d);
+            void resetActive ();
+
+        private:
+            std::mutex nodeMutex;
     };
 }
 

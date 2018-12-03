@@ -9,6 +9,9 @@
 #include "myslam_system/myslam_system.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
 
+#include <queue>
+#include <mutex>
+
 namespace MYSLAM {
 	class Slam {
 		public:
@@ -23,6 +26,7 @@ namespace MYSLAM {
 			void loadColoredCloudData();
 			void loadRGBData();
 			void loadOdomAndObjectData();
+            void loadSlamData();
 
 			void extractCloud (	const pcl::PointCloud<pcl::PointXYZ>::Ptr& inCloud,
 						pcl::PointCloud<pcl::PointXYZ>::Ptr& outCloud,
@@ -35,14 +39,26 @@ namespace MYSLAM {
                                     pcl::PointCloud<pcl::PointXYZRGB>::Ptr& outCloud); 
 
             void getObjectPosition (const pcl::PointCloud<pcl::PointXYZRGB>::Ptr& inCloud, Eigen::Vector3d&, Eigen::Vector3d&);
+            g2o::Vector3 getObjectPosition (pcl::PointCloud<pcl::PointXYZ> cloud, darknet_ros_msgs::BoundingBox bb); 
 
-            void saveData();
-            void loadSlamData();
             void run();
+            void init() { _frameToGraphMap[0] = frameToGraph(0);};
+            int frameToGraph(int frame_id); // return id of the node in the graph
+            g2o::Isometry3 calculateOdometryIncrement (int from, int to);
+
+			void saveData (const sensor_msgs::PointCloud2ConstPtr& cloud, 
+				const nav_msgs::OdometryConstPtr& odom,
+				const darknet_ros_msgs::BoundingBoxesConstPtr& bb);
+
+            void test();
+            void thread1(); 
+            void thread2(); 
+
+            g2o::SE3Quat odomToSE3Quat(nav_msgs::Odometry o); 
 
 		private:
-			Graph* _graph;
-			Optimizer* _opt;
+			Graph3* _graph;
+			Optimizer3* _opt;
 			ros::NodeHandle* _nh;
 
 			struct frame {
@@ -60,6 +76,16 @@ namespace MYSLAM {
 			};
 
 			std::vector<frame> _frame;
+            std::map<int, int> _frameToGraphMap;
+
+            struct Frame {
+                nav_msgs::Odometry odom;
+                sensor_msgs::PointCloud2 cloud;
+                std::vector<darknet_ros_msgs::BoundingBox> bb;
+            };
+
+            std::queue<Frame> _FrameQueue;
+            std::mutex _FrameMutex;
 	};
 }
 

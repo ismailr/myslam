@@ -6,7 +6,14 @@ namespace MYSLAM {
        _id = Generator::id++;
     }
 
+    ObjectXYZ::ObjectXYZ() : _active (false) {
+       _id = Generator::id++;
+    }
+
     ObjectVertex::ObjectVertex() {
+    }
+
+    ObjectXYZVertex::ObjectXYZVertex() {
     }
 
 }

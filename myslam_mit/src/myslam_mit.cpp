@@ -9,6 +9,8 @@
 #include "myslam_mit/slam.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
 
+#include <thread>
+
 int main (int argc, char** argv)
 {
 //	pcl::console::setVerbosityLevel (pcl::console::L_ALWAYS);
@@ -40,11 +42,15 @@ int main (int argc, char** argv)
 
 	sync.registerCallback (boost::bind (&MYSLAM::Slam::callback, &slam, _1, _2, _3, _4, _5));
 
+    std::thread t1 (&MYSLAM::Slam::thread1, &slam);
+    std::thread t2 (&MYSLAM::Slam::thread2, &slam);
+
 //    slam.loadOdomAndObjectData();
 //    slam.loadColoredCloudData();
 //    slam.saveData();
-    slam.run();
+//    slam.run();
+//      slam.test();
 
-//	ros::spin();
+	ros::spin();
 	return 0;
 }

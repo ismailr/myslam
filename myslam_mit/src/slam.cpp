@@ -4,6 +4,8 @@
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl_ros/point_cloud.h>
 
 #include <string>
 #include <fstream>
@@ -14,11 +16,13 @@
 
 namespace MYSLAM {
 
+    int static keyframe = 0;
+
 	Slam::Slam(ros::NodeHandle& nh)
 	       : _nh(&nh) {
 
-		       _graph = new MYSLAM::Graph();
-		       _opt = new MYSLAM::Optimizer(*_graph);
+		       _graph = new MYSLAM::Graph3();
+		       _opt = new MYSLAM::Optimizer3(*_graph);
 	}
 
 	void Slam::callback (const sensor_msgs::PointCloud2ConstPtr& cloud, 
@@ -27,26 +31,18 @@ namespace MYSLAM {
 		const nav_msgs::OdometryConstPtr& odom,
 		const darknet_ros_msgs::BoundingBoxesConstPtr& bb) {
 
-        std::ofstream f;
-        f.open ("/home/ism/Downloads/data.txt", std::ios::out | std::ios::app);
-        f   << "odom " 
-            << odom->pose.pose.position.x << " "
-            << odom->pose.pose.position.y << " "
-            << odom->pose.pose.position.z << " "
-            << odom->pose.pose.orientation.x << " "
-            << odom->pose.pose.orientation.y << " "
-            << odom->pose.pose.orientation.z << " "
-            << odom->pose.pose.orientation.w << std::endl;
+        Frame f;
+        f.odom = *odom;
+        f.cloud = *cloud;
 
-		for (auto it = bb->bounding_boxes.begin(); it != bb->bounding_boxes.end(); it++) {
-			f << it->Class << " "
-			  << it->probability << " "
-			  << it->xmin << " "
-			  << it->ymin << " "
-			  << it->xmax << " "
-			  << it->ymax << std::endl;
-		}
-        f.close();
+        for (int i = 0; i < bb->bounding_boxes.size(); i++)
+            f.bb.push_back (bb->bounding_boxes[i]);
+
+        {
+            std::unique_lock<std::mutex> lock (_FrameMutex);
+            _FrameQueue.push (f);
+            std::cout << _FrameQueue.size() << " ";
+        }
 	}
 
 	void Slam::loadCloudData() {
@@ -308,22 +304,70 @@ namespace MYSLAM {
         boundary[2] = zmin;
     }
 
-    void Slam::saveData() {
+    g2o::Vector3 Slam::getObjectPosition (  pcl::PointCloud<pcl::PointXYZ> cloud, 
+                                    darknet_ros_msgs::BoundingBox bb) {
 
-        int size = _frame.size();
+        pcl::PointCloud<pcl::PointXYZ> _cloud;
 
-        std::ofstream f;
-        f.open ("/home/ism/Downloads/data.txt", std::ios::out | std::ios::app);
-        for (int i = 0; i < size; i++) {
-
-            f << "ODOM: " << _frame[i].x << " " << _frame[i].y << " " << _frame[i].t << std::endl;
-            for (int j = 0; j < _frame[i].n_object_detected; j++) {
-                f   << _frame[i].category[j] << " " 
-                    << _frame[i].confidence[j] << " " 
-                    << _frame[i].pos[j].transpose() << " " 
-                    << _frame[i].boundary[j].transpose() << "\n"; 
+        for (int col = bb.xmin; col < bb.xmax; col++) {
+            for (int row = bb.ymin; row < bb.ymax; row++) {
+                _cloud.push_back (cloud.at(col,row));
             }
         }
+
+        int size = _cloud.size();
+        double xbar = 0.0, ybar = 0.0, zbar = 0.0;
+        for (int i = 0; i < size; i++) {
+            if (!pcl::isFinite(cloud.at(i))) continue;
+            
+            double x = cloud.at(i).x;
+            double y = cloud.at(i).y;
+            double z = cloud.at(i).z;
+
+            xbar += x;
+            ybar += y;
+            zbar += z;
+        }
+
+        xbar = (double) xbar/size;
+        ybar = (double) ybar/size;
+        zbar = (double) zbar/size;
+
+        return g2o::Vector3 (xbar, ybar, zbar);
+    }
+
+    void Slam::saveData(const sensor_msgs::PointCloud2ConstPtr& cloud,
+            const nav_msgs::OdometryConstPtr& odom,
+            const darknet_ros_msgs::BoundingBoxesConstPtr& bb) {
+
+        std::ofstream f;
+        f.open ("/home/ism/code/rosws/src/pclsave/data3/odom.txt", std::ios::out | std::ios::app);
+        f   << "odom " 
+            << odom->pose.pose.position.x << " "
+            << odom->pose.pose.position.y << " "
+            << odom->pose.pose.position.z << " "
+            << odom->pose.pose.orientation.x << " "
+            << odom->pose.pose.orientation.y << " "
+            << odom->pose.pose.orientation.z << " "
+            << odom->pose.pose.orientation.w << std::endl;
+
+		for (auto it = bb->bounding_boxes.begin(); it != bb->bounding_boxes.end(); it++) {
+			f << it->Class << " "
+			  << it->probability << " "
+			  << it->xmin << " "
+			  << it->ymin << " "
+			  << it->xmax << " "
+			  << it->ymax << std::endl;
+		}
+
+        std::string s = std::to_string(keyframe);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr pcl (new pcl::PointCloud<pcl::PointXYZ>);
+        pcl::fromROSMsg(*cloud,*pcl);
+        pcl::io::savePCDFileASCII ("/home/ism/code/rosws/src/pclsave/data3/cloud/" + s + ".pcd", *pcl);
+        keyframe++;
+
+        f.close();
+
     }
 
     void Slam::loadSlamData() {
@@ -359,5 +403,154 @@ namespace MYSLAM {
 
     void Slam::run() {
         loadSlamData();
+
+        init();
+
+        for (int i = 1; i < _frame.size(); i++) {
+
+        }
+    }
+
+    int Slam::frameToGraph(int id) {
+
+        // number of objects detected in current frame
+        int n = _frame[id].n_object_detected;
+
+        // set pose
+        Pose3::Ptr pose (new Pose3); _frameToGraphMap[id] = pose->_id;
+        Eigen::Vector3d trans (_frame[id].x, _frame[id].y, 0.0);
+        Eigen::Matrix3d rot; rot = Eigen::AngleAxisd (_frame[id].t, Eigen::Vector3d::UnitZ());
+        pose->_pose.translation() = trans;
+        pose->_pose.linear() = rot;
+
+//        set pose-pose measurement
+        if (id > 0) {
+            int prev_node_id = _frameToGraphMap[id-1];
+            int curr_node_id = pose->_id;
+
+            g2o::Isometry3 m = calculateOdometryIncrement (id-1, id);
+            _graph->insertPosePoseEdge (prev_node_id, curr_node_id, m);
+        }
+
+        // set objects
+        for (int i = 0; i < n; i++) {
+
+            ObjectXYZ::Ptr object (new ObjectXYZ);
+//            object->_classid = ;
+            object->_type = _frame[id].category[i];
+            object->_seenBy.insert (pose->_id);
+            object->_conf = _frame[id].confidence[i];
+            object->_pose = pose->_pose * object->_pose; // sensor model
+            _graph->insertNode (object);
+
+            pose->_detectedObjects.insert (object->_id);
+
+            Eigen::Vector3d m (_frame[id].pos[i][0], _frame[id].pos[i][1], _frame[id].pos[i][2]);
+            _graph->insertPoseObjectEdge (pose->_id, object->_id, m);
+        }
+
+        _graph->insertNode (pose);
+    }
+
+    g2o::Isometry3 Slam::calculateOdometryIncrement (int from, int to) {
+
+        SE2 u (_frame[from].x, _frame[from].y, _frame[from].t);
+        SE2 v (_frame[to].x, _frame[to].y, _frame[to].t);
+        Eigen::Vector3d increment = (u.inverse() * v).toVector();
+
+        Eigen::Vector3d translation (increment[0], increment[1], 0.0);
+        Eigen::Matrix3d rotation; rotation = Eigen::AngleAxisd (increment[2], Eigen::Vector3d::UnitZ());
+
+        g2o::Isometry3 result;
+        result.translation() = translation;
+        result.linear() = rotation;
+
+        return result;
+    }
+
+    void Slam::test() {
+
+        g2o::Isometry3 iso1;
+        Eigen::Vector3d v1 (1.0, 0.0, 0.0);
+        Eigen::Matrix3d r1; r1 = Eigen::AngleAxisd (.0, Eigen::Vector3d::UnitZ());
+        iso1.translation() = v1;
+        iso1.linear() = r1;
+        std::cout << iso1.matrix() << std::endl << std::endl;
+
+        g2o::Isometry3 iso2;
+        Eigen::Vector3d v2 (1.0, 0.0, 0.0);
+        Eigen::Matrix3d r2; r2 = Eigen::AngleAxisd (M_PI/2, Eigen::Vector3d::UnitZ());
+        iso2.translation() = v2;
+        iso2.linear() = r2;
+        std::cout << iso2.matrix() << std::endl << std::endl;
+
+        std::cout << (iso1.inverse() * iso2).matrix() << std::endl;
+
+
+    }
+
+    void Slam::thread1() {
+
+        while(1) {
+            if (_FrameQueue.size() > 0) {
+
+                Frame f;
+
+                {
+                    std::unique_lock<std::mutex> lock (_FrameMutex);
+                    f = _FrameQueue.front();
+                    _FrameQueue.pop();
+                    std::cout << _FrameQueue.size() << " ";
+                }
+
+                pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
+                pcl::fromROSMsg (f.cloud, *cloud); 
+
+                Pose3::Ptr pose (new Pose3);
+                pose->_pose = g2o::Isometry3 (odomToSE3Quat (f.odom));
+
+                int n = f.bb.size();
+
+                std::vector<ObjectXYZ::Ptr> observations;
+                for (int i = 0; i < n; i++) {
+
+                    ObjectXYZ::Ptr o (new ObjectXYZ);
+                    o->_pose = pose->_pose * getObjectPosition (*cloud, f.bb[i]);
+                    o->_classid = 0;
+                    o->_type = f.bb[i].Class;
+                    o->_conf = f.bb[i].probability;
+                    o->_seenBy.insert (pose->_id);
+
+                    observations.push_back (o);
+                }
+
+                // do data association for observations
+
+                _graph->insertNode (pose);
+
+            }
+        }
+    }
+
+    void Slam::thread2() {
+        while(1) {
+
+        }
+
+    }
+
+    g2o::SE3Quat Slam::odomToSE3Quat (nav_msgs::Odometry o) {
+
+        g2o::Vector3 translation (  o.pose.pose.position.x,
+                                    o.pose.pose.position.y,
+                                    o.pose.pose.position.z);
+        g2o::Quaternion rotation (  o.pose.pose.orientation.x,
+                                    o.pose.pose.orientation.y,
+                                    o.pose.pose.orientation.z,
+                                    o.pose.pose.orientation.w);
+        g2o::SE3Quat result;
+        result.setTranslation (translation);
+        result.setRotation (rotation);
+        return result;
     }
 }

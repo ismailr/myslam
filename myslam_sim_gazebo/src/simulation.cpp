@@ -20,7 +20,12 @@ namespace MYSLAM {
 	int Simulation::KEYFRAMECOUNTER = 0;
 	int Simulation::CLASSIDCOUNTER = 0;
 	int Simulation::NUM_OBSV = 0;
-	int Simulation::NUM_FALSE_DA = 0;
+	int Simulation::NUM_TRUE_POS = 0;
+	int Simulation::NUM_TRUE_NEG = 0;
+	int Simulation::NUM_FALSE_POS = 0;
+	int Simulation::NUM_FALSE_NEG = 0;
+	int Simulation::NUM_OPT = 0;
+	double Simulation::TIME_OPT = 0.0;
 
 	Simulation::Simulation(Graph& g, Optimizer& o, ros::NodeHandle& nh) 
 		: _graph (&g), _opt (&o), _nh (&nh) {
@@ -225,7 +230,7 @@ namespace MYSLAM {
 		saveData ("/home/ism/code/rosws/result/objectsgt.dat", model);
 	}
 
-	void Simulation::addingNoise (const SE2& odom, SE2& noisy_odom) {
+	void Simulation::addingNoiseToOdom (const SE2& odom, SE2& noisy_odom) {
 		
 		// noise parameter
 //		double a1 = 0.01;
@@ -237,6 +242,8 @@ namespace MYSLAM {
 		double a2 = MYSLAM::A2;
 		double a3 = MYSLAM::A3;
 		double a4 = MYSLAM::A4;
+		double odom_min_xy = MYSLAM::A5;
+		double odom_min_theta = MYSLAM::A6;
 
 //		double x1 = _lastOdom->translation().x();
 //		double y1 = _lastOdom->translation().y();
@@ -258,9 +265,9 @@ namespace MYSLAM {
 		double dtrans = sqrt (dx*dx + dy*dy);
 		double drot = g2o::normalize_theta (delta.rotation().angle());
 
-		double sdx = a1 * dtrans + a2 * std::abs (drot);
+		double sdx = odom_min_xy + a1 * dtrans + a2 * std::abs (drot);
 		double sdy = sdx;
-		double sdt = a3 * dtrans + a4 * std::abs (drot);
+		double sdt = odom_min_theta + a3 * dtrans + a4 * std::abs (drot);
 
 		double noisex = gaussian_generator<double>(0.0, sdx);
 		double noisey = noisex;
@@ -283,6 +290,7 @@ namespace MYSLAM {
 	void Simulation::callback2 (const nav_msgs::Odometry::ConstPtr& odom,
 		const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg)
 	{
+		clock_t start = clock();
 		if (logimg->models.size() < 2) return;
 
 		bool firstFrame = false;
@@ -311,12 +319,15 @@ namespace MYSLAM {
 
 			_lastPose = currentPose;
 
+			// RMSE
+			gtpath[currentPose->_id] = currentOdom.toVector();
+
 			return;
 		}
 
 		// Adding noise to odom
 		SE2 currentNoisyOdom; 
-		addingNoise (currentOdom, currentNoisyOdom);
+		addingNoiseToOdom (currentOdom, currentNoisyOdom);
 
 		SE2 delta = _lastNoisyOdom->inverse() * currentNoisyOdom;
 		SE2 lastPose; lastPose.fromVector (_lastPose->_pose);  
@@ -338,6 +349,9 @@ namespace MYSLAM {
 			}
 //			v.visualizeObjects(); // after optimization
 			KEYFRAMECOUNTER++;
+
+			// RMSE
+			gtpath[currentPose->_id] = currentOdom.toVector();
 		}
 
 		*_lastOdom = currentOdom;
@@ -357,24 +371,20 @@ namespace MYSLAM {
 //		saveData ("/home/ism/code/rosws/result/finalpose.dat", "pose");
 
 //		Visualizer v (*_nh, *_graph);
-//		v.visualizeObjects();
+//		v.visualizeObjectsmyslam_sim_gazebo::LogicalImage&);
+		clock_t end = clock();
+		time_map[FRAMECOUNTER] = (double)(end-start)/CLOCKS_PER_SEC;
 	}
 
 	void Simulation::addNodeToMap (Pose::Ptr& currentPose, const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg, double timestamp) {
 
 		_graph->insertNode (currentPose);
 
-		// limit distance and orientation view of logical camera
 		myslam_sim_gazebo::LogicalImage::Ptr logimg (new myslam_sim_gazebo::LogicalImage);
 		logimg->header = _logimg->header;
 		logimg->pose = _logimg->pose;
-		for (int i = 0; i < _logimg->models.size(); i++) {
-			Eigen::Vector2d p2 (_logimg->models[i].pose.position.x, _logimg->models[i].pose.position.y);
-			double d = (double) p2.norm();
-			double theta = normalize_theta (atan2 (_logimg->models[i].pose.position.y, _logimg->models[i].pose.position.x));
 
-			if (d < 5.0 && std::abs(theta) < 1.396) logimg->models.push_back (_logimg->models[i]);
-		}
+		addingNoiseToObject (_logimg, logimg);
 
 		if (logimg->models.size() < 3) return;
 
@@ -412,6 +422,10 @@ namespace MYSLAM {
 		dafile << std::endl;
 		DataAssociation da (*_graph);
 //		std::vector<int> result = da.associate (currentPose, data);
+//		std::ofstream df;
+//		df.open ("/home/ism/code/rosws/result/da-details.log", std::ios::out | std::ios::app);
+//		df << "===" << FRAMECOUNTER << std::endl;
+//		df.close();
 		std::vector<int> result = da.associateByPPF (currentPose, data);
 
 		dafile << "DASSOCIATION: ";
@@ -423,7 +437,9 @@ namespace MYSLAM {
 				// for debugging purpose
 				if (omap.count (logimg->models[i].name) > 0) {
 					dafile << std::endl << "ALERT!!! OBJECT ALREADY ON MAP" << std::endl;
-					Simulation::NUM_FALSE_DA++;
+					Simulation::NUM_FALSE_NEG++;
+				} else {
+					Simulation::NUM_TRUE_NEG++;
 				}
 
 				Object::Ptr ob (new Object);
@@ -448,13 +464,16 @@ namespace MYSLAM {
 				if (omap[logimg->models[i].name] != result[i]) {
 					if (omap[logimg->models[i].name] == 0) {
 						dafile << std::endl << "ALERT!!! WRONG DA: " << -1 << " <-- " << result[i] << std::endl;
-						Simulation::NUM_FALSE_DA++;
+						Simulation::NUM_FALSE_POS++;
 					}
 					else {
 						dafile << std::endl << "ALERT!!! WRONG DA: " << omap[logimg->models[i].name] << " <-- " << result[i] << std::endl; 
-						Simulation::NUM_FALSE_DA++;
+						Simulation::NUM_FALSE_POS++;
 					}
+				} else {
+					Simulation::NUM_TRUE_POS++;
 				}
+
 
 				o = _graph->_objectMap[result[i]];
 				o->_active = true;
@@ -471,8 +490,11 @@ namespace MYSLAM {
 		dafile << "---------------------------------------------" << std::endl;
 		dafile.close();
 
-		double percentage = (double)(Simulation::NUM_OBSV - Simulation::NUM_FALSE_DA) * 100.0/(double)Simulation::NUM_OBSV;
-		std::cout << Simulation::NUM_FALSE_DA << " | " << Simulation::NUM_OBSV << " = " << percentage << "% " << std::endl;
+//		double percentage = (double)(Simulation::NUM_TRUE_POS + Simulation::NUM_TRUE_NEG) * 100.0/(double)Simulation::NUM_OBSV;
+//		std::cout << "TP: " << Simulation::NUM_TRUE_POS << " "
+//			  << "TN: " << Simulation::NUM_TRUE_NEG << " " 
+//			  << "FP: " << Simulation::NUM_FALSE_POS << " "
+//			  << "FN: " << Simulation::NUM_FALSE_NEG << " --> " << percentage << "%" << std::endl;
 	}
 
 
@@ -555,5 +577,90 @@ namespace MYSLAM {
 		}
 
 		f.close();
+	}
+
+	void Simulation::addingNoiseToObject (const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg,
+			myslam_sim_gazebo::LogicalImage::Ptr& logimg) {
+			
+
+		for (auto it = _logimg->models.begin(); it != _logimg->models.end(); it++) {
+
+			double x = it->pose.position.x;
+			double y = it->pose.position.y;
+
+			double range = sqrt (x*x + y*y);
+			double bearing = atan2 (y,x);
+
+//			double std_r = MYSLAM::B1 * range; 
+//			double std_b = MYSLAM::B2 * bearing;
+			double std_r = MYSLAM::B1;
+			double std_b = MYSLAM::B2;
+
+			double range_noise = gaussian_generator<double>(0.0, std_r);
+			double bearing_noise = gaussian_generator<double>(0.0, std_b);
+
+			range += range_noise;
+			bearing += bearing_noise;
+
+			range = std::max (0.0, range);
+			bearing = g2o::normalize_theta (bearing);
+
+			x = range * cos (bearing);
+			y = range * sin (bearing);
+
+			double orientation_noise = gaussian_generator<double>(0.0, MYSLAM::B3);
+
+			tf::Quaternion q (
+				it->pose.orientation.x,	
+				it->pose.orientation.y,	
+				it->pose.orientation.z,	
+				it->pose.orientation.w);
+			double roll, pitch, yaw;
+			tf::Matrix3x3 (q).getRPY (roll,pitch,yaw);
+
+			yaw += orientation_noise;
+			yaw = g2o::normalize_theta (yaw);
+			q.setRPY (roll,pitch,yaw);
+
+			Eigen::Vector2d p2 (x, y);
+			double d = (double) p2.norm();
+			double theta = normalize_theta (atan2 (y, x));
+
+			// limit distance and orientation view of logical camera
+			if (d < 5.0 && std::fabs(theta) < 1.396) {
+
+			       	logimg->models.push_back(*it);
+				logimg->models.back().pose.position.x = x;
+				logimg->models.back().pose.position.y = y;
+				logimg->models.back().pose.orientation.x = q.x();
+				logimg->models.back().pose.orientation.y = q.y();
+				logimg->models.back().pose.orientation.z = q.z();
+				logimg->models.back().pose.orientation.w = q.w();
+			}
+		}
+	}
+
+	void Simulation::calculateRMSE (double& transl, double& rot) {
+
+		double cum_transl_error_squared = 0.0;
+		double cum_rot_error_squared = 0.0;
+
+		for (auto it = gtpath.begin(); it != gtpath.end(); it++) {
+
+			Eigen::Vector2d transl_truth (it->second.x(), it->second.y()); 
+			Eigen::Vector2d transl_est (_graph->_poseMap[it->first]->_pose.x(), _graph->_poseMap[it->first]->_pose.y());
+
+			cum_transl_error_squared += (transl_truth - transl_est).squaredNorm();
+
+			double rot_truth = it->second.z();
+			double rot_est = _graph->_poseMap[it->first]->_pose.z();
+			double rot_error = g2o::normalize_theta (rot_truth - rot_est);
+
+			cum_rot_error_squared += (rot_error*rot_error);
+		}
+
+		int N = gtpath.size();
+		transl = sqrt((double)(cum_transl_error_squared/N));
+		rot = sqrt ((double)(cum_rot_error_squared/N));
 	}
 }
