@@ -1,6 +1,7 @@
 #include <limits>
 #include <fstream>
 #include <algorithm>
+#include <thread>
 
 #include "myslam_system/data_association.h"
 #include "myslam_system/helpers.h"
@@ -628,4 +629,60 @@ namespace MYSLAM {
 		out = data[index];
 		return out;
 	}
+
+    DataAssociation3::DataAssociation3(Graph3& graph) :_graph(&graph) {
+
+    }
+
+    void DataAssociation3::associate (  g2o::Isometry3 currPose, 
+                                        std::vector<int> classes,
+                                        std::vector<g2o::Vector3> observations, 
+                                        std::vector<int>& associations) {
+
+        if (observations.size() < 3) return;
+
+        std::map<int,Pose3::Ptr> poseMap = _graph->getPoseMap();
+        std::map<int,ObjectXYZ::Ptr> objectMap = _graph->getObjectMap();
+        std::map<int,std::set<int>> objectClassMap = _graph->getObjectClassMap();
+        std::map<int,Pose3Measurement::Ptr> posePoseMap = _graph->getPosePoseMap();
+        std::map<int,ObjectXYZMeasurement::Ptr> poseObjectMap = _graph->getPoseObjectMap();
+
+        std::vector<std::tuple<int,int>> pairlist;
+        for (int i = 0; i < observations.size() - 1; i++) {
+            g2o::Vector3 f = observations[i+1] - observations[i];
+            std::tuple<int,int> pair;
+            findBestPair (f, objectMap, objectClassMap[classes[i]], objectClassMap[classes[i+1]], pair);
+            std::cout << std::endl;
+            pairlist.push_back (pair);
+        }
+
+        for (int i = 0; i < pairlist.size(); i++) {
+            std::cout << std::get<0>(pairlist[i]) << " -- " << std::get<1>(pairlist[i]) << "/";
+        }
+        std::cout << "--------------------------" << std::endl;
+
+//        std::tuple<int,int> pair0;
+//        std::thread t1 (&MYSLAM::DataAssociation3::findBestPair, this, features[0], objectMap, objectClassMap[0], objectClassMap[1], std::ref(pair0)); 
+//        t1.join();
+
+        for (int i = 0; i < observations.size(); i++)
+            associations.push_back(-1);
+    } 
+
+    void DataAssociation3::findBestPair (g2o::Vector3 v, std::map<int, ObjectXYZ::Ptr> o, std::set<int> s1, std::set<int> s2, std::tuple<int,int>& pair) {
+
+        double sim = std::numeric_limits<double>::max();
+        for (auto it = s1.begin(); it != s1.end(); it++) {
+            g2o::Vector3 v1 = o[*it]->_pose;
+            for (auto jt = s2.begin(); jt != s2.end(); jt++) {
+                if (*jt == *it) continue;
+                g2o::Vector3 v2 = o[*jt]->_pose;
+                g2o::Vector3 w = v2 - v1;
+                std::cout << v.transpose() << "| " << *jt << " --> " << *it << ": " << w.transpose() << " |w-v|: " <<  (w-v).norm() << std::endl; 
+                if ((w-v).norm() < sim) {
+                    pair = std::make_tuple(*it,*jt);
+                }
+            }
+        }
+    }
 }

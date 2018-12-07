@@ -59,6 +59,20 @@ namespace MYSLAM {
 	    std::vector<int> _classids;
 	    std::vector<Eigen::Vector3d> _measurements;
     };
+
+    class DataAssociation3 {
+
+        public:
+            DataAssociation3 (Graph3&);
+
+            void associate (g2o::Isometry3, std::vector<int>, std::vector<g2o::Vector3>, std::vector<int>&);
+
+            void findBestPair (g2o::Vector3 v, std::map<int, ObjectXYZ::Ptr> o, std::set<int> s1, std::set<int> s2, std::tuple<int,int>& pair); 
+
+        private:
+            Graph3* _graph;
+
+    };
 }
 
 #endif

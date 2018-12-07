@@ -7,6 +7,7 @@
 #include <sensor_msgs/Image.h>
 
 #include "myslam_system/myslam_system.h"
+#include "myslam_system/data_association.h"
 #include "darknet_ros_msgs/BoundingBoxes.h"
 
 #include <queue>
@@ -55,6 +56,14 @@ namespace MYSLAM {
             void thread2(); 
 
             g2o::SE3Quat odomToSE3Quat(nav_msgs::Odometry o); 
+
+            g2o::Isometry3 _lastOdom;
+            int _lastPoseId;
+            static bool _init;
+            static int _frameNum;
+
+            std::map<int, std::string> objectClass;
+            int getObjectClass (std::string);
 
 		private:
 			Graph3* _graph;

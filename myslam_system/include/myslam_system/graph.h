@@ -66,8 +66,16 @@ namespace MYSLAM {
             void insertPoseObjectEdge (int from, int to, Eigen::Vector3d);
             void resetActive ();
 
+            std::map<int, Pose3::Ptr> getPoseMap ();
+            std::map<int, ObjectXYZ::Ptr> getObjectMap ();
+            std::map<int, std::set<int>> getObjectClassMap ();
+            std::map<int, Pose3Measurement::Ptr> getPosePoseMap ();
+            std::map<int, ObjectXYZMeasurement::Ptr> getPoseObjectMap ();
+            std::vector<int> getPath ();
+
+            std::mutex _nodeMutex;
+
         private:
-            std::mutex nodeMutex;
     };
 }
 

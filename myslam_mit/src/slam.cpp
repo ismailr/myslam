@@ -16,6 +16,9 @@
 
 namespace MYSLAM {
 
+    bool Slam::_init = true;
+    int Slam::_frameNum = 0;
+
     int static keyframe = 0;
 
 	Slam::Slam(ros::NodeHandle& nh)
@@ -31,6 +34,8 @@ namespace MYSLAM {
 		const nav_msgs::OdometryConstPtr& odom,
 		const darknet_ros_msgs::BoundingBoxesConstPtr& bb) {
 
+//       if (Slam::_frameNum % 15 != 0 || bb->bounding_boxes.size() < 3) return;
+
         Frame f;
         f.odom = *odom;
         f.cloud = *cloud;
@@ -41,8 +46,9 @@ namespace MYSLAM {
         {
             std::unique_lock<std::mutex> lock (_FrameMutex);
             _FrameQueue.push (f);
-            std::cout << _FrameQueue.size() << " ";
         }
+
+        Slam::_frameNum++;
 	}
 
 	void Slam::loadCloudData() {
@@ -500,34 +506,61 @@ namespace MYSLAM {
                     std::unique_lock<std::mutex> lock (_FrameMutex);
                     f = _FrameQueue.front();
                     _FrameQueue.pop();
-                    std::cout << _FrameQueue.size() << " ";
                 }
 
                 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
                 pcl::fromROSMsg (f.cloud, *cloud); 
 
-                Pose3::Ptr pose (new Pose3);
-                pose->_pose = g2o::Isometry3 (odomToSE3Quat (f.odom));
+                g2o::Isometry3 currOdom = g2o::Isometry3(odomToSE3Quat(f.odom));
 
-                int n = f.bb.size();
-
-                std::vector<ObjectXYZ::Ptr> observations;
-                for (int i = 0; i < n; i++) {
-
-                    ObjectXYZ::Ptr o (new ObjectXYZ);
-                    o->_pose = pose->_pose * getObjectPosition (*cloud, f.bb[i]);
-                    o->_classid = 0;
-                    o->_type = f.bb[i].Class;
-                    o->_conf = f.bb[i].probability;
-                    o->_seenBy.insert (pose->_id);
-
-                    observations.push_back (o);
+                std::vector<g2o::Vector3> observations;
+                std::vector<int> classes;
+                for (int i = 0; i < f.bb.size(); i++) {
+                    observations.push_back (getObjectPosition(*cloud,f.bb[i]));
+                    classes.push_back (getObjectClass(f.bb[i].Class));
                 }
 
-                // do data association for observations
+                std::vector<int> associations;
+                DataAssociation3 da (*_graph);
+                da.associate (currOdom, classes, observations, associations); 
+
+                Pose3::Ptr pose (new Pose3);
+                int currPoseId = pose->_id;
+                pose->_pose = currOdom;
+
+                if (!Slam::_init) {
+                    _graph->insertPosePoseEdge (_lastPoseId, currPoseId, _lastOdom.inverse() * currOdom);
+                }
+
+                for (int i = 0; i < observations.size(); i++) {
+
+                    ObjectXYZ::Ptr o;
+
+                    if (associations[i] == -1) {
+                        ObjectXYZ::Ptr ob (new ObjectXYZ);
+                        o = ob;
+                        o->_classid = getObjectClass (f.bb[i].Class);
+                        o->_pose = currOdom * observations[i];
+                        o->_type = f.bb[i].Class;
+                        o->_conf = f.bb[i].probability;
+                        o->_seenBy.insert (currPoseId);
+                        _graph->insertNode (o);
+                    } else {
+                        std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
+                        o = _graph->_objectMap[associations[i]];
+                        o->_seenBy.insert(currPoseId);
+                    }
+
+                    pose->_detectedObjects.insert (o->_id);
+                    _graph->insertPoseObjectEdge (currPoseId, o->_id, observations[i]);
+                }
 
                 _graph->insertNode (pose);
 
+                _lastPoseId = currPoseId;
+                _lastOdom = currOdom;
+
+                if (Slam::_init == true) Slam::_init = false;
             }
         }
     }
@@ -552,5 +585,18 @@ namespace MYSLAM {
         result.setTranslation (translation);
         result.setRotation (rotation);
         return result;
+    }
+
+    int Slam::getObjectClass (std::string c) {
+
+        for (auto it = objectClass.begin(); it != objectClass.end(); it++) {
+            if (it->second == c)
+                return it->first;
+        }
+
+        int newId;
+        objectClass.empty() ? newId = 0 : newId = objectClass.rbegin()->first + 1;
+        objectClass[newId] = c;
+        return newId;
     }
 }

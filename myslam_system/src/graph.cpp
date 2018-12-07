@@ -60,7 +60,7 @@ namespace MYSLAM {
 
     void Graph3::insertNode (Pose3::Ptr pose) {
         {
-            std::unique_lock<std::mutex> lock (nodeMutex);
+            std::unique_lock<std::mutex> lock (_nodeMutex);
             pose->_active = true;
             _poseMap[pose->_id] = pose;
             _path.push_back (pose->_id);
@@ -68,14 +68,14 @@ namespace MYSLAM {
     }
 
     void Graph3::insertNode (ObjectXYZ::Ptr object) {
-        std::unique_lock<std::mutex> lock (nodeMutex);
+        std::unique_lock<std::mutex> lock (_nodeMutex);
         object->_active = true;
         _objectMap[object->_id] = object;
         _objectClassMap[object->_classid].insert (object->_id); 
     }
 
     void Graph3::insertPosePoseEdge (int from, int to, g2o::Isometry3 d) {
-        std::unique_lock<std::mutex> lock (nodeMutex);
+        std::unique_lock<std::mutex> lock (_nodeMutex);
         Pose3Measurement::Ptr pm (new Pose3Measurement);
         pm->_active = true;
         pm->_from = from;
@@ -85,7 +85,7 @@ namespace MYSLAM {
     }
 
     void Graph3::insertPoseObjectEdge (int from, int to, Eigen::Vector3d d) {
-        std::unique_lock<std::mutex> lock (nodeMutex);
+        std::unique_lock<std::mutex> lock (_nodeMutex);
         ObjectXYZMeasurement::Ptr om (new ObjectXYZMeasurement);
         om->_active = true;
         om->_from = from;
@@ -97,23 +97,53 @@ namespace MYSLAM {
     void Graph3::resetActive () {
 
         for (auto it = _poseMap.begin(); it != _poseMap.end(); it++) {
-            std::unique_lock<std::mutex> lock (nodeMutex);
+            std::unique_lock<std::mutex> lock (_nodeMutex);
             (it->second)->_active = false;
         }
 
         for (auto it = _objectMap.begin(); it != _objectMap.end(); it++) {
-            std::unique_lock<std::mutex> lock (nodeMutex);
+            std::unique_lock<std::mutex> lock (_nodeMutex);
             (it->second)->_active = false;
         }
 
         for (auto it = _posePoseMap.begin(); it != _posePoseMap.end(); it++) {
-            std::unique_lock<std::mutex> lock (nodeMutex);
+            std::unique_lock<std::mutex> lock (_nodeMutex);
             (it->second)->_active = false;
         }
 
         for (auto it = _poseObjectMap.begin(); it != _poseObjectMap.end(); it++) {
-            std::unique_lock<std::mutex> lock (nodeMutex);
+            std::unique_lock<std::mutex> lock (_nodeMutex);
             (it->second)->_active = false;
         }
+    }
+
+    std::map<int, Pose3::Ptr> Graph3::getPoseMap () {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _poseMap;
+    }
+
+    std::map<int, ObjectXYZ::Ptr> Graph3::getObjectMap () {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _objectMap;
+    }
+
+    std::map<int, std::set<int>> Graph3::getObjectClassMap () {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _objectClassMap;
+    }
+
+    std::map<int, Pose3Measurement::Ptr> Graph3::getPosePoseMap () {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _posePoseMap;
+    }
+
+    std::map<int, ObjectXYZMeasurement::Ptr> Graph3::getPoseObjectMap () {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _poseObjectMap;
+    }
+
+    std::vector<int> Graph3::getPath () {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _path;
     }
 }
