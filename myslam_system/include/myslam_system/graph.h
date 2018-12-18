@@ -76,6 +76,17 @@ namespace MYSLAM {
             std::mutex _nodeMutex;
 
         private:
+
+            std::mutex _gridMutex;
+            std::map<std::tuple<int,int,int>,std::set<int>> _grid;
+            std::map<int, std::tuple<int,int,int>> _gridLookup;
+
+        public:
+            void updateGrid (int objectId);
+            std::map<std::tuple<int,int,int>,std::set<int>> getGrid () { return _grid; };
+            std::map<int, std::tuple<int,int,int>> getGridLookup () { return _gridLookup; };
+            std::set<int> lookSurroundingCell (std::tuple<int,int,int>);
+            std::set<int> matchSurroundingCell (int, std::tuple<int,int,int>);
     };
 }
 

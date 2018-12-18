@@ -66,12 +66,25 @@ namespace MYSLAM {
             DataAssociation3 (Graph3&);
 
             void associate (g2o::Isometry3, std::vector<int>, std::vector<g2o::Vector3>, std::vector<int>&);
-
-            void findBestPair (g2o::Vector3 v, std::map<int, ObjectXYZ::Ptr> o, std::set<int> s1, std::set<int> s2, std::tuple<int,int>& pair); 
+            void associateByGrid (g2o::Isometry3, std::vector<int>, std::vector<g2o::Vector3>, std::vector<int>&);
+            void findBestPair (int n, g2o::Vector3 v1, g2o::Vector3 v2, g2o::Isometry3 odom, std::set<int> s1, std::set<int> s2, std::vector<std::tuple<int,int>>& pairs); 
+            void findBestPairBB (std::vector<int>& hypothesis, int i);
 
         private:
             Graph3* _graph;
 
+            int _m; // num of observations
+            std::vector<int> _best;
+
+            std::map<int, ObjectXYZ::Ptr> _objectMap;
+            std::map<int, std::set<int>> _objectClassMap;
+            std::vector<int> _classes;
+            std::vector<g2o::Vector3> _observations;
+
+            int pairings (const std::vector<int>& H);
+            bool binary (int i, int j, int k, int l, const std::vector<int>& H);
+
+            g2o::Isometry3 _odom;
     };
 }
 

@@ -2,10 +2,10 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/visualization/cloud_viewer.h>
-#include <pcl/common/transforms.h>
 #include <pcl/filters/filter.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/point_cloud.h>
+#include <pcl_ros/transforms.h>
 
 #include <string>
 #include <fstream>
@@ -26,6 +26,7 @@ namespace MYSLAM {
 
 		       _graph = new MYSLAM::Graph3();
 		       _opt = new MYSLAM::Optimizer3(*_graph);
+               _listener = new tf::TransformListener;
 	}
 
 	void Slam::callback (const sensor_msgs::PointCloud2ConstPtr& cloud, 
@@ -34,7 +35,10 @@ namespace MYSLAM {
 		const nav_msgs::OdometryConstPtr& odom,
 		const darknet_ros_msgs::BoundingBoxesConstPtr& bb) {
 
-//       if (Slam::_frameNum % 15 != 0 || bb->bounding_boxes.size() < 3) return;
+        if (Slam::_frameNum % 15 != 0 || bb->bounding_boxes.size() < 3)  {
+            Slam::_frameNum++;
+            return;
+        }
 
         Frame f;
         f.odom = *odom;
@@ -285,8 +289,11 @@ namespace MYSLAM {
         int size = inCloud->size();
         double xbar = 0.0, ybar = 0.0, zbar = 0.0;
         double xmin = 10000.0, ymin = 10000.0, zmin = 10000.0;
+        int counter = 0;
         for (int i = 0; i < size; i++) {
             if (!pcl::isFinite(inCloud->at(i))) continue;
+
+            counter++;
             
             double x = inCloud->at(i).x;
             double y = inCloud->at(i).y;
@@ -301,9 +308,9 @@ namespace MYSLAM {
             z < zmin ? zmin = z : zmin = zmin;
         }
 
-        pos[0] = (double) xbar/size;
-        pos[1] = (double) ybar/size;
-        pos[2] = (double) zbar/size;
+        pos[0] = (double) xbar/counter;
+        pos[1] = (double) ybar/counter;
+        pos[2] = (double) zbar/counter;
 
         boundary[0] = xmin;
         boundary[1] = ymin;
@@ -322,22 +329,25 @@ namespace MYSLAM {
         }
 
         int size = _cloud.size();
+        int counter = 0;
         double xbar = 0.0, ybar = 0.0, zbar = 0.0;
         for (int i = 0; i < size; i++) {
-            if (!pcl::isFinite(cloud.at(i))) continue;
+            if (!pcl::isFinite(_cloud.at(i))) continue;
+
+            counter++;
             
-            double x = cloud.at(i).x;
-            double y = cloud.at(i).y;
-            double z = cloud.at(i).z;
+            double x = _cloud.at(i).x;
+            double y = _cloud.at(i).y;
+            double z = _cloud.at(i).z;
 
             xbar += x;
             ybar += y;
             zbar += z;
         }
 
-        xbar = (double) xbar/size;
-        ybar = (double) ybar/size;
-        zbar = (double) zbar/size;
+        xbar = xbar/(double)counter;
+        ybar = ybar/(double)counter;
+        zbar = zbar/(double)counter;
 
         return g2o::Vector3 (xbar, ybar, zbar);
     }
@@ -511,18 +521,41 @@ namespace MYSLAM {
                 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
                 pcl::fromROSMsg (f.cloud, *cloud); 
 
+                tf::StampedTransform transform;
+                try {
+                    _listener->lookupTransform ("/base_link", "/openni_rgb_optical_frame",
+                            ros::Time(0), transform);
+                } catch (tf::TransformException ex) {
+                    ROS_ERROR ("%s", ex.what());
+                    ros::Duration (1.0).sleep();
+                }
+
                 g2o::Isometry3 currOdom = g2o::Isometry3(odomToSE3Quat(f.odom));
 
                 std::vector<g2o::Vector3> observations;
                 std::vector<int> classes;
                 for (int i = 0; i < f.bb.size(); i++) {
-                    observations.push_back (getObjectPosition(*cloud,f.bb[i]));
-                    classes.push_back (getObjectClass(f.bb[i].Class));
-                }
+                    g2o::Vector3 pos = getObjectPosition (*cloud, f.bb[i]);
+                    tf::Vector3 v (pos[0], pos[1], pos[2]);
+                    v = transform * v;
+                    pos << v[0], v[1], v[2];
+                    int cls = getObjectClass (f.bb[i].Class);
+                    observations.push_back (pos);
+                    classes.push_back (cls);
 
+//                    std::cout << f.bb[i].Class << "\t" << pos.transpose() << "\t-->\t" << (currOdom * pos).transpose() << std::endl;
+                }
+//                std::cout << "---------------------------\n";
+
+                std::cout << "READY TO DA\n";
                 std::vector<int> associations;
                 DataAssociation3 da (*_graph);
-                da.associate (currOdom, classes, observations, associations); 
+                da.associateByGrid (currOdom, classes, observations, associations); 
+                std::cout << "DONE DA\n";
+                
+//                for (int i = 0; i < associations.size(); i++)
+//                    std::cout << associations[i] << "/";
+//                std::cout << std::endl;
 
                 Pose3::Ptr pose (new Pose3);
                 int currPoseId = pose->_id;
@@ -532,9 +565,12 @@ namespace MYSLAM {
                     _graph->insertPosePoseEdge (_lastPoseId, currPoseId, _lastOdom.inverse() * currOdom);
                 }
 
+                std::cout << "LOOPING " << observations.size() << " INSERTING NODE\n";
                 for (int i = 0; i < observations.size(); i++) {
+                    std::cout << "LOOP NUM " << i << "\n";
 
                     ObjectXYZ::Ptr o;
+                    std::cout << "ASSOCIATIONS NUMBER " << i << " = " << associations[i] << "\n";
 
                     if (associations[i] == -1) {
                         ObjectXYZ::Ptr ob (new ObjectXYZ);
@@ -544,16 +580,21 @@ namespace MYSLAM {
                         o->_type = f.bb[i].Class;
                         o->_conf = f.bb[i].probability;
                         o->_seenBy.insert (currPoseId);
+                        std::cout << "INSERTING NODE " << i << "\n";
                         _graph->insertNode (o);
+                        std::cout << "DONE INSERTING NODE\n";
                     } else {
                         std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
                         o = _graph->_objectMap[associations[i]];
                         o->_seenBy.insert(currPoseId);
                     }
 
+                    std::cout << "INSERTING POSE OBJECT EDGE\n";
                     pose->_detectedObjects.insert (o->_id);
                     _graph->insertPoseObjectEdge (currPoseId, o->_id, observations[i]);
+                    std::cout << "DONE INSERTING POSE OBJECT EDGE\n";
                 }
+                std::cout << "DONE LOOPING\n";
 
                 _graph->insertNode (pose);
 

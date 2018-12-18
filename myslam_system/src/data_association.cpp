@@ -2,6 +2,7 @@
 #include <fstream>
 #include <algorithm>
 #include <thread>
+#include <math.h>
 
 #include "myslam_system/data_association.h"
 #include "myslam_system/helpers.h"
@@ -630,59 +631,189 @@ namespace MYSLAM {
 		return out;
 	}
 
-    DataAssociation3::DataAssociation3(Graph3& graph) :_graph(&graph) {
-
+    DataAssociation3::DataAssociation3(Graph3& graph)
+       :_graph(&graph) {
+        _objectMap = _graph->getObjectMap();
+        _objectClassMap = _graph->getObjectClassMap();
     }
 
-    void DataAssociation3::associate (  g2o::Isometry3 currPose, 
+    void DataAssociation3::associate (  g2o::Isometry3 odom, 
                                         std::vector<int> classes,
                                         std::vector<g2o::Vector3> observations, 
                                         std::vector<int>& associations) {
 
         if (observations.size() < 3) return;
 
-        std::map<int,Pose3::Ptr> poseMap = _graph->getPoseMap();
-        std::map<int,ObjectXYZ::Ptr> objectMap = _graph->getObjectMap();
-        std::map<int,std::set<int>> objectClassMap = _graph->getObjectClassMap();
-        std::map<int,Pose3Measurement::Ptr> posePoseMap = _graph->getPosePoseMap();
-        std::map<int,ObjectXYZMeasurement::Ptr> poseObjectMap = _graph->getPoseObjectMap();
+        _observations = observations;
+        _classes = classes;
+        _m = _observations.size();
+        _odom = odom;
 
+        std::vector<int> H;
         std::vector<std::tuple<int,int>> pairlist;
         for (int i = 0; i < observations.size() - 1; i++) {
-            g2o::Vector3 f = observations[i+1] - observations[i];
-            std::tuple<int,int> pair;
-            findBestPair (f, objectMap, objectClassMap[classes[i]], objectClassMap[classes[i+1]], pair);
-            std::cout << std::endl;
-            pairlist.push_back (pair);
-        }
+            std::set<int> from;
+            std::set<int> to = _objectClassMap[classes[i+1]];
 
-        for (int i = 0; i < pairlist.size(); i++) {
-            std::cout << std::get<0>(pairlist[i]) << " -- " << std::get<1>(pairlist[i]) << "/";
-        }
-        std::cout << "--------------------------" << std::endl;
+            if (i == 0) {
+                from = _objectClassMap[classes[i]];
+            } else {
+                for (auto it = pairlist.begin(); it != pairlist.end(); it++) {
+                    from.insert (std::get<1>(*it));
+                }
+            }
 
-//        std::tuple<int,int> pair0;
-//        std::thread t1 (&MYSLAM::DataAssociation3::findBestPair, this, features[0], objectMap, objectClassMap[0], objectClassMap[1], std::ref(pair0)); 
-//        t1.join();
+            pairlist.clear();
+            findBestPair (3, observations[i], observations[i+1], odom, from, to, pairlist);
 
-        for (int i = 0; i < observations.size(); i++)
-            associations.push_back(-1);
-    } 
-
-    void DataAssociation3::findBestPair (g2o::Vector3 v, std::map<int, ObjectXYZ::Ptr> o, std::set<int> s1, std::set<int> s2, std::tuple<int,int>& pair) {
-
-        double sim = std::numeric_limits<double>::max();
-        for (auto it = s1.begin(); it != s1.end(); it++) {
-            g2o::Vector3 v1 = o[*it]->_pose;
-            for (auto jt = s2.begin(); jt != s2.end(); jt++) {
-                if (*jt == *it) continue;
-                g2o::Vector3 v2 = o[*jt]->_pose;
-                g2o::Vector3 w = v2 - v1;
-                std::cout << v.transpose() << "| " << *jt << " --> " << *it << ": " << w.transpose() << " |w-v|: " <<  (w-v).norm() << std::endl; 
-                if ((w-v).norm() < sim) {
-                    pair = std::make_tuple(*it,*jt);
+            if (i == 0) {
+                H.push_back(std::get<0>(pairlist[0]));
+                H.push_back(std::get<1>(pairlist[0]));
+            } else {
+                for (int j = 0; j < pairlist.size(); j++) {
+                    if (std::get<0>(pairlist[j]) == H.back())
+                            H.push_back (std::get<1>(pairlist[j]));
                 }
             }
         }
+
+        associations = H;
+    } 
+
+    void DataAssociation3::findBestPair (int n, g2o::Vector3 v1, g2o::Vector3 v2, g2o::Isometry3 odom, std::set<int> s1, std::set<int> s2, std::vector<std::tuple<int,int>>& best) {
+
+        std::map<int,std::tuple<int,int>> pairs;
+
+        g2o::Vector3 v = v2-v1;
+        for (auto it = s1.begin(); it != s1.end(); it++) {
+            g2o::Vector3 w1;
+            if (*it == -1) 
+                w1 = v1;
+            else
+                w1 = odom.inverse() * _objectMap[*it]->_pose;
+
+            for (auto jt = s2.begin(); jt != s2.end(); jt++) {
+                if (*jt == *it) continue;
+                g2o::Vector3 w2 = odom.inverse() * _objectMap[*jt]->_pose;
+                g2o::Vector3 w = w2 - w1;
+                double norm = (w-v).norm();
+                if (norm > 0.1) continue;
+                int key = norm*100000000;
+                pairs[key] = std::make_tuple (*it, *jt);
+            }
+        }
+
+        if (pairs.empty()) 
+            best.push_back (std::make_tuple(-1,-1));
+        else {
+            for (auto it = pairs.begin(); it != pairs.end(); it++) {
+                if (n == 0) break;
+                best.push_back (it->second);
+                n--;
+            }
+        }
+    }
+
+    void DataAssociation3::findBestPairBB (std::vector<int>& H, int i) {
+
+        if (i > _m) {
+            if (pairings(H) > pairings(_best))
+                    _best = H;
+        } else {
+            for (auto   it  = _objectClassMap[_classes[i-1]].begin(); 
+                        it != _objectClassMap[_classes[i-1]].end(); it++) 
+            {
+                for (auto   jt  = _objectClassMap[_classes[i]].begin();
+                            jt != _objectClassMap[_classes[i]].end(); jt++) {
+
+                        if (binary(i, i+1, *it, *jt, H)) {
+
+                            if (H.empty()) {
+                                H.push_back(*it);
+                                H.push_back(*jt);
+                            } else {
+                                H.push_back(*jt);
+                            }
+
+                            findBestPairBB (H, i + 1);
+                        }
+                }
+            }
+
+            if (pairings(H) + _m - i > pairings(_best)) {
+
+                if (H.empty()) {
+                    H.push_back(-1);
+                    H.push_back(-1);
+                } else {
+                    H.push_back(-1);
+                }
+
+                findBestPairBB (H, i + 1);
+            }
+        }
+    }
+
+    int DataAssociation3::pairings (const std::vector<int>& H) {
+        int num = 0;
+        for (int i = 0; i < H.size(); i++)
+            if (H[i] != -1) num++;
+        return num;
+    }
+
+    bool DataAssociation3::binary (int i, int j, int k, int l, const std::vector<int>& H) {
+
+        g2o::Vector3 v = _observations[j-1] - _observations[i-1];
+        g2o::Vector3 w = _odom.inverse() * (_objectMap[l]->_pose - _objectMap[k]->_pose);
+        double diff = (w-v).norm();
+        if (diff < 0.1)
+            return true;
+        else
+            return false;
+    }
+
+
+    void DataAssociation3::associateByGrid (    g2o::Isometry3 odom, 
+                                                std::vector<int> classes,
+                                                std::vector<g2o::Vector3> observations, 
+                                                std::vector<int>& associations) {
+
+        std::vector<Eigen::Vector3i> _observationsGrid;
+        for (int i = 0; i < observations.size(); i++) {
+            g2o::Vector3 o = odom.rotation() * observations[i];
+            int x = (int) std::floor (o[0] * 10);
+            int y = (int) std::floor (o[1] * 10);
+            int z = (int) std::floor (o[2] * 10);
+            _observationsGrid.push_back (Eigen::Vector3i (x,y,z));
+        }
+
+        auto objectClassMap = _graph->getObjectClassMap();
+        auto grid = _graph->getGrid();
+        auto gridLookup = _graph->getGridLookup();
+
+        for (int i = 0; i < _observationsGrid.size(); i++) {
+
+            std::set<int> objects = objectClassMap[classes[i]];
+
+            if (objects.empty()) continue;
+
+            for (auto jt = objects.begin(); jt != objects.end(); jt++) {
+
+                for (int k = 0; k < _observationsGrid.size(); k++) {
+
+                    if (k == i) continue;
+
+                    Eigen::Vector3i diff = _observationsGrid[k] - _observationsGrid[i];
+                    auto cell = gridLookup[*jt];
+                    int x_k = std::get<0>(cell) + diff[0];
+                    int y_k = std::get<1>(cell) + diff[1];
+                    int z_k = std::get<2>(cell) + diff[2];
+                    std::set<int> result = _graph->matchSurroundingCell (classes[i], std::make_tuple(x_k, y_k, z_k));
+                }
+            }
+        }
+
+        for (int i = 0; i < observations.size(); i++)
+            associations.push_back(-1);
     }
 }

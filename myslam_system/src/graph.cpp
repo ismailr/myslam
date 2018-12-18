@@ -68,10 +68,22 @@ namespace MYSLAM {
     }
 
     void Graph3::insertNode (ObjectXYZ::Ptr object) {
-        std::unique_lock<std::mutex> lock (_nodeMutex);
-        object->_active = true;
-        _objectMap[object->_id] = object;
-        _objectClassMap[object->_classid].insert (object->_id); 
+        {
+            std::unique_lock<std::mutex> lock (_nodeMutex);
+            object->_active = true;
+            _objectMap[object->_id] = object;
+            _objectClassMap[object->_classid].insert (object->_id); 
+        }
+
+        int x = (int)floor((object->_pose[0])*10);
+        int y = (int)floor((object->_pose[1])*10);
+        int z = (int)floor((object->_pose[2])*10);
+        std::tuple<int,int,int> xyz = std::make_tuple(x,y,z);
+        {
+            std::unique_lock<std::mutex> lock (_gridMutex);
+            _grid[xyz].insert(object->_id); 
+            _gridLookup[object->_id] = xyz;
+        }
     }
 
     void Graph3::insertPosePoseEdge (int from, int to, g2o::Isometry3 d) {
@@ -145,5 +157,65 @@ namespace MYSLAM {
     std::vector<int> Graph3::getPath () {
         std::unique_lock<std::mutex> lock (_nodeMutex);
         return _path;
+    }
+
+    void Graph3::updateGrid (int id) {
+
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        int x = (int) floor (_objectMap[id]->_pose[0] * 10);
+        int y = (int) floor (_objectMap[id]->_pose[1] * 10);
+        int z = (int) floor (_objectMap[id]->_pose[2] * 10);
+
+        auto xyz = std::make_tuple (x,y,z);
+
+        {
+            std::unique_lock<std::mutex> lock (_gridMutex);
+            auto _xyz = _gridLookup[id];
+            auto it = _grid[_xyz].find(id);
+            if (it != _grid[_xyz].end()) _grid[_xyz].erase(it);
+            _grid[xyz].insert(id);
+            _gridLookup[id] = xyz;
+        }
+    }
+
+    std::set<int> Graph3::lookSurroundingCell (std::tuple<int,int,int> xyz) {
+
+        std::set<int> result;
+
+        int x = std::get<0>(xyz);
+        int y = std::get<1>(xyz);
+        int z = std::get<2>(xyz);
+
+        std::vector<int> xs { x-1, x, x+1 };
+        std::vector<int> ys { y-1, y, y+1 };
+        std::vector<int> zs { z-1, z, z+1 };
+
+        std::unique_lock<std::mutex> lock (_gridMutex);
+
+        for (int i = 0; i < xs.size(); i++) {
+            for (int j = 0; j < ys.size(); j++) {
+                for (int k = 0; k < zs.size(); k++) {
+                    auto cell = std::make_tuple (xs[i],ys[j],zs[k]);
+                    result.insert (_grid[cell].begin(), _grid[cell].end());
+                }
+            }
+        }
+
+        return result;
+    }
+
+    std::set<int> Graph3::matchSurroundingCell (int classid, std::tuple<int,int,int> xyz) {
+        std::set<int> result = lookSurroundingCell (xyz);
+        for (auto it = result.begin(); it != result.end(); it++) {
+            int objclassid;
+            {
+                std::unique_lock<std::mutex> lock (_nodeMutex);
+                objclassid = _objectMap[*it]->_classid;
+            }
+                
+            if (objclassid != classid) result.erase(it);
+        }
+
+        return result;
     }
 }

@@ -5,6 +5,7 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/Image.h>
+#include <tf/transform_listener.h>
 
 #include "myslam_system/myslam_system.h"
 #include "myslam_system/data_association.h"
@@ -95,6 +96,8 @@ namespace MYSLAM {
 
             std::queue<Frame> _FrameQueue;
             std::mutex _FrameMutex;
+
+            tf::TransformListener *_listener;
 	};
 }
 
