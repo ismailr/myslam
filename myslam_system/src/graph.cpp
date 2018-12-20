@@ -204,7 +204,7 @@ namespace MYSLAM {
         return result;
     }
 
-    std::set<int> Graph3::matchSurroundingCell (int classid, std::tuple<int,int,int> xyz) {
+    int Graph3::matchSurroundingCell (int classid, std::tuple<int,int,int> xyz) {
         std::set<int> result = lookSurroundingCell (xyz);
         for (auto it = result.begin(); it != result.end(); it++) {
             int objclassid;
@@ -213,9 +213,9 @@ namespace MYSLAM {
                 objclassid = _objectMap[*it]->_classid;
             }
                 
-            if (objclassid != classid) result.erase(it);
+            if (objclassid == classid) return *it;
         }
 
-        return result;
+        return -1;
     }
 }

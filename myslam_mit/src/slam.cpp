@@ -547,11 +547,9 @@ namespace MYSLAM {
                 }
 //                std::cout << "---------------------------\n";
 
-                std::cout << "READY TO DA\n";
                 std::vector<int> associations;
                 DataAssociation3 da (*_graph);
                 da.associateByGrid (currOdom, classes, observations, associations); 
-                std::cout << "DONE DA\n";
                 
 //                for (int i = 0; i < associations.size(); i++)
 //                    std::cout << associations[i] << "/";
@@ -565,12 +563,9 @@ namespace MYSLAM {
                     _graph->insertPosePoseEdge (_lastPoseId, currPoseId, _lastOdom.inverse() * currOdom);
                 }
 
-                std::cout << "LOOPING " << observations.size() << " INSERTING NODE\n";
                 for (int i = 0; i < observations.size(); i++) {
-                    std::cout << "LOOP NUM " << i << "\n";
 
                     ObjectXYZ::Ptr o;
-                    std::cout << "ASSOCIATIONS NUMBER " << i << " = " << associations[i] << "\n";
 
                     if (associations[i] == -1) {
                         ObjectXYZ::Ptr ob (new ObjectXYZ);
@@ -580,21 +575,16 @@ namespace MYSLAM {
                         o->_type = f.bb[i].Class;
                         o->_conf = f.bb[i].probability;
                         o->_seenBy.insert (currPoseId);
-                        std::cout << "INSERTING NODE " << i << "\n";
                         _graph->insertNode (o);
-                        std::cout << "DONE INSERTING NODE\n";
                     } else {
                         std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
                         o = _graph->_objectMap[associations[i]];
                         o->_seenBy.insert(currPoseId);
                     }
 
-                    std::cout << "INSERTING POSE OBJECT EDGE\n";
                     pose->_detectedObjects.insert (o->_id);
                     _graph->insertPoseObjectEdge (currPoseId, o->_id, observations[i]);
-                    std::cout << "DONE INSERTING POSE OBJECT EDGE\n";
                 }
-                std::cout << "DONE LOOPING\n";
 
                 _graph->insertNode (pose);
 

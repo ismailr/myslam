@@ -791,6 +791,26 @@ namespace MYSLAM {
         auto grid = _graph->getGrid();
         auto gridLookup = _graph->getGridLookup();
 
+        std::cout << "GRID --------------------------------------------\n";
+        for (auto it = grid.begin(); it != grid.end(); it++) {
+            for (auto jt = it->second.begin(); jt != it->second.end(); jt++) {
+                int x = std::get<0>(it->first);
+                int y = std::get<1>(it->first);
+                int z = std::get<2>(it->first);
+                std::cout << _objectMap[*jt]->_classid << " " << x << " " << y << " " << z << "\n";
+            }
+        }
+        std::cout << "--------------------------------------------------\n";
+
+        std::cout << "OBSERVATIONS GRID --------------------------------------------\n";
+        for (int i = 0; i < _observationsGrid.size(); i++) {
+            std::cout << classes[i] << " " << _observationsGrid[i].transpose() << "\n";
+        }
+        std::cout << "--------------------------------------------------\n";
+
+
+        std::vector<int> best (observations.size(), -1);
+
         for (int i = 0; i < _observationsGrid.size(); i++) {
 
             std::set<int> objects = objectClassMap[classes[i]];
@@ -799,21 +819,50 @@ namespace MYSLAM {
 
             for (auto jt = objects.begin(); jt != objects.end(); jt++) {
 
+                std::vector<int> H (observations.size(), -1);
+
                 for (int k = 0; k < _observationsGrid.size(); k++) {
 
-                    if (k == i) continue;
+                    if (k == i) { 
+                        H[k] = *jt;
+                        continue;
+                    }
 
                     Eigen::Vector3i diff = _observationsGrid[k] - _observationsGrid[i];
                     auto cell = gridLookup[*jt];
                     int x_k = std::get<0>(cell) + diff[0];
                     int y_k = std::get<1>(cell) + diff[1];
                     int z_k = std::get<2>(cell) + diff[2];
-                    std::set<int> result = _graph->matchSurroundingCell (classes[i], std::make_tuple(x_k, y_k, z_k));
+                    auto check_cell = std::make_tuple (x_k, y_k, z_k);
+
+                    if (grid.find(check_cell) == grid.end()) {
+                        H[k] = _graph->matchSurroundingCell (classes[i], std::make_tuple(x_k, y_k, z_k));
+                    } else {
+                        std::set<int> candidates = grid[std::make_tuple(x_k,y_k,z_k)];
+                        for (auto cand_it = candidates.begin(); cand_it != candidates.end(); cand_it++) {
+                            if (_objectMap[*cand_it]->_classid == classes[i]) {
+                                H[k] = *cand_it;
+                            } else {
+                                H[k] = -1;
+                            }
+                        }
+                    }
                 }
+
+                if (pairings(H) > pairings(best))
+                    best = H;
             }
         }
 
-        for (int i = 0; i < observations.size(); i++)
-            associations.push_back(-1);
+//        for (int i = 0; i < _observationsGrid.size(); i++) 
+//            std::cout << _observationsGrid[i].transpose() << "\n";
+//
+        for (int i = 0; i < best.size(); i++) 
+            std::cout << best[i] << " ";
+        std::cout << "\n";
+        std::cout << "\n";
+
+
+        associations = best;
     }
 }
