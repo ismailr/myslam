@@ -71,6 +71,8 @@ namespace MYSLAM {
 			Optimizer3* _opt;
 			ros::NodeHandle* _nh;
 
+            int _nextOpt;
+
 			struct frame {
 				int index;
                 int n_object_detected;

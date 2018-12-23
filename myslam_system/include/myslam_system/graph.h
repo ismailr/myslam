@@ -72,8 +72,12 @@ namespace MYSLAM {
             std::map<int, Pose3Measurement::Ptr> getPosePoseMap ();
             std::map<int, ObjectXYZMeasurement::Ptr> getPoseObjectMap ();
             std::vector<int> getPath ();
+            std::set<int> getDetectedObjectsFromPose (int id);
+            std::set<int> getPosesFromObjects (int id);
 
             std::mutex _nodeMutex;
+
+            bool isReady();
 
         private:
 

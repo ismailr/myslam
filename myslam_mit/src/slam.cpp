@@ -10,6 +10,8 @@
 #include <string>
 #include <fstream>
 #include <iostream>
+#include <chrono>
+#include <thread>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/highgui.hpp>
@@ -22,7 +24,7 @@ namespace MYSLAM {
     int static keyframe = 0;
 
 	Slam::Slam(ros::NodeHandle& nh)
-	       : _nh(&nh) {
+	       : _nh(&nh), _nextOpt (0) {
 
 		       _graph = new MYSLAM::Graph3();
 		       _opt = new MYSLAM::Optimizer3(*_graph);
@@ -44,8 +46,10 @@ namespace MYSLAM {
         f.odom = *odom;
         f.cloud = *cloud;
 
-        for (int i = 0; i < bb->bounding_boxes.size(); i++)
+        for (int i = 0; i < bb->bounding_boxes.size(); i++) {
+            if (bb->bounding_boxes[i].Class == "person") continue;
             f.bb.push_back (bb->bounding_boxes[i]);
+        }
 
         {
             std::unique_lock<std::mutex> lock (_FrameMutex);
@@ -597,10 +601,67 @@ namespace MYSLAM {
     }
 
     void Slam::thread2() {
-        while(1) {
-
+        while (!_graph->isReady()) { 
+            std::this_thread::sleep_for (std::chrono::microseconds(100));
         }
 
+        std::vector<int> p, o, pp, po, xp, path;
+
+        while(1) {
+            path = _graph->getPath();
+
+            if (path.size() > _nextOpt + 2) {
+                p.push_back (path[_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+            } else
+                continue;
+
+            std::set<int> objects;
+            for (int i = 0; i < p.size(); i++) {
+                std::set<int> obj_i = _graph->getDetectedObjectsFromPose (p[i]);
+                objects.insert (obj_i.begin(), obj_i.end());
+            }
+            std::copy (objects.begin(), objects.end(), std::back_inserter(o));
+
+            std::set<int> passive_poses;
+            for (int i = 0; i < o.size(); i++) {
+                std::set<int> poses_i = _graph->getPosesFromObjects (o[i]);
+                for (int j = 0; j < p.size(); j++) {
+                    auto it = poses_i.find (p[j]);
+                    if (it != poses_i.end())
+                        poses_i.erase (*it);
+                }
+                passive_poses.insert (poses_i.begin(), poses_i.end());
+            }
+            std::copy (passive_poses.begin(), passive_poses.end(), std::back_inserter(xp));
+
+            auto ppMap = _graph->getPosePoseMap();
+            for (int i = 0; i < p.size() - 1; i++) {
+                for (auto it = ppMap.begin(); it != ppMap.end(); it++) {
+                    if (it->second->_from == p[i] && it->second->_to == p[i+1])
+                        pp.push_back (it->first);
+                }
+            } 
+
+            auto opMap = _graph->getPoseObjectMap();
+            for (int i = 0; i < p.size() - 1; i++) {
+                for (int j = 0; j < o.size(); j++) {
+                    for (auto it = opMap.begin(); it != opMap.end(); it++) {
+                        if (it->second->_from == p[i] && it->second->_to == o[j])
+                            po.push_back (it->first);
+                    }
+                }
+            } 
+
+            _opt->localOptimize (p,o,pp,po,xp);
+
+            p.clear();
+            o.clear();
+            pp.clear();
+            po.clear();
+            xp.clear();
+        }
     }
 
     g2o::SE3Quat Slam::odomToSE3Quat (nav_msgs::Odometry o) {

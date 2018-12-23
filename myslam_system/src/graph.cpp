@@ -56,7 +56,8 @@ namespace MYSLAM {
         }
     }
 
-    Graph3::Graph3() {}
+    Graph3::Graph3() {
+    }
 
     void Graph3::insertNode (Pose3::Ptr pose) {
         {
@@ -217,5 +218,21 @@ namespace MYSLAM {
         }
 
         return -1;
+    }
+
+    bool Graph3::isReady() {
+        if (_poseMap.size() > 3) return true;
+       return false;
+    }
+
+    std::set<int> Graph3::getDetectedObjectsFromPose (int id) {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _poseMap[id]->_detectedObjects;
+    }
+
+    std::set<int> Graph3::getPosesFromObjects (int id) {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _objectMap[id]->_seenBy;
+
     }
 }

@@ -758,7 +758,9 @@ namespace MYSLAM {
         int num = 0;
         for (int i = 0; i < H.size(); i++)
             if (H[i] != -1) num++;
-        return num;
+        if (num > 2)
+            return num;
+        return 0;
     }
 
     bool DataAssociation3::binary (int i, int j, int k, int l, const std::vector<int>& H) {
@@ -791,77 +793,60 @@ namespace MYSLAM {
         auto grid = _graph->getGrid();
         auto gridLookup = _graph->getGridLookup();
 
-        std::cout << "GRID --------------------------------------------\n";
-        for (auto it = grid.begin(); it != grid.end(); it++) {
-            for (auto jt = it->second.begin(); jt != it->second.end(); jt++) {
-                int x = std::get<0>(it->first);
-                int y = std::get<1>(it->first);
-                int z = std::get<2>(it->first);
-                std::cout << _objectMap[*jt]->_classid << " " << x << " " << y << " " << z << "\n";
-            }
-        }
-        std::cout << "--------------------------------------------------\n";
-
-        std::cout << "OBSERVATIONS GRID --------------------------------------------\n";
-        for (int i = 0; i < _observationsGrid.size(); i++) {
-            std::cout << classes[i] << " " << _observationsGrid[i].transpose() << "\n";
-        }
-        std::cout << "--------------------------------------------------\n";
-
-
         std::vector<int> best (observations.size(), -1);
 
         for (int i = 0; i < _observationsGrid.size(); i++) {
-
-            std::set<int> objects = objectClassMap[classes[i]];
-
-            if (objects.empty()) continue;
-
-            for (auto jt = objects.begin(); jt != objects.end(); jt++) {
-
+            for (auto j = _objectMap.begin(); j != _objectMap.end(); j++) {
+                if (j->second->_classid != classes[i]) continue;
                 std::vector<int> H (observations.size(), -1);
-
                 for (int k = 0; k < _observationsGrid.size(); k++) {
 
-                    if (k == i) { 
-                        H[k] = *jt;
+                    if (k == i) {
+//                        std::cout << " ANCHOR (+) // ";
+                        H[k] = j->first;
                         continue;
                     }
 
                     Eigen::Vector3i diff = _observationsGrid[k] - _observationsGrid[i];
-                    auto cell = gridLookup[*jt];
+                    auto cell = gridLookup[j->first];
                     int x_k = std::get<0>(cell) + diff[0];
                     int y_k = std::get<1>(cell) + diff[1];
                     int z_k = std::get<2>(cell) + diff[2];
                     auto check_cell = std::make_tuple (x_k, y_k, z_k);
 
-                    if (grid.find(check_cell) == grid.end()) {
-                        H[k] = _graph->matchSurroundingCell (classes[i], std::make_tuple(x_k, y_k, z_k));
-                    } else {
-                        std::set<int> candidates = grid[std::make_tuple(x_k,y_k,z_k)];
+ //                   std::cout << x_k << " " << y_k << " " << z_k;
+
+                    int candidate = -1;
+                    if (grid.find(check_cell) != grid.end()) {
+                        std::set<int> candidates = grid[check_cell];
                         for (auto cand_it = candidates.begin(); cand_it != candidates.end(); cand_it++) {
-                            if (_objectMap[*cand_it]->_classid == classes[i]) {
-                                H[k] = *cand_it;
-                            } else {
-                                H[k] = -1;
+                            if (_objectMap[*cand_it]->_classid == classes[k]) {
+                                candidate = *cand_it;
+                               break;
                             }
                         }
                     }
+
+                    if (candidate == -1)
+                        candidate = _graph->matchSurroundingCell (classes[k], std::make_tuple(x_k, y_k, z_k));
+
+//                    if (candidate == -1)
+//                        std::cout << " (-) // ";
+//                    else
+//                        std::cout << " (+) // ";
+
+                    H[k] = candidate;
                 }
+//                std::cout << "\n";
 
                 if (pairings(H) > pairings(best))
                     best = H;
             }
         }
 
-//        for (int i = 0; i < _observationsGrid.size(); i++) 
-//            std::cout << _observationsGrid[i].transpose() << "\n";
-//
-        for (int i = 0; i < best.size(); i++) 
-            std::cout << best[i] << " ";
-        std::cout << "\n";
-        std::cout << "\n";
-
+//        for (int i = 0; i < best.size(); i++) 
+//            std::cout << best[i] << " ";
+//        std::cout << "\n";
 
         associations = best;
     }

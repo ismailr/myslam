@@ -45,12 +45,10 @@ int main (int argc, char** argv)
     std::thread t1 (&MYSLAM::Slam::thread1, &slam);
     std::thread t2 (&MYSLAM::Slam::thread2, &slam);
 
-//    slam.loadOdomAndObjectData();
-//    slam.loadColoredCloudData();
-//    slam.saveData();
-//    slam.run();
-//      slam.test();
-
 	ros::spin();
+
+    t1.join();
+    t2.join();
+
 	return 0;
 }

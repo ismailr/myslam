@@ -869,9 +869,16 @@ namespace MYSLAM {
 //        activePoses.push_back (fixPoseForNextIter);
     }
 
-    Optimizer3::Optimizer3(Graph3& graph) : _graph (&graph) {}
+    Optimizer3::Optimizer3(Graph3& graph)
+       : _graph (&graph) {}
 
-    void Optimizer3::localOptimize(int mode) {
+    void Optimizer3::localOptimize (
+            std::vector<int> active_poses,
+            std::vector<int> active_objects,
+            std::vector<int> active_posepose_edges,
+            std::vector<int> active_poseobject_edges,
+            std::vector<int> passive_poses
+        ) {
 
         typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
         typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
@@ -882,91 +889,118 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (false);
+        o->setVerbose (true);
 
-        std::map<int, Pose3::Ptr>& poseMap = _graph->_poseMap;
-        std::map<int, ObjectXYZ::Ptr>& objectMap = _graph->_objectMap;
-        std::map<int, Pose3Measurement::Ptr>& posePoseMap = _graph->_posePoseMap;
-        std::map<int, ObjectXYZMeasurement::Ptr>& poseObjectMap = _graph->_poseObjectMap;
+        std::map<int, Pose3::Ptr> poseMap = _graph->getPoseMap();
+        std::map<int, ObjectXYZ::Ptr> objectMap = _graph->getObjectMap();
+        std::map<int, Pose3Measurement::Ptr> posePoseMap = _graph->getPosePoseMap();
+        std::map<int, ObjectXYZMeasurement::Ptr> poseObjectMap = _graph->getPoseObjectMap();
+        std::vector<int> path = _graph->getPath();
 
-        for (auto it = poseMap.begin(); it != poseMap.end(); it++) {
-
-            if (it->second->_active == false) continue;
-
-            Pose3Vertex *v = new Pose3Vertex; 
-            v->setId (it->first); 
-            v->setEstimate (it->second->_pose);
-//            v->setFixed (it == activePoses.begin()); 
-            o->addVertex (v); 
+        for (int i = 0; i < active_poses.size(); i++) {
+            int id = active_poses[i];
+            if (poseMap.find(id) != poseMap.end()) {
+                Pose3Vertex *pv = new Pose3Vertex; 
+                pv->setId (id);
+                pv->setEstimate (poseMap[id]->_pose);
+                pv->setFixed (i == 0);
+                o->addVertex (pv); 
+            }
         }
 
-        for (auto it = objectMap.begin(); it != objectMap.end(); it++) {
-
-            if (it->second->_active == false) continue;
-
-            ObjectXYZVertex *v = new ObjectXYZVertex; 
-            v->setId (it->first); 
-            v->setEstimate (it->second->_pose);
-//            v->setMarginalized (true);
-            o->addVertex (v); 
+        for (int i = 0; i < passive_poses.size(); i++) {
+            int id = passive_poses[i];
+            if (poseMap.find(id) != poseMap.end()) {
+                Pose3Vertex *pv = new Pose3Vertex; 
+                pv->setId (id);
+                pv->setEstimate (poseMap[id]->_pose);
+                pv->setFixed (true);
+                o->addVertex (pv); 
+            }
         }
 
-        for (auto it = posePoseMap.begin(); it != posePoseMap.end(); it++) {
+        for (int i = 0; i < active_objects.size(); i++) {
+            int id = active_objects[i];
+            if (objectMap.find(id) != objectMap.end()) {
+                ObjectXYZVertex *ov = new ObjectXYZVertex; 
+                ov->setId (id); 
+                ov->setEstimate (objectMap[id]->_pose);
+                ov->setMarginalized (false);
+                o->addVertex (ov); 
 
-            if (it->second->_active == false) continue;
-
-            Pose3Edge *e = new Pose3Edge;
-            e->vertices()[0] = o->vertex (it->second->_from);
-            e->vertices()[1] = o->vertex (it->second->_to);
-            e->setMeasurement (it->second->_measurement);
-            e->information() = it->second->_cov.inverse();
-            
-            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-            e->setRobustKernel (rk);
-            rk->setDelta (sqrt(5.99));
-
-            o->addEdge (e);
+                std::set<int> poses = objectMap[id]->_seenBy;
+                for (auto it = poses.begin(); it != poses.end(); it++) {
+                    if (!o->vertex(*it) && poseMap.find(*it) != poseMap.end()) {
+                        Pose3Vertex *pv = new Pose3Vertex; 
+                        pv->setId (*it);
+                        pv->setEstimate (poseMap[*it]->_pose);
+                        pv->setFixed (true);
+                        o->addVertex (pv); 
+                    }
+                }
+            }
         }
 
-        for (auto it = poseObjectMap.begin(); it != poseObjectMap.end(); it++) {
+        for (int i = 0; i < active_posepose_edges.size(); i++) {
+            int id = active_posepose_edges[i];
+            int from = posePoseMap[id]->_from;
+            int to = posePoseMap[id]->_to;
+            if (o->vertex(from) && o->vertex(to)) 
+            {
+                Pose3Edge *e = new Pose3Edge;
+                e->vertices()[0] = o->vertex (from);
+                e->vertices()[1] = o->vertex (to);
+                e->setMeasurement (posePoseMap[id]->_measurement);
+                e->information() = posePoseMap[id]->_cov.inverse();
+                
+                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+                e->setRobustKernel (rk);
+                rk->setDelta (sqrt(5.99));
 
-            if (it->second->_active == false) continue;
-
-            Pose3ObjectXYZEdge *e = new Pose3ObjectXYZEdge;
-            e->vertices()[0] = o->vertex (it->second->_from);
-            e->vertices()[1] = o->vertex (it->second->_to);
-            e->setMeasurement (it->second->_measurement);
-            e->information() = it->second->_cov.inverse();
-            
-            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
-            e->setRobustKernel (rk);
-            rk->setDelta (sqrt(5.99));
-
-            o->addEdge (e);
+                o->addEdge (e);
+            }
         }
 
-        // optimze for poses ?
-        // then add objects detected from active poses
-        // make them fixed, though
-        // else: optimize for objects
-        // add poses wherefrom the objects are detected
-        // again, make them fixed
+        for (int i = 0; i < active_poseobject_edges.size(); i++) {
+            int id = active_poseobject_edges[i];
+            int from = poseObjectMap[id]->_from;
+            int to = poseObjectMap[id]->_to;
+            if (o->vertex(from) && o->vertex(to)) 
+            {
+                Pose3ObjectXYZEdge *e = new Pose3ObjectXYZEdge;
+                e->vertices()[0] = o->vertex (from);
+                e->vertices()[1] = o->vertex (to);
+                e->setMeasurement (poseObjectMap[id]->_measurement);
+                e->information() = poseObjectMap[id]->_cov.inverse();
+                
+                g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+                e->setRobustKernel (rk);
+                rk->setDelta (sqrt(5.99));
+
+                o->addEdge (e);
+            }
+        }
 
         o->initializeOptimization();
         o->optimize(10);
 
-        for (auto it = poseMap.begin(); it != poseMap.end(); it++) {
-            if (it->second->_active == false) continue;
-            Pose3Vertex* optv = dynamic_cast<Pose3Vertex*> (o->vertex (it->first));
-            it->second->_pose = optv->estimate();
+        for (int i = 0; i < active_poses.size(); i++) {
+            int id = active_poses[i];
+            if (!o->vertex(id)) continue;
+            Pose3Vertex* optv = dynamic_cast<Pose3Vertex*> (o->vertex (id));
+            std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
+            poseMap[id]->_pose = optv->estimate();
         }
 
-        for (auto it = objectMap.begin(); it != objectMap.end(); it++) {
-            if (it->second->_active == false) continue;
-            ObjectXYZVertex* optv = dynamic_cast<ObjectXYZVertex*> (o->vertex (it->first));
-            it->second->_pose = optv->estimate();
+        for (int i = 0; i < active_objects.size(); i++) {
+            int id = active_poses[i];
+            if (!o->vertex(id)) continue;
+            ObjectXYZVertex* optv = dynamic_cast<ObjectXYZVertex*> (o->vertex (id));
+            {
+                std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
+                objectMap[id]->_pose = optv->estimate();
+            }
+            _graph->updateGrid (id);
         }
-
-        _graph->resetActive();
     }
 }
