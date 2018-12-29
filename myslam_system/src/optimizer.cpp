@@ -14,6 +14,8 @@
 #include <g2o/solvers/csparse/linear_solver_csparse.h>
 #include <g2o/solvers/cholmod/linear_solver_cholmod.h>
 
+#include <typeinfo>
+
 using namespace g2o;
 
 namespace MYSLAM {
@@ -889,7 +891,11 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (true);
+        o->setVerbose (false);
+
+        g2o::ParameterSE3Offset* cameraOffset = new g2o::ParameterSE3Offset;
+        cameraOffset->setId (0);
+        o->addParameter (cameraOffset);
 
         std::map<int, Pose3::Ptr> poseMap = _graph->getPoseMap();
         std::map<int, ObjectXYZ::Ptr> objectMap = _graph->getObjectMap();
@@ -925,19 +931,19 @@ namespace MYSLAM {
                 ObjectXYZVertex *ov = new ObjectXYZVertex; 
                 ov->setId (id); 
                 ov->setEstimate (objectMap[id]->_pose);
-                ov->setMarginalized (false);
+                ov->setMarginalized (true);
                 o->addVertex (ov); 
 
-                std::set<int> poses = objectMap[id]->_seenBy;
-                for (auto it = poses.begin(); it != poses.end(); it++) {
-                    if (!o->vertex(*it) && poseMap.find(*it) != poseMap.end()) {
-                        Pose3Vertex *pv = new Pose3Vertex; 
-                        pv->setId (*it);
-                        pv->setEstimate (poseMap[*it]->_pose);
-                        pv->setFixed (true);
-                        o->addVertex (pv); 
-                    }
-                }
+//                std::set<int> poses = objectMap[id]->_seenBy;
+//                for (auto it = poses.begin(); it != poses.end(); it++) {
+//                    if (!o->vertex(*it) && poseMap.find(*it) != poseMap.end()) {
+//                        Pose3Vertex *pv = new Pose3Vertex; 
+//                        pv->setId (*it);
+//                        pv->setEstimate (poseMap[*it]->_pose);
+//                        pv->setFixed (true);
+//                        o->addVertex (pv); 
+//                    }
+//                }
             }
         }
 
@@ -972,17 +978,25 @@ namespace MYSLAM {
                 e->vertices()[1] = o->vertex (to);
                 e->setMeasurement (poseObjectMap[id]->_measurement);
                 e->information() = poseObjectMap[id]->_cov.inverse();
+                e->setParameterId (0,0);
                 
                 g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
                 e->setRobustKernel (rk);
                 rk->setDelta (sqrt(5.99));
 
-                o->addEdge (e);
+                o->addEdge (e); 
             }
         }
 
+        std::ofstream f;
+        f.open ("/home/ism/code/rosws/result/g2o", std::ios::out | std::ios::app);
+
+        o->save(f);
         o->initializeOptimization();
         o->optimize(10);
+        o->save(f);
+        f << std::endl;
+        f.close();
 
         for (int i = 0; i < active_poses.size(); i++) {
             int id = active_poses[i];
@@ -993,7 +1007,7 @@ namespace MYSLAM {
         }
 
         for (int i = 0; i < active_objects.size(); i++) {
-            int id = active_poses[i];
+            int id = active_objects[i];
             if (!o->vertex(id)) continue;
             ObjectXYZVertex* optv = dynamic_cast<ObjectXYZVertex*> (o->vertex (id));
             {

@@ -115,9 +115,9 @@ find_package(OpenCV REQUIRED)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-	INCLUDE_DIRS include
+	INCLUDE_DIRS include 
 #  LIBRARIES myslam_mit
-	CATKIN_DEPENDS cmake_modules cv_bridge geometry_msgs message_filters pcl_conversions pcl_msgs pcl_ros roscpp rospy std_msgs sensor_msgs tf myslam_system darknet_ros_msgs
+	CATKIN_DEPENDS cmake_modules cv_bridge geometry_msgs message_filters pcl_conversions pcl_msgs pcl_ros roscpp rospy std_msgs sensor_msgs tf myslam_system darknet_ros_msgs 
 #  DEPENDS system_lib
 )
 

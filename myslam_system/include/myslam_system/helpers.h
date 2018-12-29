@@ -11,6 +11,7 @@
 #include <nav_msgs/Odometry.h>
 
 #include <g2o/types/slam2d/se2.h>
+#include <g2o/types/slam3d/vertex_se3.h>
 
 using namespace g2o;
 using namespace std;
@@ -63,6 +64,7 @@ class Converter
         Converter(){};
         void odomToSE2 (const nav_msgs::OdometryConstPtr& odom, SE2& t);
         void odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampedConstPtr& odomcombined, SE2& t);
+        static g2o::SE3Quat odomToSE3Quat(nav_msgs::Odometry o); 
 };
 
 class Generator

@@ -774,7 +774,6 @@ namespace MYSLAM {
             return false;
     }
 
-
     void DataAssociation3::associateByGrid (    g2o::Isometry3 odom, 
                                                 std::vector<int> classes,
                                                 std::vector<g2o::Vector3> observations, 
@@ -782,16 +781,26 @@ namespace MYSLAM {
 
         std::vector<Eigen::Vector3i> _observationsGrid;
         for (int i = 0; i < observations.size(); i++) {
-            g2o::Vector3 o = odom.rotation() * observations[i];
+            g2o::Vector3 o = odom * observations[i];
             int x = (int) std::floor (o[0] * 10);
             int y = (int) std::floor (o[1] * 10);
             int z = (int) std::floor (o[2] * 10);
             _observationsGrid.push_back (Eigen::Vector3i (x,y,z));
+            std::cout << x << " " << y << " " << z << std::endl;
         }
+        std::cout << " ----- \n";
 
         auto objectClassMap = _graph->getObjectClassMap();
         auto grid = _graph->getGrid();
         auto gridLookup = _graph->getGridLookup();
+
+        for (auto it = gridLookup.begin(); it != gridLookup.end(); it++)
+        {
+            std::cout << it->first << " "   << std::get<0>(it->second) << " "
+                                            << std::get<1>(it->second) << " "
+                                            << std::get<2>(it->second) << std::endl;
+        }
+        std::cout << " ----- \n";
 
         std::vector<int> best (observations.size(), -1);
 
@@ -802,7 +811,6 @@ namespace MYSLAM {
                 for (int k = 0; k < _observationsGrid.size(); k++) {
 
                     if (k == i) {
-//                        std::cout << " ANCHOR (+) // ";
                         H[k] = j->first;
                         continue;
                     }
@@ -813,8 +821,6 @@ namespace MYSLAM {
                     int y_k = std::get<1>(cell) + diff[1];
                     int z_k = std::get<2>(cell) + diff[2];
                     auto check_cell = std::make_tuple (x_k, y_k, z_k);
-
- //                   std::cout << x_k << " " << y_k << " " << z_k;
 
                     int candidate = -1;
                     if (grid.find(check_cell) != grid.end()) {
@@ -830,23 +836,13 @@ namespace MYSLAM {
                     if (candidate == -1)
                         candidate = _graph->matchSurroundingCell (classes[k], std::make_tuple(x_k, y_k, z_k));
 
-//                    if (candidate == -1)
-//                        std::cout << " (-) // ";
-//                    else
-//                        std::cout << " (+) // ";
-
                     H[k] = candidate;
                 }
-//                std::cout << "\n";
 
                 if (pairings(H) > pairings(best))
                     best = H;
             }
         }
-
-//        for (int i = 0; i < best.size(); i++) 
-//            std::cout << best[i] << " ";
-//        std::cout << "\n";
 
         associations = best;
     }

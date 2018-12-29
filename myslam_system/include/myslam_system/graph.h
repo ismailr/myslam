@@ -74,6 +74,7 @@ namespace MYSLAM {
             std::vector<int> getPath ();
             std::set<int> getDetectedObjectsFromPose (int id);
             std::set<int> getPosesFromObjects (int id);
+            Pose3::Ptr getPose (int id);
 
             std::mutex _nodeMutex;
 

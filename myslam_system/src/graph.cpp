@@ -162,21 +162,33 @@ namespace MYSLAM {
 
     void Graph3::updateGrid (int id) {
 
-        std::unique_lock<std::mutex> lock (_nodeMutex);
+        std::unique_lock<std::mutex> lock_node (_nodeMutex);
+        if (_objectMap.find(id) == _objectMap.end())
+            return;
+
         int x = (int) floor (_objectMap[id]->_pose[0] * 10);
         int y = (int) floor (_objectMap[id]->_pose[1] * 10);
         int z = (int) floor (_objectMap[id]->_pose[2] * 10);
 
         auto xyz = std::make_tuple (x,y,z);
 
-        {
-            std::unique_lock<std::mutex> lock (_gridMutex);
+        std::unique_lock<std::mutex> lock_grid (_gridMutex);
+        if (_gridLookup.find(id) != _gridLookup.end()) {
             auto _xyz = _gridLookup[id];
-            auto it = _grid[_xyz].find(id);
-            if (it != _grid[_xyz].end()) _grid[_xyz].erase(it);
-            _grid[xyz].insert(id);
-            _gridLookup[id] = xyz;
-        }
+            if (_grid.find(_xyz) != _grid.end()) {
+                auto objects = _grid[_xyz];
+                if (objects.find(id) != objects.end()) {
+                    objects.erase (id);
+                } 
+
+                if (objects.empty()) {
+                    _grid.erase (_xyz);
+                }
+            } 
+        } 
+
+        _grid[xyz].insert(id);
+        _gridLookup[id] = xyz;
     }
 
     std::set<int> Graph3::lookSurroundingCell (std::tuple<int,int,int> xyz) {
@@ -187,9 +199,9 @@ namespace MYSLAM {
         int y = std::get<1>(xyz);
         int z = std::get<2>(xyz);
 
-        std::vector<int> xs { x-1, x, x+1 };
-        std::vector<int> ys { y-1, y, y+1 };
-        std::vector<int> zs { z-1, z, z+1 };
+        std::vector<int> xs { x-2, x-1, x, x+1, x+2 };
+        std::vector<int> ys { y-2, y-1, y, y+1, y+2 };
+        std::vector<int> zs { z-2, z-1, z, z+1, z+2 };
 
         std::unique_lock<std::mutex> lock (_gridMutex);
 
@@ -197,7 +209,9 @@ namespace MYSLAM {
             for (int j = 0; j < ys.size(); j++) {
                 for (int k = 0; k < zs.size(); k++) {
                     auto cell = std::make_tuple (xs[i],ys[j],zs[k]);
-                    result.insert (_grid[cell].begin(), _grid[cell].end());
+                    auto it = _grid.find (cell);
+                    if (it != _grid.end())
+                        result.insert (_grid[cell].begin(), _grid[cell].end());
                 }
             }
         }
@@ -234,5 +248,10 @@ namespace MYSLAM {
         std::unique_lock<std::mutex> lock (_nodeMutex);
         return _objectMap[id]->_seenBy;
 
+    }
+
+    Pose3::Ptr Graph3::getPose (int id) {
+        std::unique_lock<std::mutex> lock (_nodeMutex);
+        return _poseMap[id];
     }
 }

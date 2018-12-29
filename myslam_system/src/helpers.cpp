@@ -108,6 +108,21 @@ void Converter::odomCombinedToSE2 (const geometry_msgs::PoseWithCovarianceStampe
     t.fromVector (v); 
 }
 
+g2o::SE3Quat Converter::odomToSE3Quat(nav_msgs::Odometry o) {
+
+    g2o::Vector3 translation (  o.pose.pose.position.x,
+                                o.pose.pose.position.y,
+                                o.pose.pose.position.z);
+    g2o::Quaternion rotation (  o.pose.pose.orientation.x,
+                                o.pose.pose.orientation.y,
+                                o.pose.pose.orientation.z,
+                                o.pose.pose.orientation.w);
+    g2o::SE3Quat result;
+    result.setTranslation (translation);
+    result.setRotation (rotation);
+    return result;
+}
+
 double normalize_angle (double a)
 {
     double angle = a;

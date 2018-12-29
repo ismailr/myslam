@@ -2,6 +2,9 @@
 #define _SIMULATION_H_
 
 #include <string>
+#include <thread>
+#include <queue>
+#include <mutex>
 
 #include <ros/ros.h>
 #include <nav_msgs/Odometry.h>
@@ -60,6 +63,50 @@ namespace MYSLAM {
 			std::map<int,Eigen::Vector3d> gtpath;
 
 	};
+
+    class Simulation3 {
+        public:
+            Simulation3 (Graph3&, Optimizer3&, ros::NodeHandle&);
+			void callback (const nav_msgs::Odometry::ConstPtr& odom,
+				const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg);
+
+			static int FRAMECOUNTER; 
+			static int KEYFRAMECOUNTER; 
+			static int CLASSIDCOUNTER; 
+			static int NUM_OPT;
+			static double TIME_OPT;
+
+			void addingNoiseToOdom (const g2o::Isometry3&, g2o::Isometry3&);
+			void addingNoiseToObject (const myslam_sim_gazebo::LogicalImage::ConstPtr&, myslam_sim_gazebo::LogicalImage::Ptr&);
+            int getObjectClass (std::string);
+            void writeFinalPose();
+
+            void thread1();
+            void thread2();
+
+            static bool _init;
+            int _nextOpt;
+            std::map<int, std::string> objectClass;
+
+        private:
+			Graph3* _graph;
+			Optimizer3* _opt;
+			ros::NodeHandle* _nh;
+			Pose3::Ptr _lastPose;
+            int _lastPoseId;
+            g2o::Isometry3 *_lastOdom;
+            g2o::Isometry3 *_lastNoisyOdom;
+
+            struct Frame {
+                nav_msgs::Odometry odom;
+                myslam_sim_gazebo::LogicalImage logimg;
+            };
+
+            std::queue<Frame> _FrameQueue;
+            std::mutex _FrameMutex;
+
+			std::map<std::string, int> omap; // object_name --> id
+    };
 }
 
 #endif

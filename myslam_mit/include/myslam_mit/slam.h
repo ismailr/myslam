@@ -53,6 +53,7 @@ namespace MYSLAM {
 				const darknet_ros_msgs::BoundingBoxesConstPtr& bb);
 
             void test();
+            void testVO();
             void thread1(); 
             void thread2(); 
 
@@ -65,6 +66,8 @@ namespace MYSLAM {
 
             std::map<int, std::string> objectClass;
             int getObjectClass (std::string);
+
+            void writeFinalPose ();
 
 		private:
 			Graph3* _graph;

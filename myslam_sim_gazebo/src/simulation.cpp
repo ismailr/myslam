@@ -663,4 +663,298 @@ namespace MYSLAM {
 		transl = sqrt((double)(cum_transl_error_squared/N));
 		rot = sqrt ((double)(cum_rot_error_squared/N));
 	}
+
+    bool Simulation3::_init = true;
+
+	Simulation3::Simulation3(Graph3& g, Optimizer3& o, ros::NodeHandle& nh) 
+    : _graph(&g), _opt(&o), _nh(&nh), _nextOpt(0)  {
+
+        _lastOdom = new g2o::Isometry3;
+        _lastNoisyOdom = new g2o::Isometry3;
+
+    }
+		
+
+	void Simulation3::callback (const nav_msgs::Odometry::ConstPtr& odom,
+		const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg) {
+
+        Frame f;
+        f.odom = *odom;
+        f.logimg = *logimg;
+
+        std::unique_lock<std::mutex> lock (_FrameMutex);
+        _FrameQueue.push (f);
+    }
+
+    void Simulation3::addingNoiseToOdom (const g2o::Isometry3&, g2o::Isometry3&) {
+
+    }
+
+	void Simulation3::addingNoiseToObject (const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg,
+			myslam_sim_gazebo::LogicalImage::Ptr& logimg) {
+			
+
+		for (auto it = _logimg->models.begin(); it != _logimg->models.end(); it++) {
+
+			double x = it->pose.position.x;
+			double y = it->pose.position.y;
+			double z = it->pose.position.z;
+
+//			double range = sqrt (x*x + y*y + z*z);
+//			double bearing = atan2 (y,x);
+//
+////			double std_r = MYSLAM::B1 * range; 
+////			double std_b = MYSLAM::B2 * bearing;
+//			double std_r = MYSLAM::B1;
+//			double std_b = MYSLAM::B2;
+//
+//			double range_noise = gaussian_generator<double>(0.0, std_r);
+//			double bearing_noise = gaussian_generator<double>(0.0, std_b);
+//
+//			range += range_noise;
+//			bearing += bearing_noise;
+//
+//			range = std::max (0.0, range);
+//			bearing = g2o::normalize_theta (bearing);
+//
+//			x = range * cos (bearing);
+//			y = range * sin (bearing);
+//
+//			double orientation_noise = gaussian_generator<double>(0.0, MYSLAM::B3);
+//
+//			tf::Quaternion q (
+//				it->pose.orientation.x,	
+//				it->pose.orientation.y,	
+//				it->pose.orientation.z,	
+//				it->pose.orientation.w);
+//			double roll, pitch, yaw;
+//			tf::Matrix3x3 (q).getRPY (roll,pitch,yaw);
+//
+//			yaw += orientation_noise;
+//			yaw = g2o::normalize_theta (yaw);
+//			q.setRPY (roll,pitch,yaw);
+//
+//			Eigen::Vector2d p2 (x, y);
+//			double d = (double) p2.norm();
+//			double theta = normalize_theta (atan2 (y, x));
+//
+//			// limit distance and orientation view of logical camera
+//			if (d < 5.0 && std::fabs(theta) < 1.396) {
+//
+//			       	logimg->models.push_back(*it);
+//				logimg->models.back().pose.position.x = x;
+//				logimg->models.back().pose.position.y = y;
+//				logimg->models.back().pose.orientation.x = q.x();
+//				logimg->models.back().pose.orientation.y = q.y();
+//				logimg->models.back().pose.orientation.z = q.z();
+//				logimg->models.back().pose.orientation.w = q.w();
+//			}
+		}
+	}
+
+    int thread1num = 0;
+    void Simulation3::thread1() {
+
+        while(1) {
+            if (_FrameQueue.size() > 0) {
+
+                Frame f;
+
+                {
+                    std::unique_lock<std::mutex> lock (_FrameMutex);
+                    f = _FrameQueue.front();
+
+                    if (_FrameQueue.size() > 5)
+                        for (int i = 0;  i < 5; i++) // only process every 5th frame
+                            _FrameQueue.pop();
+                    else
+                        for (int i = 0; i < _FrameQueue.size() - 1; i++)
+                            _FrameQueue.pop();
+                }
+
+                if (f.logimg.models.size() < 3) continue;
+                
+                std::cout << ++thread1num << std::endl;
+
+                g2o::Isometry3 currOdom = g2o::Isometry3(Converter::odomToSE3Quat(f.odom));
+                g2o::Isometry3 deltaOdom;
+
+                if (!Simulation3::_init)
+                    deltaOdom = _lastOdom->inverse() * currOdom;
+
+                std::vector<g2o::Vector3> observations;
+                std::vector<int> classes;
+                for (int i = 0; i < f.logimg.models.size(); i++) {
+                    g2o::Vector3 pos (  f.logimg.models[i].pose.position.x,
+                                        f.logimg.models[i].pose.position.y,
+                                        f.logimg.models[i].pose.position.z);
+                    int cls = getObjectClass (f.logimg.models[i].name);
+                    observations.push_back (pos);
+                    classes.push_back (cls);
+                }
+
+                Pose3::Ptr pose (new Pose3);
+                int currPoseId = pose->_id;
+
+                if (!Simulation3::_init)
+                    pose->_pose = _graph->getPose(_lastPoseId)->_pose * deltaOdom;
+                else
+                    pose->_pose = currOdom;
+
+                std::ofstream odomf;
+                odomf.open ("/home/ism/code/rosws/result/odom.txt", std::ios::out | std::ios::app);
+                odomf << pose->_id << " " << pose->_pose.translation().transpose() << "\n";
+                odomf.close();
+
+
+                std::vector<int> associations;
+                DataAssociation3 da (*_graph);
+                da.associateByGrid (currOdom, classes, observations, associations); 
+                
+                std::cout << _graph->getGrid().size() << " | ";
+                for (int i = 0; i < associations.size(); i++)
+                    std::cout << associations[i] << "/";
+                std::cout << std::endl;
+
+                if (!Simulation3::_init) {
+                    _graph->insertPosePoseEdge (_lastPoseId, currPoseId, _lastOdom->inverse() * currOdom);
+                }
+
+                for (int i = 0; i < observations.size(); i++) {
+
+                    ObjectXYZ::Ptr o;
+
+                    if (associations[i] == -1) {
+                        ObjectXYZ::Ptr ob (new ObjectXYZ);
+                        o = ob;
+                        o->_classid = getObjectClass (f.logimg.models[i].name);
+                        o->_pose = currOdom * observations[i];
+                        o->_type = f.logimg.models[i].name;
+                        o->_seenBy.insert (currPoseId);
+                        _graph->insertNode (o);
+                        if (omap.find(f.logimg.models[i].name) == omap.end()) {
+                            omap[f.logimg.models[i].name] = o->_id;
+                            std::cout << "TRUE NEGATIVE, " << f.logimg.models[i].name << " = " << o->_id << std::endl;
+                        } else {
+                            std::cout << "FALSE NEGATIVE, " << f.logimg.models[i].name << " IS ALREADY MAPPED TO " << omap[f.logimg.models[i].name] << std::endl;
+                        }
+                    } else {
+                        std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
+                        o = _graph->_objectMap[associations[i]];
+                        o->_seenBy.insert(currPoseId);
+                        if (omap.find(f.logimg.models[i].name) == omap.end()) {
+                            std::cout << "FALSE POSITIIVE, " << f.logimg.models[i].name << " IS NOT IN THE MAP\n";
+                        } else {
+                            if (omap[f.logimg.models[i].name] == associations[i])
+                                std::cout << "TRUE POSITIVE, " << f.logimg.models[i].name << " = " << associations[i] << std::endl;
+                            else 
+                                std::cout << "FALSE POSITIVE, " << f.logimg.models[i].name << " SHOULD MAP TO " << omap[f.logimg.models[i].name]
+                                    << " NOT TO " << associations[i] << std::endl;
+                        }
+                    }
+
+                    pose->_detectedObjects.insert (o->_id);
+                    _graph->insertPoseObjectEdge (currPoseId, o->_id, observations[i]);
+                }
+
+                _graph->insertNode (pose);
+
+                _lastPoseId = currPoseId;
+                *_lastOdom = currOdom;
+
+                if (Simulation3::_init == true) Simulation3::_init = false;
+
+                std::cout << std::endl;
+            }
+        }
+    }
+
+    void Simulation3::thread2() {
+        while (!_graph->isReady()) { 
+            std::this_thread::sleep_for (std::chrono::microseconds(100));
+        }
+
+        std::vector<int> p, o, pp, po, xp, path;
+
+        while(1) {
+            path = _graph->getPath();
+
+            if (path.size() > _nextOpt + 4) {
+                p.push_back (path[_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+            } else
+                continue;
+
+            std::set<int> objects;
+            for (int i = 0; i < p.size(); i++) {
+                std::set<int> obj_i = _graph->getDetectedObjectsFromPose (p[i]);
+                objects.insert (obj_i.begin(), obj_i.end());
+            }
+            std::copy (objects.begin(), objects.end(), std::back_inserter(o));
+
+            std::set<int> passive_poses;
+            for (int i = 0; i < o.size(); i++) {
+                std::set<int> poses_i = _graph->getPosesFromObjects (o[i]);
+                for (int j = 0; j < p.size(); j++) {
+                    auto it = poses_i.find (p[j]);
+                    if (it != poses_i.end())
+                        poses_i.erase (*it);
+                }
+                passive_poses.insert (poses_i.begin(), poses_i.end());
+            }
+            std::copy (passive_poses.begin(), passive_poses.end(), std::back_inserter(xp));
+
+            auto ppMap = _graph->getPosePoseMap();
+            for (int i = 0; i < p.size() - 1; i++) {
+                for (auto it = ppMap.begin(); it != ppMap.end(); it++) {
+                    if (it->second->_from == p[i] && it->second->_to == p[i+1])
+                        pp.push_back (it->first);
+                }
+            } 
+
+            auto opMap = _graph->getPoseObjectMap();
+            for (int i = 0; i < p.size() - 1; i++) {
+                for (int j = 0; j < o.size(); j++) {
+                    for (auto it = opMap.begin(); it != opMap.end(); it++) {
+                        if (it->second->_from == p[i] && it->second->_to == o[j])
+                            po.push_back (it->first);
+                    }
+                }
+            } 
+
+            _opt->localOptimize (p,o,pp,po,xp);
+
+            p.clear();
+            o.clear();
+            pp.clear();
+            po.clear();
+            xp.clear();
+        }
+    }
+
+    int Simulation3::getObjectClass (std::string c) {
+
+        for (auto it = objectClass.begin(); it != objectClass.end(); it++) {
+            if (it->second == c)
+                return it->first;
+        }
+
+        int newId;
+        objectClass.empty() ? newId = 0 : newId = objectClass.rbegin()->first + 1;
+        objectClass[newId] = c;
+        return newId;
+    }
+
+    void Simulation3::writeFinalPose () {
+        std::ofstream f;
+        f.open ("/home/ism/code/rosws/result/finalpose.dat", std::ios::out);
+        std::map<int, Pose3::Ptr> poseMap = _graph->getPoseMap();
+        for (auto it = poseMap.begin(); it != poseMap.end(); it++) {
+            f << it->second->_pose.translation().transpose() << std::endl;
+        }
+        f.close();
+    }
 }

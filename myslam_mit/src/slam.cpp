@@ -37,10 +37,7 @@ namespace MYSLAM {
 		const nav_msgs::OdometryConstPtr& odom,
 		const darknet_ros_msgs::BoundingBoxesConstPtr& bb) {
 
-        if (Slam::_frameNum % 15 != 0 || bb->bounding_boxes.size() < 3)  {
-            Slam::_frameNum++;
-            return;
-        }
+//        saveData (cloud, odom, bb);
 
         Frame f;
         f.odom = *odom;
@@ -51,12 +48,8 @@ namespace MYSLAM {
             f.bb.push_back (bb->bounding_boxes[i]);
         }
 
-        {
-            std::unique_lock<std::mutex> lock (_FrameMutex);
-            _FrameQueue.push (f);
-        }
-
-        Slam::_frameNum++;
+        std::unique_lock<std::mutex> lock (_FrameMutex);
+        _FrameQueue.push (f);
 	}
 
 	void Slam::loadCloudData() {
@@ -349,6 +342,9 @@ namespace MYSLAM {
             zbar += z;
         }
 
+        if (counter == 0)
+            return g2o::Vector3 (0.0, 0.0, 0.0);
+
         xbar = xbar/(double)counter;
         ybar = ybar/(double)counter;
         zbar = zbar/(double)counter;
@@ -371,23 +367,20 @@ namespace MYSLAM {
             << odom->pose.pose.orientation.z << " "
             << odom->pose.pose.orientation.w << std::endl;
 
-		for (auto it = bb->bounding_boxes.begin(); it != bb->bounding_boxes.end(); it++) {
-			f << it->Class << " "
-			  << it->probability << " "
-			  << it->xmin << " "
-			  << it->ymin << " "
-			  << it->xmax << " "
-			  << it->ymax << std::endl;
-		}
 
-        std::string s = std::to_string(keyframe);
+//        std::string s = std::to_string(keyframe);
         pcl::PointCloud<pcl::PointXYZ>::Ptr pcl (new pcl::PointCloud<pcl::PointXYZ>);
         pcl::fromROSMsg(*cloud,*pcl);
-        pcl::io::savePCDFileASCII ("/home/ism/code/rosws/src/pclsave/data3/cloud/" + s + ".pcd", *pcl);
-        keyframe++;
+//        pcl::io::savePCDFileASCII ("/home/ism/code/rosws/src/pclsave/data3/cloud/" + s + ".pcd", *pcl);
+//        keyframe++;
+
+		for (auto it = bb->bounding_boxes.begin(); it != bb->bounding_boxes.end(); it++) {
+            if (it->Class == "person") continue;
+			f << it->Class << " " << getObjectPosition(*pcl, *it).transpose() << std::endl;
+		}
+        f << std::endl;
 
         f.close();
-
     }
 
     void Slam::loadSlamData() {
@@ -519,8 +512,16 @@ namespace MYSLAM {
                 {
                     std::unique_lock<std::mutex> lock (_FrameMutex);
                     f = _FrameQueue.front();
-                    _FrameQueue.pop();
+
+                    if (_FrameQueue.size() > 5)
+                        for (int i = 0;  i < 5; i++) // only process every 5th frame
+                            _FrameQueue.pop();
+                    else
+                        for (int i = 0; i < _FrameQueue.size() - 1; i++)
+                            _FrameQueue.pop();
                 }
+
+                if (f.bb.size() < 3) continue;
 
                 pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud<pcl::PointXYZ>);
                 pcl::fromROSMsg (f.cloud, *cloud); 
@@ -535,6 +536,10 @@ namespace MYSLAM {
                 }
 
                 g2o::Isometry3 currOdom = g2o::Isometry3(odomToSE3Quat(f.odom));
+                g2o::Isometry3 deltaOdom;
+
+                if (!Slam::_init)
+                    deltaOdom = _lastOdom.inverse() * currOdom;
 
                 std::vector<g2o::Vector3> observations;
                 std::vector<int> classes;
@@ -546,22 +551,24 @@ namespace MYSLAM {
                     int cls = getObjectClass (f.bb[i].Class);
                     observations.push_back (pos);
                     classes.push_back (cls);
-
-//                    std::cout << f.bb[i].Class << "\t" << pos.transpose() << "\t-->\t" << (currOdom * pos).transpose() << std::endl;
                 }
-//                std::cout << "---------------------------\n";
-
-                std::vector<int> associations;
-                DataAssociation3 da (*_graph);
-                da.associateByGrid (currOdom, classes, observations, associations); 
-                
-//                for (int i = 0; i < associations.size(); i++)
-//                    std::cout << associations[i] << "/";
-//                std::cout << std::endl;
 
                 Pose3::Ptr pose (new Pose3);
                 int currPoseId = pose->_id;
-                pose->_pose = currOdom;
+
+                if (!Slam::_init)
+                    pose->_pose = _graph->getPose(_lastPoseId)->_pose * deltaOdom;
+                else
+                    pose->_pose = currOdom;
+
+                std::vector<int> associations;
+                DataAssociation3 da (*_graph);
+                da.associateByGrid (pose->_pose, classes, observations, associations); 
+                
+                std::cout << _graph->getGrid().size() << " | ";
+                for (int i = 0; i < associations.size(); i++)
+                    std::cout << associations[i] << "/";
+                std::cout << std::endl;
 
                 if (!Slam::_init) {
                     _graph->insertPosePoseEdge (_lastPoseId, currPoseId, _lastOdom.inverse() * currOdom);
@@ -610,8 +617,10 @@ namespace MYSLAM {
         while(1) {
             path = _graph->getPath();
 
-            if (path.size() > _nextOpt + 2) {
+            if (path.size() > _nextOpt + 4) {
                 p.push_back (path[_nextOpt]);
+                p.push_back (path[++_nextOpt]);
+                p.push_back (path[++_nextOpt]);
                 p.push_back (path[++_nextOpt]);
                 p.push_back (path[++_nextOpt]);
             } else
@@ -690,5 +699,40 @@ namespace MYSLAM {
         objectClass.empty() ? newId = 0 : newId = objectClass.rbegin()->first + 1;
         objectClass[newId] = c;
         return newId;
+    }
+
+    void Slam::writeFinalPose () {
+        std::ofstream f;
+        f.open ("/home/ism/code/rosws/result/finalpose.dat", std::ios::out);
+        std::map<int, Pose3::Ptr> poseMap = _graph->getPoseMap();
+        for (auto it = poseMap.begin(); it != poseMap.end(); it++) {
+            f << it->second->_pose.translation().transpose() << std::endl;
+        }
+        f.close();
+    }
+
+    void Slam::testVO() {
+
+//        fovis_example::DataCapture* cap = new fovis_example::DataCapture();
+//
+//        if(!cap->initialize()) {
+//            fprintf(stderr, "Unable to initialize Kinect sensor\n");
+//            return;
+//        }
+//
+//        if(!cap->startDataCapture()) {
+//            fprintf(stderr, "Unable to start data capture\n");
+//            return;
+//        }
+//
+//        // get the RGB camera parameters of our device
+//        fovis::Rectification rect(cap->getRgbParameters());
+//
+//        fovis::VisualOdometryOptions options = fovis::VisualOdometry::getDefaultOptions();
+//        fovis::VisualOdometry* odom = new fovis::VisualOdometry(&rect, options);
+//
+//        odom->processFrame(cap->getGrayImage(), cap->getDepthImage());
+//        Eigen::Isometry3d cam_to_local = odom->getPose();
+//        Eigen::Isometry3d motion_estimate = odom->getMotionEstimate();
     }
 }

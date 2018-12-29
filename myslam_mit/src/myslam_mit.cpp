@@ -42,13 +42,16 @@ int main (int argc, char** argv)
 
 	sync.registerCallback (boost::bind (&MYSLAM::Slam::callback, &slam, _1, _2, _3, _4, _5));
 
-    std::thread t1 (&MYSLAM::Slam::thread1, &slam);
-    std::thread t2 (&MYSLAM::Slam::thread2, &slam);
+//    std::thread t1 (&MYSLAM::Slam::thread1, &slam);
+//    std::thread t2 (&MYSLAM::Slam::thread2, &slam);
 
+    slam.testVO();
 	ros::spin();
 
-    t1.join();
-    t2.join();
+//    slam.writeFinalPose();
+//
+//    t1.join();
+//    t2.join();
 
 	return 0;
 }
