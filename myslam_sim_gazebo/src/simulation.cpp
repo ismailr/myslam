@@ -665,13 +665,14 @@ namespace MYSLAM {
 	}
 
     bool Simulation3::_init = true;
+    int Simulation3::FRAMECOUNTER = 0;
+    int Simulation3::KEYFRAMECOUNTER = 0;
 
 	Simulation3::Simulation3(Graph3& g, Optimizer3& o, ros::NodeHandle& nh) 
     : _graph(&g), _opt(&o), _nh(&nh), _nextOpt(0)  {
 
         _lastOdom = new g2o::Isometry3;
         _lastNoisyOdom = new g2o::Isometry3;
-
     }
 		
 
@@ -686,70 +687,259 @@ namespace MYSLAM {
         _FrameQueue.push (f);
     }
 
-    void Simulation3::addingNoiseToOdom (const g2o::Isometry3&, g2o::Isometry3&) {
+	void Simulation3::callback2 (const nav_msgs::Odometry::ConstPtr& odom,
+		const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg) {
 
+        if (Simulation3::FRAMECOUNTER % 15 != 0 && Simulation3::_init == false) {
+            Simulation3::FRAMECOUNTER++;
+            return;
+        }
+
+        myslam_sim_gazebo::LogicalImage logimg = *_logimg;
+//        addingNoiseToObject (logimg);
+
+        g2o::Isometry3 currOdom = g2o::Isometry3(Converter::odomToSE3Quat(*odom));
+        currOdom.rotate (Eigen::AngleAxisd (M_PI, Eigen::Vector3d::UnitZ()));
+
+        g2o::Isometry3 currNoisyOdom = currOdom;
+        g2o::Isometry3 deltaOdom;
+
+        std::ofstream of;
+        of.open ("/home/ism/code/rosws/result/odomtest.txt", std::ios::out | std::ios::app);
+        of << currNoisyOdom.translation()[0] << " " << currNoisyOdom.translation()[1] << " ";
+
+        if (!Simulation3::_init) {
+            addingNoiseToOdom (currNoisyOdom);
+        }
+        of << currNoisyOdom.translation()[0] << " " << currNoisyOdom.translation()[1] << " "; 
+
+        if (!Simulation3::_init) {
+            deltaOdom = _lastNoisyOdom->inverse() * currNoisyOdom;
+        }
+
+        std::vector<g2o::Vector3> observations;
+        std::vector<int> classes;
+        for (int i = 0; i < logimg.models.size(); i++) {
+            g2o::Vector3 pos (  logimg.models[i].pose.position.x,
+                                logimg.models[i].pose.position.y,
+                                logimg.models[i].pose.position.z);
+            int cls = getObjectClass (logimg.models[i].name);
+            observations.push_back (pos);
+            classes.push_back (cls);
+        }
+
+        Pose3::Ptr pose (new Pose3);
+        int currPoseId = pose->_id;
+
+        if (!Simulation3::_init)
+            pose->_pose = _lastPose->_pose * deltaOdom;
+        else
+            pose->_pose = currNoisyOdom;
+
+        of << pose->_pose.translation()[0] << " " << pose->_pose.translation()[1] << std::endl;
+        of.close();
+
+
+        std::vector<int> associations (observations.size(), -1);
+        for (int i = 0; i < logimg.models.size(); i++) {
+            auto it = omap.find (logimg.models[i].name);
+            if (it != omap.end()) {
+                associations[i] = it->second;
+            }
+        }
+//                DataAssociation3 da (*_graph);
+//              da.associateByGrid (pose->_pose, classes, observations, associations); 
+        
+        if (!Simulation3::_init) {
+            spp.insert (_graph->insertPosePoseEdge (_lastPoseId, currPoseId, deltaOdom));
+        }
+
+        for (int i = 0; i < observations.size(); i++) {
+
+            ObjectXYZ::Ptr o;
+
+            if (associations[i] == -1) {
+                ObjectXYZ::Ptr ob (new ObjectXYZ);
+                o = ob;
+                o->_classid = getObjectClass (logimg.models[i].name);
+                o->_pose = pose->_pose * observations[i];
+                o->_type = logimg.models[i].name;
+                o->_seenBy.insert (currPoseId);
+                _graph->insertNode (o);
+
+                if (omap.find(logimg.models[i].name) == omap.end()) {
+                    omap[logimg.models[i].name] = o->_id;
+                    std::cout << "TRUE NEGATIVE, " << logimg.models[i].name << " = " << o->_id << std::endl;
+                } else {
+                    std::cout << "FALSE NEGATIVE, " << logimg.models[i].name << " IS ALREADY MAPPED TO " << omap[logimg.models[i].name] << " (ALERT)" << std::endl;
+                }
+            } else {
+                o = _graph->_objectMap[associations[i]];
+                o->_seenBy.insert(currPoseId);
+                if (omap.find(logimg.models[i].name) == omap.end()) {
+                    std::cout << "FALSE POSITIIVE, " << logimg.models[i].name << " IS NOT IN THE MAP (ALERT)\n" ;
+                } else {
+                    if (omap[logimg.models[i].name] == associations[i])
+                        std::cout << "TRUE POSITIVE, " << logimg.models[i].name << " = " << associations[i] << std::endl;
+                    else 
+                        std::cout << "FALSE POSITIVE, " << logimg.models[i].name << " SHOULD MAP TO " << omap[logimg.models[i].name]
+                            << " NOT TO " << associations[i] << " (ALERT)" << std::endl;
+                }
+            }
+
+            so.insert (o->_id);
+            pose->_detectedObjects.insert (o->_id);
+            spo.insert (_graph->insertPoseObjectEdge (currPoseId, o->_id, observations[i]));
+        }
+
+        _graph->insertNode (pose);
+        sp.insert (pose->_id);
+
+        if (Simulation3::KEYFRAMECOUNTER % 3 == 0 && Simulation3::_init == false) {
+            std::vector<int> p, o, pp, po, xp;
+
+            std::copy (sp.begin(), sp.end(), std::back_inserter(p));
+            std::copy (so.begin(), so.end(), std::back_inserter(o));
+            std::copy (spp.begin(), spp.end(), std::back_inserter(pp));
+            std::copy (spo.begin(), spo.end(), std::back_inserter(po));
+
+//            for (auto it = so.begin(); it != so.end(); it++) {
+//                std::set<int> seenBy = _graph->_objectMap[*it]->_seenBy;
+//                sxp.insert (seenBy.begin(), seenBy.end());
+//            }
+//
+//            for (auto it = sxp.begin(); it != sxp.end(); it++) {
+//                auto jt = sp.find (*it);
+//                if (jt != sp.end())
+//                    sxp.erase (it);
+//            }
+//            std::copy (sxp.begin(), sxp.end(), std::back_inserter(xp));
+
+            _opt->localOptimize (p,o,pp,po,xp);
+
+            sp.clear();
+            so.clear();
+            spp.clear();
+            spo.clear();
+            sxp.clear();
+
+            sp.insert (p.front()); // for next iteration
+        }
+
+        _lastPoseId = currPoseId;
+        _lastPose = pose;
+        *_lastOdom = currOdom;
+        *_lastNoisyOdom = currNoisyOdom;
+
+        if (Simulation3::_init == true) Simulation3::_init = false;
+
+        std::cout << std::endl;
+
+        Simulation3::FRAMECOUNTER++;
+        Simulation3::KEYFRAMECOUNTER++;
     }
 
-	void Simulation3::addingNoiseToObject (const myslam_sim_gazebo::LogicalImage::ConstPtr& _logimg,
-			myslam_sim_gazebo::LogicalImage::Ptr& logimg) {
-			
+    void Simulation3::addingNoiseToOdom (g2o::Isometry3& odom) {
 
-		for (auto it = _logimg->models.begin(); it != _logimg->models.end(); it++) {
+		double a1 = 0.01;
+		double a2 = 0.0;
+		double a3 = 0.0;
+		double a4 = 0.01;
+		double odom_min_xy = 0.001;
+		double odom_min_theta = 0.00349;
+
+        g2o::Isometry3 delta = _lastOdom->inverse() * odom;
+
+		double dx = delta.translation().x();
+		double dy = delta.translation().y();
+		double dtrans = sqrt (dx*dx + dy*dy);
+        Eigen::Matrix3d rot = delta.rotation();
+        double drot = atan2 (rot(1,0),rot(0,0)); 
+
+		double sdx = odom_min_xy + a1 * dtrans + a2 * std::abs (drot);
+		double sdy = sdx;
+		double sdt = odom_min_theta + a3 * dtrans + a4 * std::abs (drot);
+
+		double noisex = gaussian_generator<double>(0.0, sdx);
+		double noisey = noisex;
+		double noiset = gaussian_generator<double>(0.0, sdt);
+
+        g2o::Isometry3 noise;
+        noise.setIdentity();
+        g2o::Vector3 n (noisex, noisey, 0.0);
+        noise.translation() = n;
+        noise.rotate (Eigen::AngleAxisd (noiset, Eigen::Vector3d::UnitZ()));
+
+        g2o::Isometry3 noisyDelta = noise * delta;
+
+		odom = *_lastNoisyOdom * noisyDelta;
+    }
+
+	void Simulation3::addingNoiseToObject (myslam_sim_gazebo::LogicalImage& logimg) {
+			
+//        std::ofstream of;
+//        of.open ("/home/ism/code/rosws/objdata.txt", std::ios::out | std::ios::app);
+		for (auto it = logimg.models.begin(); it != logimg.models.end(); it++) {
 
 			double x = it->pose.position.x;
 			double y = it->pose.position.y;
 			double z = it->pose.position.z;
+            double qx = it->pose.orientation.x;
+            double qy = it->pose.orientation.y;
+            double qz = it->pose.orientation.z;
+            double qw = it->pose.orientation.w;
+//            of << x << " " << y << " " << z << " " << qx << " " << qy << " " << qz << " " << qw << " --> ";
 
-//			double range = sqrt (x*x + y*y + z*z);
-//			double bearing = atan2 (y,x);
-//
-////			double std_r = MYSLAM::B1 * range; 
-////			double std_b = MYSLAM::B2 * bearing;
-//			double std_r = MYSLAM::B1;
-//			double std_b = MYSLAM::B2;
-//
-//			double range_noise = gaussian_generator<double>(0.0, std_r);
-//			double bearing_noise = gaussian_generator<double>(0.0, std_b);
-//
-//			range += range_noise;
-//			bearing += bearing_noise;
-//
-//			range = std::max (0.0, range);
-//			bearing = g2o::normalize_theta (bearing);
-//
-//			x = range * cos (bearing);
-//			y = range * sin (bearing);
-//
-//			double orientation_noise = gaussian_generator<double>(0.0, MYSLAM::B3);
-//
-//			tf::Quaternion q (
-//				it->pose.orientation.x,	
-//				it->pose.orientation.y,	
-//				it->pose.orientation.z,	
-//				it->pose.orientation.w);
-//			double roll, pitch, yaw;
-//			tf::Matrix3x3 (q).getRPY (roll,pitch,yaw);
-//
-//			yaw += orientation_noise;
-//			yaw = g2o::normalize_theta (yaw);
-//			q.setRPY (roll,pitch,yaw);
-//
-//			Eigen::Vector2d p2 (x, y);
-//			double d = (double) p2.norm();
-//			double theta = normalize_theta (atan2 (y, x));
-//
-//			// limit distance and orientation view of logical camera
+			double range = sqrt (x*x + y*y);
+			double bearing = atan2 (y,x);
+
+			double std_r = 0.03;
+			double std_b = 0.00872;
+
+			double range_noise = gaussian_generator<double>(0.0, std_r);
+			double bearing_noise = gaussian_generator<double>(0.0, std_b);
+
+			range += range_noise;
+			bearing += bearing_noise;
+
+			range = std::max (0.0, range);
+			bearing = g2o::normalize_theta (bearing);
+
+			x = range * cos (bearing);
+			y = range * sin (bearing);
+
+			double orientation_noise = gaussian_generator<double>(0.0, 0.00872);
+
+			tf::Quaternion q (
+				it->pose.orientation.x,	
+				it->pose.orientation.y,	
+				it->pose.orientation.z,	
+				it->pose.orientation.w);
+			double roll, pitch, yaw;
+			tf::Matrix3x3 (q).getRPY (roll,pitch,yaw);
+
+			yaw += orientation_noise;
+			yaw = g2o::normalize_theta (yaw);
+			q.setRPY (roll,pitch,yaw);
+
+			Eigen::Vector2d p2 (x, y);
+			double d = (double) p2.norm();
+			double theta = normalize_theta (atan2 (y, x));
+
+			// limit distance and orientation view of logical camera
 //			if (d < 5.0 && std::fabs(theta) < 1.396) {
-//
-//			       	logimg->models.push_back(*it);
-//				logimg->models.back().pose.position.x = x;
-//				logimg->models.back().pose.position.y = y;
-//				logimg->models.back().pose.orientation.x = q.x();
-//				logimg->models.back().pose.orientation.y = q.y();
-//				logimg->models.back().pose.orientation.z = q.z();
-//				logimg->models.back().pose.orientation.w = q.w();
-//			}
+				it->pose.position.x = x;
+				it->pose.position.y = y;
+				it->pose.orientation.x = q.x();
+				it->pose.orientation.y = q.y();
+				it->pose.orientation.z = q.z();
+				it->pose.orientation.w = q.w();
+//			} else {
+//                logimg.models.erase (it);
+//            }
+//            of << x << " " << y << " " << z << " " << q.x() << " " << q.y() << " " << q.z() << " " << q.w() << std::endl;
 		}
+//        of.close();
 	}
 
     int thread1num = 0;
@@ -773,14 +963,30 @@ namespace MYSLAM {
                 }
 
                 if (f.logimg.models.size() < 3) continue;
-                
-                std::cout << ++thread1num << std::endl;
+
+//                addingNoiseToObject (f.logimg);
 
                 g2o::Isometry3 currOdom = g2o::Isometry3(Converter::odomToSE3Quat(f.odom));
+                currOdom.rotate (Eigen::AngleAxisd (M_PI, Eigen::Vector3d::UnitZ()));
+                g2o::Isometry3 currNoisyOdom = currOdom;
                 g2o::Isometry3 deltaOdom;
 
+                std::ofstream of;
+                of.open ("/home/ism/code/rosws/result/odomtest.txt", std::ios::out | std::ios::app);
+                of << currNoisyOdom.translation()[0] << " " << currNoisyOdom.translation()[1] << " ";
+
+                if (!Simulation3::_init) {
+                    addingNoiseToOdom (currNoisyOdom);
+                }
+                of << currNoisyOdom.translation()[0] << " " << currNoisyOdom.translation()[1] << std::endl;
+                of.close();
+
+                std::cout << ++thread1num << std::endl;
+                std::cout << "ODOM:\n";
+                std::cout << currNoisyOdom.matrix() << std::endl;
+
                 if (!Simulation3::_init)
-                    deltaOdom = _lastOdom->inverse() * currOdom;
+                    deltaOdom = _lastNoisyOdom->inverse() * currNoisyOdom;
 
                 std::vector<g2o::Vector3> observations;
                 std::vector<int> classes;
@@ -799,17 +1005,24 @@ namespace MYSLAM {
                 if (!Simulation3::_init)
                     pose->_pose = _graph->getPose(_lastPoseId)->_pose * deltaOdom;
                 else
-                    pose->_pose = currOdom;
+                    pose->_pose = currNoisyOdom;
+
 
                 std::ofstream odomf;
                 odomf.open ("/home/ism/code/rosws/result/odom.txt", std::ios::out | std::ios::app);
-                odomf << pose->_id << " " << pose->_pose.translation().transpose() << "\n";
+                odomf << pose->_id << " POSE: " << pose->_pose.translation().transpose() << " ODOM: " << currNoisyOdom.translation().transpose() << std::endl;
                 odomf.close();
 
 
-                std::vector<int> associations;
-                DataAssociation3 da (*_graph);
-                da.associateByGrid (currOdom, classes, observations, associations); 
+                std::vector<int> associations (observations.size(), -1);
+                for (int i = 0; i < f.logimg.models.size(); i++) {
+                    auto it = omap.find (f.logimg.models[i].name);
+                    if (it != omap.end()) {
+                        associations[i] = it->second;
+                    }
+                }
+//                DataAssociation3 da (*_graph);
+//              da.associateByGrid (pose->_pose, classes, observations, associations); 
                 
                 std::cout << _graph->getGrid().size() << " | ";
                 for (int i = 0; i < associations.size(); i++)
@@ -817,7 +1030,7 @@ namespace MYSLAM {
                 std::cout << std::endl;
 
                 if (!Simulation3::_init) {
-                    _graph->insertPosePoseEdge (_lastPoseId, currPoseId, _lastOdom->inverse() * currOdom);
+                    _graph->insertPosePoseEdge (_lastPoseId, currPoseId, deltaOdom);
                 }
 
                 for (int i = 0; i < observations.size(); i++) {
@@ -828,7 +1041,7 @@ namespace MYSLAM {
                         ObjectXYZ::Ptr ob (new ObjectXYZ);
                         o = ob;
                         o->_classid = getObjectClass (f.logimg.models[i].name);
-                        o->_pose = currOdom * observations[i];
+                        o->_pose = pose->_pose * observations[i];
                         o->_type = f.logimg.models[i].name;
                         o->_seenBy.insert (currPoseId);
                         _graph->insertNode (o);
@@ -836,20 +1049,20 @@ namespace MYSLAM {
                             omap[f.logimg.models[i].name] = o->_id;
                             std::cout << "TRUE NEGATIVE, " << f.logimg.models[i].name << " = " << o->_id << std::endl;
                         } else {
-                            std::cout << "FALSE NEGATIVE, " << f.logimg.models[i].name << " IS ALREADY MAPPED TO " << omap[f.logimg.models[i].name] << std::endl;
+                            std::cout << "FALSE NEGATIVE, " << f.logimg.models[i].name << " IS ALREADY MAPPED TO " << omap[f.logimg.models[i].name] << " (ALERT)" << std::endl;
                         }
                     } else {
                         std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
                         o = _graph->_objectMap[associations[i]];
                         o->_seenBy.insert(currPoseId);
                         if (omap.find(f.logimg.models[i].name) == omap.end()) {
-                            std::cout << "FALSE POSITIIVE, " << f.logimg.models[i].name << " IS NOT IN THE MAP\n";
+                            std::cout << "FALSE POSITIIVE, " << f.logimg.models[i].name << " IS NOT IN THE MAP (ALERT)\n" ;
                         } else {
                             if (omap[f.logimg.models[i].name] == associations[i])
                                 std::cout << "TRUE POSITIVE, " << f.logimg.models[i].name << " = " << associations[i] << std::endl;
                             else 
                                 std::cout << "FALSE POSITIVE, " << f.logimg.models[i].name << " SHOULD MAP TO " << omap[f.logimg.models[i].name]
-                                    << " NOT TO " << associations[i] << std::endl;
+                                    << " NOT TO " << associations[i] << " (ALERT)" << std::endl;
                         }
                     }
 
@@ -861,6 +1074,7 @@ namespace MYSLAM {
 
                 _lastPoseId = currPoseId;
                 *_lastOdom = currOdom;
+                *_lastNoisyOdom = currNoisyOdom;
 
                 if (Simulation3::_init == true) Simulation3::_init = false;
 
@@ -876,11 +1090,12 @@ namespace MYSLAM {
 
         std::vector<int> p, o, pp, po, xp, path;
 
-        while(1) {
+      while(1) {
             path = _graph->getPath();
 
-            if (path.size() > _nextOpt + 4) {
+            if (path.size() > _nextOpt + 5) {
                 p.push_back (path[_nextOpt]);
+                p.push_back (path[++_nextOpt]);
                 p.push_back (path[++_nextOpt]);
                 p.push_back (path[++_nextOpt]);
                 p.push_back (path[++_nextOpt]);
@@ -916,7 +1131,7 @@ namespace MYSLAM {
             } 
 
             auto opMap = _graph->getPoseObjectMap();
-            for (int i = 0; i < p.size() - 1; i++) {
+            for (int i = 0; i < p.size(); i++) {
                 for (int j = 0; j < o.size(); j++) {
                     for (auto it = opMap.begin(); it != opMap.end(); it++) {
                         if (it->second->_from == p[i] && it->second->_to == o[j])
@@ -926,6 +1141,7 @@ namespace MYSLAM {
             } 
 
             _opt->localOptimize (p,o,pp,po,xp);
+            _opt->globalOptimize ();
 
             p.clear();
             o.clear();
@@ -956,5 +1172,20 @@ namespace MYSLAM {
             f << it->second->_pose.translation().transpose() << std::endl;
         }
         f.close();
+    }
+
+    void Simulation3::test() {
+        g2o::Isometry3 odom1;
+        g2o::Isometry3 odom2;
+        odom1.setIdentity();
+        odom2.setIdentity();
+
+        g2o::Vector3 p1 (1.0, 0.0, 0.0);
+        g2o::Vector3 p2 (5.0, 0.0, 0.0);
+
+        odom1.translation() = p1;
+        odom2.translation() = p2;
+
+        std::cout << (odom1 * odom2).matrix() << std::endl; 
     }
 }

@@ -22,6 +22,7 @@ namespace MYSLAM {
         public:
             Optimizer3 (Graph3&);
             void localOptimize(std::vector<int>,std::vector<int>,std::vector<int>,std::vector<int>,std::vector<int>);
+            void globalOptimize();
 
         private:
             Graph3 *_graph;

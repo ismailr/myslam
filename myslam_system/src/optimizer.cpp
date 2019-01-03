@@ -891,7 +891,7 @@ namespace MYSLAM {
         OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
                 g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
         o->setAlgorithm (solver);
-        o->setVerbose (false);
+        o->setVerbose (true);
 
         g2o::ParameterSE3Offset* cameraOffset = new g2o::ParameterSE3Offset;
         cameraOffset->setId (0);
@@ -1009,6 +1009,112 @@ namespace MYSLAM {
         for (int i = 0; i < active_objects.size(); i++) {
             int id = active_objects[i];
             if (!o->vertex(id)) continue;
+            ObjectXYZVertex* optv = dynamic_cast<ObjectXYZVertex*> (o->vertex (id));
+            {
+                std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
+                objectMap[id]->_pose = optv->estimate();
+            }
+            _graph->updateGrid (id);
+        }
+    }
+
+    void Optimizer3::globalOptimize() {
+
+        typedef BlockSolver< BlockSolverTraits<-1,-1> > SlamBlockSolver;
+        typedef LinearSolverCSparse<SlamBlockSolver::PoseMatrixType> SlamLinearSolver;
+
+        g2o::SparseOptimizer *o = new g2o::SparseOptimizer;
+        auto linearSolver = g2o::make_unique<SlamLinearSolver>();
+        linearSolver->setBlockOrdering (false);
+        OptimizationAlgorithmLevenberg *solver = new OptimizationAlgorithmLevenberg (
+                g2o::make_unique<SlamBlockSolver>(std::move(linearSolver)));
+        o->setAlgorithm (solver);
+        o->setVerbose (true);
+
+        g2o::ParameterSE3Offset* cameraOffset = new g2o::ParameterSE3Offset;
+        cameraOffset->setId (0);
+        o->addParameter (cameraOffset);
+
+        std::map<int, Pose3::Ptr> poseMap = _graph->getPoseMap();
+        std::map<int, ObjectXYZ::Ptr> objectMap = _graph->getObjectMap();
+        std::map<int, Pose3Measurement::Ptr> posePoseMap = _graph->getPosePoseMap();
+        std::map<int, ObjectXYZMeasurement::Ptr> poseObjectMap = _graph->getPoseObjectMap();
+        std::vector<int> path = _graph->getPath();
+
+        for (auto it = poseMap.begin(); it != poseMap.end(); it++) {
+            int id = it->first;
+            Pose3Vertex *pv = new Pose3Vertex; 
+            pv->setId (id);
+            pv->setEstimate (poseMap[id]->_pose);
+            pv->setFixed (id == 0);
+            o->addVertex (pv); 
+        }
+
+        for (auto it = objectMap.begin(); it != objectMap.end(); it++) {
+            int id = it->first;
+            ObjectXYZVertex *ov = new ObjectXYZVertex; 
+            ov->setId (id); 
+            ov->setEstimate (objectMap[id]->_pose);
+            ov->setMarginalized (true);
+            o->addVertex (ov); 
+        }
+
+        for (auto it = posePoseMap.begin(); it != posePoseMap.end(); it++) {
+            int id = it->first;
+            int from = posePoseMap[id]->_from;
+            int to = posePoseMap[id]->_to;
+
+            Pose3Edge *e = new Pose3Edge;
+            e->vertices()[0] = o->vertex (from);
+            e->vertices()[1] = o->vertex (to);
+            e->setMeasurement (posePoseMap[id]->_measurement);
+            e->information() = posePoseMap[id]->_cov.inverse();
+            
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            e->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
+
+            o->addEdge (e);
+        }
+
+        for (auto it = poseObjectMap.begin(); it != poseObjectMap.end(); it++) {
+            int id = it->first;
+            int from = poseObjectMap[id]->_from;
+            int to = poseObjectMap[id]->_to;
+
+            Pose3ObjectXYZEdge *e = new Pose3ObjectXYZEdge;
+            e->vertices()[0] = o->vertex (from);
+            e->vertices()[1] = o->vertex (to);
+            e->setMeasurement (poseObjectMap[id]->_measurement);
+            e->information() = poseObjectMap[id]->_cov.inverse();
+            e->setParameterId (0,0);
+            
+            g2o::RobustKernelHuber *rk = new g2o::RobustKernelHuber;
+            e->setRobustKernel (rk);
+            rk->setDelta (sqrt(5.99));
+
+            o->addEdge (e); 
+        }
+
+        std::ofstream f;
+        f.open ("/home/ism/code/rosws/result/g2o", std::ios::out | std::ios::app);
+
+        o->save(f);
+        o->initializeOptimization();
+        o->optimize(10);
+        o->save(f);
+        f << std::endl;
+        f.close();
+
+        for (auto it = poseMap.begin(); it != poseMap.end(); it++) {
+            int id = it->first;
+            Pose3Vertex* optv = dynamic_cast<Pose3Vertex*> (o->vertex (id));
+            std::unique_lock<std::mutex> lock (_graph->_nodeMutex);
+            poseMap[id]->_pose = optv->estimate();
+        }
+
+        for (auto it = objectMap.begin(); it != objectMap.end(); it++) {
+            int id = it->first;
             ObjectXYZVertex* optv = dynamic_cast<ObjectXYZVertex*> (o->vertex (id));
             {
                 std::unique_lock<std::mutex> lock (_graph->_nodeMutex);

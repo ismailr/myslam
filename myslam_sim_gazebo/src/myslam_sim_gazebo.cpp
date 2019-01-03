@@ -19,6 +19,8 @@ int main (int argc, char** argv)
 	std::remove ("/home/ism/code/rosws/result/objectsgt.dat");
 	std::remove ("/home/ism/code/rosws/result/data.g2o");
 	std::remove ("/home/ism/code/rosws/result/da.log");
+	std::remove ("/home/ism/code/rosws/result/odomtest.txt");
+	std::remove ("/home/ism/code/rosws/result/g2o");
 //	std::remove ("/home/ism/code/rosws/result/threshold.log");
 
 	const char *fileconfig = "/home/ism/code/rosws/src/myslam/myslam_sim_gazebo/src/myslam_sim.cfg";
@@ -40,17 +42,17 @@ int main (int argc, char** argv)
 	message_filters::Synchronizer<MySyncPolicy> sync (MySyncPolicy (100), 
 	subodom, sublogcam);
 
-	sync.registerCallback (boost::bind (&MYSLAM::Simulation3::callback, &sim, _1, _2/*, _3, _4, _5, _6, _7*/));
+	sync.registerCallback (boost::bind (&MYSLAM::Simulation3::callback2, &sim, _1, _2/*, _3, _4, _5, _6, _7*/));
 
-    std::thread t1 (&MYSLAM::Simulation3::thread1, &sim);
-    std::thread t2 (&MYSLAM::Simulation3::thread2, &sim);
+//    std::thread t1 (&MYSLAM::Simulation3::thread1, &sim);
+//    std::thread t2 (&MYSLAM::Simulation3::thread2, &sim);
 
 	ros::spin();
 
     sim.writeFinalPose();
-
-    t1.join();
-    t2.join();
+//
+//    t1.join();
+//    t2.join();
 
 //	double rmse_t = 0.0;
 //	double rmse_r = 0.0;

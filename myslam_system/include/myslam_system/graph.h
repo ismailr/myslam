@@ -62,8 +62,8 @@ namespace MYSLAM {
 
             void insertNode (Pose3::Ptr pose);
             void insertNode (ObjectXYZ::Ptr object); 
-            void insertPosePoseEdge (int from, int to, g2o::Isometry3 d); 
-            void insertPoseObjectEdge (int from, int to, Eigen::Vector3d);
+            int insertPosePoseEdge (int from, int to, g2o::Isometry3 d); 
+            int insertPoseObjectEdge (int from, int to, Eigen::Vector3d);
             void resetActive ();
 
             std::map<int, Pose3::Ptr> getPoseMap ();

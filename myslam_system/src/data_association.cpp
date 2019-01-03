@@ -781,12 +781,13 @@ namespace MYSLAM {
 
         std::vector<Eigen::Vector3i> _observationsGrid;
         for (int i = 0; i < observations.size(); i++) {
-            g2o::Vector3 o = odom * observations[i];
-            int x = (int) std::floor (o[0] * 10);
-            int y = (int) std::floor (o[1] * 10);
-            int z = (int) std::floor (o[2] * 10);
+            g2o::Vector3 o = odom.rotation() * observations[i];
+            int x = (int) round (o[0] * 10);
+            int y = (int) round (o[1] * 10);
+            int z = (int) round (o[2] * 10);
             _observationsGrid.push_back (Eigen::Vector3i (x,y,z));
-            std::cout << x << " " << y << " " << z << std::endl;
+            std::cout << classes[i] << " || " << observations[i].transpose() << "\t\t|| " << o.transpose() << "\t\t|| " << x << " " << y << " " << z << std::endl;
+
         }
         std::cout << " ----- \n";
 
@@ -794,13 +795,7 @@ namespace MYSLAM {
         auto grid = _graph->getGrid();
         auto gridLookup = _graph->getGridLookup();
 
-        for (auto it = gridLookup.begin(); it != gridLookup.end(); it++)
-        {
-            std::cout << it->first << " "   << std::get<0>(it->second) << " "
-                                            << std::get<1>(it->second) << " "
-                                            << std::get<2>(it->second) << std::endl;
-        }
-        std::cout << " ----- \n";
+        std::cout << "GRID SIZE: " << grid.size() << "  NUMBER OF OBJECTS: " << gridLookup.size() << std::endl;
 
         std::vector<int> best (observations.size(), -1);
 

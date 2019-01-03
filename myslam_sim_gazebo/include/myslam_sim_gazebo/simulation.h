@@ -69,6 +69,8 @@ namespace MYSLAM {
             Simulation3 (Graph3&, Optimizer3&, ros::NodeHandle&);
 			void callback (const nav_msgs::Odometry::ConstPtr& odom,
 				const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg);
+			void callback2 (const nav_msgs::Odometry::ConstPtr& odom,
+				const myslam_sim_gazebo::LogicalImage::ConstPtr& logimg);
 
 			static int FRAMECOUNTER; 
 			static int KEYFRAMECOUNTER; 
@@ -76,13 +78,14 @@ namespace MYSLAM {
 			static int NUM_OPT;
 			static double TIME_OPT;
 
-			void addingNoiseToOdom (const g2o::Isometry3&, g2o::Isometry3&);
-			void addingNoiseToObject (const myslam_sim_gazebo::LogicalImage::ConstPtr&, myslam_sim_gazebo::LogicalImage::Ptr&);
+			void addingNoiseToOdom (g2o::Isometry3&);
+			void addingNoiseToObject (myslam_sim_gazebo::LogicalImage&);
             int getObjectClass (std::string);
             void writeFinalPose();
 
             void thread1();
             void thread2();
+            void test();
 
             static bool _init;
             int _nextOpt;
@@ -106,6 +109,8 @@ namespace MYSLAM {
             std::mutex _FrameMutex;
 
 			std::map<std::string, int> omap; // object_name --> id
+
+            std::set<int> sp, so, spp, spo, sxp;
     };
 }
 

@@ -76,9 +76,9 @@ namespace MYSLAM {
             _objectClassMap[object->_classid].insert (object->_id); 
         }
 
-        int x = (int)floor((object->_pose[0])*10);
-        int y = (int)floor((object->_pose[1])*10);
-        int z = (int)floor((object->_pose[2])*10);
+        int x = (int)round((object->_pose[0])*10);
+        int y = (int)round((object->_pose[1])*10);
+        int z = (int)round((object->_pose[2])*10);
         std::tuple<int,int,int> xyz = std::make_tuple(x,y,z);
         {
             std::unique_lock<std::mutex> lock (_gridMutex);
@@ -87,7 +87,7 @@ namespace MYSLAM {
         }
     }
 
-    void Graph3::insertPosePoseEdge (int from, int to, g2o::Isometry3 d) {
+    int Graph3::insertPosePoseEdge (int from, int to, g2o::Isometry3 d) {
         std::unique_lock<std::mutex> lock (_nodeMutex);
         Pose3Measurement::Ptr pm (new Pose3Measurement);
         pm->_active = true;
@@ -95,9 +95,10 @@ namespace MYSLAM {
         pm->_to = to;
         pm->_measurement = d;
         _posePoseMap[pm->_id] = pm;
+        return pm->_id;
     }
 
-    void Graph3::insertPoseObjectEdge (int from, int to, Eigen::Vector3d d) {
+    int Graph3::insertPoseObjectEdge (int from, int to, Eigen::Vector3d d) {
         std::unique_lock<std::mutex> lock (_nodeMutex);
         ObjectXYZMeasurement::Ptr om (new ObjectXYZMeasurement);
         om->_active = true;
@@ -105,6 +106,7 @@ namespace MYSLAM {
         om->_to = to;
         om->_measurement = d;
         _poseObjectMap[om->_id] = om;
+        return om->_id;
     }
 
     void Graph3::resetActive () {
@@ -166,9 +168,9 @@ namespace MYSLAM {
         if (_objectMap.find(id) == _objectMap.end())
             return;
 
-        int x = (int) floor (_objectMap[id]->_pose[0] * 10);
-        int y = (int) floor (_objectMap[id]->_pose[1] * 10);
-        int z = (int) floor (_objectMap[id]->_pose[2] * 10);
+        int x = (int) round (_objectMap[id]->_pose[0] * 10);
+        int y = (int) round (_objectMap[id]->_pose[1] * 10);
+        int z = (int) round (_objectMap[id]->_pose[2] * 10);
 
         auto xyz = std::make_tuple (x,y,z);
 
